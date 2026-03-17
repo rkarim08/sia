@@ -42,9 +42,9 @@ export async function pullChanges(
 		"SELECT MAX(hlc_modified) as max_hlc FROM entities WHERE hlc_modified IS NOT NULL",
 	);
 	const maxHlc = hlcFromDb((maxHlcRow.rows[0] as { max_hlc?: unknown })?.max_hlc ?? 0n);
-	const localHlc = { wallMs: Date.now(), counter: 0, nodeId: config.developerId ?? "local" };
 	if (maxHlc > 0n) {
-		hlcReceive(localHlc, maxHlc);
+		// Merge remote HLC into a fresh local clock (result discarded for now — Task 3 will persist it)
+		hlcReceive(0n, maxHlc);
 	}
 
 	// Audit the received items.

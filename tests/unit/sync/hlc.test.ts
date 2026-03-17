@@ -1,44 +1,58 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { type HLC, hlcFromDb, hlcNow, hlcReceive, loadHlc, persistHlc } from "@/sync/hlc";
+import { afterEach, describe, expect, it } from "vitest";
+import { hlcFromDb, hlcNow, hlcReceive, loadHlc, pack, persistHlc } from "@/sync/hlc";
 
-function createClock(): HLC {
-	return { wallMs: Date.now(), counter: 0, nodeId: "node-1" };
-}
+let tmpDir: string | undefined;
+
+afterEach(() => {
+	if (tmpDir) {
+		rmSync(tmpDir, { recursive: true, force: true });
+		tmpDir = undefined;
+	}
+});
 
 describe("hlc", () => {
-	it("increments monotonically within a process", () => {
-		const clock = createClock();
-		const first = hlcNow(clock);
-		const second = hlcNow(clock);
+	it("hlcNow returns monotonically increasing bigint", () => {
+		const first = hlcNow(pack(Date.now(), 0));
+		const second = hlcNow(first);
+		expect(typeof first).toBe("bigint");
+		expect(typeof second).toBe("bigint");
 		expect(second > first).toBe(true);
 	});
 
-	it("persists and reloads across restarts", () => {
-		const dir = mkdtempSync(join(tmpdir(), "hlc-test-"));
-		const path = join(dir, "hlc.json");
-		const clock = createClock();
-		const value = hlcNow(clock);
-		persistHlc(clock, path);
-
-		const restored = loadHlc(path, "node-1");
-		const restoredValue = hlcNow(restored);
-		expect(restored.nodeId).toBe("node-1");
-		expect(restoredValue >= value).toBe(true);
+	it("hlcReceive merges local and remote", () => {
+		const local = pack(Date.now(), 3);
+		const remote = pack(Date.now() + 1000, 5);
+		const merged = hlcReceive(local, remote);
+		expect(typeof merged).toBe("bigint");
+		expect(merged > local).toBe(true);
+		expect(merged > remote).toBe(true);
 	});
 
-	it("handles null from DB", () => {
+	it("persistHlc + loadHlc round-trip", () => {
+		tmpDir = mkdtempSync(join(tmpdir(), "hlc-test-"));
+		const repoHash = "test-repo-abc";
+		const hlc = pack(1700000000000, 42);
+
+		persistHlc(repoHash, hlc, tmpDir);
+		const loaded = loadHlc(repoHash, tmpDir);
+		expect(loaded).toBe(hlc);
+	});
+
+	it("loadHlc returns fresh clock for missing file", () => {
+		tmpDir = mkdtempSync(join(tmpdir(), "hlc-test-"));
+		const result = loadHlc("nonexistent-repo", tmpDir);
+		expect(typeof result).toBe("bigint");
+		expect(result > 0n).toBe(true);
+	});
+
+	it("hlcFromDb handles null, number, string, bigint", () => {
 		expect(hlcFromDb(null)).toBe(0n);
-	});
-
-	it("merges remote clock", () => {
-		const local = createClock();
-		const remoteClock: HLC = { wallMs: local.wallMs, counter: 5, nodeId: "remote" };
-		const remoteValue = hlcNow(remoteClock);
-		hlcReceive(local, remoteValue);
-		expect(local.wallMs).toBeGreaterThanOrEqual(remoteClock.wallMs);
-		expect(local.counter).toBeGreaterThan(0);
+		expect(hlcFromDb(undefined)).toBe(0n);
+		expect(hlcFromDb(12345)).toBe(12345n);
+		expect(hlcFromDb("99999")).toBe(99999n);
+		expect(hlcFromDb(42n)).toBe(42n);
 	});
 });

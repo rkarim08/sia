@@ -28,6 +28,7 @@ export interface SiaDb {
 	transaction(fn: (db: SiaDb) => Promise<void>): Promise<void>;
 	close(): Promise<void>;
 	rawSqlite(): Database | null;
+	sync?(): Promise<void>;
 }
 
 /**
@@ -85,6 +86,10 @@ export class BunSqliteDb implements SiaDb {
 
 	rawSqlite(): Database {
 		return this.db;
+	}
+
+	async sync(): Promise<void> {
+		// No-op for local-only mode
 	}
 }
 

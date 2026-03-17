@@ -1,59 +1,93 @@
 // Module: hlc — Hybrid Logical Clock utilities for team sync
+// HLC is a plain bigint: upper 48 bits = wall-clock ms, lower 16 bits = counter.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { join } from "node:path";
+import { SIA_HOME } from "@/shared/config";
 
-export type HLC = { wallMs: number; counter: number; nodeId: string };
+/** HLC is a plain bigint — no mutable struct. */
+export type HLC = bigint;
 
 const COUNTER_BITS = 16n;
 const COUNTER_MASK = (1n << COUNTER_BITS) - 1n;
 
-function packHlc(wallMs: number, counter: number): bigint {
+/** Pack wall-clock ms and counter into a single bigint. */
+export function pack(wallMs: number, counter: number): bigint {
 	return (BigInt(wallMs) << COUNTER_BITS) | BigInt(counter);
 }
 
-function unpackHlc(value: bigint): { wallMs: number; counter: number } {
+/** Unpack a bigint HLC into wall-clock ms and counter. */
+export function unpack(value: bigint): { wallMs: number; counter: number } {
 	const counter = Number(value & COUNTER_MASK);
 	const wallMs = Number(value >> COUNTER_BITS);
 	return { wallMs, counter };
 }
 
 /**
- * Generate the next local HLC value, updating the provided mutable state.
- * Monotonic within a process: counter increments when the wall clock
- * does not advance.
+ * Generate the next local HLC value. NO mutation — returns a new bigint.
+ * Monotonic: if wall clock hasn't advanced, increments the counter.
  */
-export function hlcNow(local: HLC): bigint {
+export function hlcNow(local: bigint): bigint {
 	const now = Date.now();
-	if (now > local.wallMs) {
-		local.wallMs = now;
-		local.counter = 0;
-	} else {
-		local.counter += 1;
+	const { wallMs, counter } = unpack(local);
+	if (now > wallMs) {
+		return pack(now, 0);
 	}
-	return packHlc(local.wallMs, local.counter);
+	return pack(wallMs, counter + 1);
 }
 
 /**
  * Merge a remote HLC into the local clock (Lamport/HLC merge rules).
- * Advances the local clock to maintain causal ordering.
+ * NO mutation — returns a new bigint that is causally after both inputs.
  */
-export function hlcReceive(local: HLC, remote: bigint): void {
+export function hlcReceive(local: bigint, remote: bigint): bigint {
 	const now = Date.now();
-	const { wallMs: remoteWall, counter: remoteCounter } = unpackHlc(remote);
-	const maxWall = Math.max(local.wallMs, remoteWall, now);
+	const l = unpack(local);
+	const r = unpack(remote);
+	const maxWall = Math.max(l.wallMs, r.wallMs, now);
 
-	if (maxWall === local.wallMs && maxWall === remoteWall) {
-		local.counter = Math.max(local.counter, remoteCounter) + 1;
-	} else if (maxWall === local.wallMs) {
-		local.counter += 1;
-	} else if (maxWall === remoteWall) {
-		local.counter = remoteCounter + 1;
-	} else {
-		local.counter = 0;
+	if (maxWall === l.wallMs && maxWall === r.wallMs) {
+		return pack(maxWall, Math.max(l.counter, r.counter) + 1);
 	}
+	if (maxWall === l.wallMs) {
+		return pack(maxWall, l.counter + 1);
+	}
+	if (maxWall === r.wallMs) {
+		return pack(maxWall, r.counter + 1);
+	}
+	// now is strictly greater than both
+	return pack(maxWall, 0);
+}
 
-	local.wallMs = maxWall;
+/**
+ * Persist HLC to disk at `{siaHome}/repos/{repoHash}/hlc.json`.
+ * Creates directory if needed. Writes the bigint as a decimal string.
+ */
+export function persistHlc(repoHash: string, hlc: bigint, siaHome: string = SIA_HOME): void {
+	const dir = join(siaHome, "repos", repoHash);
+	mkdirSync(dir, { recursive: true });
+	const filePath = join(dir, "hlc.json");
+	writeFileSync(filePath, JSON.stringify({ hlc: hlc.toString() }), "utf-8");
+}
+
+/**
+ * Load HLC from disk for the given repo.
+ * Falls back to `pack(Date.now(), 0)` on any error (missing file, parse error, etc.).
+ */
+export function loadHlc(repoHash: string, siaHome: string = SIA_HOME): bigint {
+	const filePath = join(siaHome, "repos", repoHash, "hlc.json");
+	if (!existsSync(filePath)) {
+		return pack(Date.now(), 0);
+	}
+	try {
+		const raw = JSON.parse(readFileSync(filePath, "utf-8")) as { hlc?: string };
+		if (raw.hlc !== undefined) {
+			return BigInt(raw.hlc);
+		}
+		return pack(Date.now(), 0);
+	} catch {
+		return pack(Date.now(), 0);
+	}
 }
 
 /**
@@ -66,41 +100,4 @@ export function hlcFromDb(value: unknown): bigint {
 	if (typeof value === "number") return BigInt(value);
 	if (typeof value === "string") return BigInt(value);
 	throw new TypeError("Unsupported HLC column type");
-}
-
-/**
- * Persist HLC state to disk as decimal strings (portable across JS runtimes).
- */
-export function persistHlc(hlc: HLC, filePath: string): void {
-	const dir = dirname(filePath);
-	mkdirSync(dir, { recursive: true });
-	const payload = {
-		wallMs: hlc.wallMs.toString(),
-		counter: hlc.counter.toString(),
-		nodeId: hlc.nodeId,
-	};
-	writeFileSync(filePath, JSON.stringify(payload), "utf-8");
-}
-
-/**
- * Load HLC state from disk or initialize a new clock for the given node.
- * Any parse error returns a fresh clock rather than throwing.
- */
-export function loadHlc(filePath: string, nodeId: string): HLC {
-	if (!existsSync(filePath)) {
-		return { wallMs: Date.now(), counter: 0, nodeId };
-	}
-
-	try {
-		const raw = JSON.parse(readFileSync(filePath, "utf-8")) as {
-			wallMs?: string | number;
-			counter?: string | number;
-			nodeId?: string;
-		};
-		const wallMs = raw.wallMs !== undefined ? Number(raw.wallMs) : Date.now();
-		const counter = raw.counter !== undefined ? Number(raw.counter) : 0;
-		return { wallMs, counter, nodeId: raw.nodeId ?? nodeId };
-	} catch {
-		return { wallMs: Date.now(), counter: 0, nodeId };
-	}
 }
