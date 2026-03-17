@@ -173,8 +173,14 @@ optional for Tier 1 (developer-stated).
 
 ## Step 4 — After the Task
 
-If flagging is enabled (`enableFlagging: true`), read `src/agent/modules/sia-flagging.md`
-for guidance on when and how to call `sia_flag`. If flagging is disabled, skip this step.
+**Flagging is ENABLED for this project.** After completing your task:
+
+1. Read `src/agent/modules/sia-flagging.md` for detailed guidance
+2. Review what happened this session — were any architectural decisions made, non-obvious root causes found, or developer preferences stated?
+3. If yes, call `sia_flag` (max 2-3 per session) with a self-contained reason string
+4. If nothing worth flagging occurred, skip this step
+
+The `sia_flag` tool is available. Use it selectively for high-signal moments only.
 
 ---
 

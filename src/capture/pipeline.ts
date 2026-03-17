@@ -17,8 +17,9 @@ import type {
 	HookPayload,
 	PipelineResult,
 } from "@/capture/types";
+import { writeAuditEntry } from "@/graph/audit";
 import type { SiaDb } from "@/graph/db-interface";
-import { insertEntity } from "@/graph/entities";
+import { insertEntity, updateEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { insertStagedFact } from "@/graph/staging";
 import { getConfig, type SiaConfig } from "@/shared/config";
@@ -30,6 +31,8 @@ import { getConfig, type SiaConfig } from "@/shared/config";
 export interface PipelineOpts {
 	siaHome?: string;
 	config?: SiaConfig;
+	/** Optional meta.db handle for sharing rules enforcement. */
+	metaDb?: SiaDb;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +127,69 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 			setTimeout(() => reject(new Error("Pipeline timeout")), ms);
 		}),
 	]);
+}
+
+// ---------------------------------------------------------------------------
+// Sharing rules enforcement (Task 11.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * After consolidation, check sharing_rules in meta.db and override entity
+ * visibility for entities matching a rule's workspace + type criteria.
+ * Logs auto-promotion to audit_log.
+ */
+async function applySharingRules(
+	graphDb: SiaDb,
+	metaDb: SiaDb,
+	repoHash: string,
+	entityIds: string[],
+): Promise<void> {
+	if (entityIds.length === 0) return;
+
+	// Find which workspace this repo belongs to
+	const { rows: wsRows } = await metaDb.execute(
+		"SELECT workspace_id FROM workspace_repos WHERE repo_id = ?",
+		[repoHash],
+	);
+	if (wsRows.length === 0) return;
+
+	const workspaceId = wsRows[0].workspace_id as string;
+
+	// Query sharing rules for this workspace (or global rules where workspace_id IS NULL)
+	const { rows: rules } = await metaDb.execute(
+		`SELECT entity_type, default_visibility FROM sharing_rules
+		 WHERE (workspace_id = ? OR workspace_id IS NULL)
+		 ORDER BY workspace_id DESC`,
+		[workspaceId],
+	);
+	if (rules.length === 0) return;
+
+	// Build a type→visibility lookup (workspace-specific rules take precedence)
+	const ruleMap = new Map<string | null, string>();
+	for (const rule of rules) {
+		const type = (rule.entity_type as string | null) ?? null;
+		if (!ruleMap.has(type)) {
+			ruleMap.set(type, rule.default_visibility as string);
+		}
+	}
+
+	// Apply rules to newly created entities
+	for (const entityId of entityIds) {
+		const { rows } = await graphDb.execute("SELECT type, visibility FROM entities WHERE id = ?", [
+			entityId,
+		]);
+		if (rows.length === 0) continue;
+
+		const entityType = rows[0].type as string;
+		const currentVisibility = rows[0].visibility as string;
+
+		// Check type-specific rule first, then wildcard (null type)
+		const newVisibility = ruleMap.get(entityType) ?? ruleMap.get(null);
+		if (newVisibility && newVisibility !== currentVisibility) {
+			await updateEntity(graphDb, entityId, { visibility: newVisibility });
+			await writeAuditEntry(graphDb, "UPDATE", { entity_id: entityId });
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +332,15 @@ export async function runPipeline(
 
 			// Step 10: Edge inference
 			const edgesCreated = newEntityIds.length > 0 ? await inferEdges(graphDb, newEntityIds) : 0;
+
+			// Step 10.5: Sharing rules enforcement (Task 11.6)
+			if (opts?.metaDb && newEntityIds.length > 0) {
+				try {
+					await applySharingRules(graphDb, opts.metaDb, repoHash, newEntityIds);
+				} catch {
+					// Best effort — sharing rules failure should not break pipeline
+				}
+			}
 
 			// Step 11: Flag processor
 			const flagsProcessed = await processFlags(graphDb, payload.sessionId, config);
