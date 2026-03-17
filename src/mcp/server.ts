@@ -13,7 +13,7 @@ import { z } from "zod";
 
 export const SiaSearchInput = z.object({
 	query: z.string(),
-	task_type: z.enum(["orientation", "feature", "regression", "review"]).optional(),
+	task_type: z.enum(["orientation", "feature", "bug-fix", "regression", "review"]).optional(),
 	node_types: z.array(z.string()).optional(),
 	package_path: z.string().optional(),
 	workspace: z.boolean().optional(),

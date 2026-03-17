@@ -1,13 +1,13 @@
-// Module: sia-search — Simplified vector-only search for Phase 3
+// Module: sia-search — Three-stage hybrid retrieval via BM25 + graph + vector
 //
-// Queries the entities table with active-only, paranoid, node_types,
-// and package_path filters. Orders by importance DESC with a capped limit.
-// The full 3-stage retrieval pipeline comes in Phase 7.
+// Workspace routing is preserved from Phase 5.
+// Local search delegates to the three-stage pipeline in @/retrieval/search.
 
 import type { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import type { SiaSearchInput } from "@/mcp/server";
+import { hybridSearch } from "@/retrieval/search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
 
 /** Shape returned for each entity hit in sia_search results. */
@@ -79,59 +79,20 @@ export async function handleSiaSearch(
 		return result.entities;
 	}
 
-	const clauses: string[] = ["t_valid_until IS NULL", "archived_at IS NULL"];
-	const params: unknown[] = [];
-
-	// Paranoid mode: exclude Tier 4 (External / untrusted) entities
-	if (input.paranoid) {
-		clauses.push("trust_tier != 4");
-	}
-
-	// Filter by node types
-	if (input.node_types && input.node_types.length > 0) {
-		const placeholders = input.node_types.map(() => "?").join(", ");
-		clauses.push(`type IN (${placeholders})`);
-		params.push(...input.node_types);
-	}
-
-	// Filter by package path
-	if (input.package_path) {
-		clauses.push("package_path = ?");
-		params.push(input.package_path);
-	}
-
 	// Compute effective limit
 	const rawLimit = input.limit ?? DEFAULT_LIMIT;
 	const effectiveLimit = Math.min(Math.max(1, rawLimit), MAX_LIMIT);
-	params.push(effectiveLimit);
 
-	const whereClause = clauses.join(" AND ");
-	const sql = `SELECT * FROM entities WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
-
-	const result = await db.execute(sql, params);
-
-	return (result.rows as Record<string, unknown>[]).map((row) => {
-		const base: SiaSearchResult = {
-			id: row.id as string,
-			type: row.type as string,
-			name: row.name as string,
-			summary: row.summary as string,
-			content: row.content as string,
-			trust_tier: row.trust_tier as number,
-			confidence: row.confidence as number,
-			importance: row.importance as number,
-			tags: row.tags as string,
-			file_paths: row.file_paths as string,
-			conflict_group_id: (row.conflict_group_id as string | null) ?? null,
-			t_valid_from: (row.t_valid_from as number | null) ?? null,
-			// source_repo_name is not a column in the local schema — always null for local graphs
-			source_repo_name: null,
-		};
-
-		if (input.include_provenance) {
-			base.extraction_method = (row.extraction_method as string | null) ?? null;
-		}
-
-		return base;
+	// Local search via three-stage pipeline
+	const searchResult = await hybridSearch(db, _embedder ?? null, {
+		query: input.query,
+		taskType: input.task_type,
+		nodeTypes: input.node_types,
+		packagePath: input.package_path,
+		paranoid: input.paranoid,
+		limit: effectiveLimit,
+		includeProvenance: input.include_provenance,
 	});
+
+	return searchResult.results;
 }
