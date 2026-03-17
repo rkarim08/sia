@@ -215,7 +215,7 @@ Layer 2: CLAUDE.md Behavioral Directives (proactive, $0)
 
 Layer 3: Pluggable LLM Provider (offline + fallback)
   Community summarization (requires full-graph reasoning)
-  Deep validation (nightly background job)
+  Deep validation (maintenance sweep — startup catchup or idle processing)
   Non-Claude-Code agents (Cursor, Windsurf, Cline)
   Built on Vercel AI SDK — supports Anthropic, OpenAI, Google, Ollama
 ```
@@ -803,7 +803,7 @@ providers:
   summarize:               # community summaries (active in all modes)
     provider: anthropic
     model: claude-sonnet-4
-  validate:                # nightly deep validation (active in all modes)
+  validate:                # deep validation via maintenance sweep (active in all modes)
     provider: ollama
     model: qwen2.5-coder:7b
   extract:                 # knowledge extraction (active in api/hybrid only)
@@ -924,7 +924,7 @@ Sia is composed of fifteen modules: storage, capture pipeline, community engine,
 
 **Read path**: MCP query → three-stage retrieval (vector + BM25 + graph traversal) → RRF reranking with trust weighting → progressive throttling → context assembly
 
-**Freshness path**: File change → Layer 1 file-watcher invalidation → dirty propagation with early cutoff → Layer 3 stale-while-revalidate on next read → Layer 4 confidence decay for LLM-inferred facts → Layer 5 nightly deep validation
+**Freshness path**: File change → Layer 1 file-watcher invalidation → dirty propagation with early cutoff → Layer 3 stale-while-revalidate on next read → Layer 4 confidence decay for LLM-inferred facts → Layer 5 deep validation (maintenance sweep)
 
 **Capture path**: PostToolUse hook → deterministic extraction (Write/Edit/Bash/Read handlers) → event nodes + AST extraction → consolidation pipeline | Stop hook → transcript analysis → semantic knowledge extraction
 

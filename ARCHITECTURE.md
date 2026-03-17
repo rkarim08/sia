@@ -124,7 +124,7 @@ Agent behavioral layer (not a runtime module — injected at session start):
 | 4 | **Hybrid Retrieval** | Vector search, BM25, graph traversal, RRF reranking, progressive throttling | `src/retrieval/` |
 | 5 | **MCP Server** | Read-only tool endpoints, event node writes, session flag writes, session resume | `src/mcp/` |
 | 6 | **Security Layer** | Staging area, write guards, pattern detection, Rule of Two | `src/security/` |
-| 7 | **Decay & Lifecycle** | Importance decay, archival, nightly consolidation sweep | `src/decay/` |
+| 7 | **Decay & Lifecycle** | Importance decay, archival, maintenance sweep (startup catchup + idle) | `src/decay/` |
 | 8 | **Team Sync** | HLC timestamps, libSQL replication, conflict resolution | `src/sync/` |
 | 9 | **Sandbox Execution** | Isolated subprocess spawning, Context Mode, credential passthrough | `src/sandbox/` |
 | 10 | **Ontology Layer** | Edge constraint validation, typed factories, co-creation/cardinality enforcement | `src/ontology/` |
@@ -463,7 +463,7 @@ CREATE TABLE current_nodes AS
 - `sessions_processed` — Tracks which sessions have been extracted
 - `search_throttle` — Progressive throttling: call count per session
 - `audit_log` — Every write operation (ADD/UPDATE/INVALIDATE/STAGE/PROMOTE/QUARANTINE/...)
-- `local_dedup_log` — Nightly consolidation sweep tracking
+- `local_dedup_log` — Maintenance consolidation sweep tracking
 - `sync_dedup_log` — Post-sync deduplication tracking (separate table, separate process)
 
 #### meta.db — Workspace Registry
@@ -609,7 +609,7 @@ SQLite ATTACH limit: 10 databases total
 
 If a workspace exceeds 8 repos, queries round-robin through ATTACH/DETACH cycles. Missing peer databases are handled gracefully — results include a `missing_repos` metadata field in the response.
 
-**WAL atomicity note:** WAL-mode transactions are not atomic across attached databases. A cross-repo edge write to `bridge.db` may be briefly inconsistent with the node write to `graph.db` after a crash. The nightly consolidation sweep detects and cleans up dangling references.
+**WAL atomicity note:** WAL-mode transactions are not atomic across attached databases. A cross-repo edge write to `bridge.db` may be briefly inconsistent with the node write to `graph.db` after a crash. The maintenance sweep detects and cleans up dangling references.
 
 ### Monorepo Support
 
@@ -1058,7 +1058,7 @@ Detects and removes bridge edges in `bridge.db` where one or both endpoint nodes
 
 ### Documentation Freshness Integration
 
-Runs the freshness check (Module 11) as part of the nightly cycle: compares git modification timestamps between DocumentNodes and the code they reference. Applies freshness penalty to stale documentation importance scores.
+Runs the freshness check (Module 11) as part of the maintenance cycle: compares git modification timestamps between DocumentNodes and the code they reference. Applies freshness penalty to stale documentation importance scores.
 
 ---
 
@@ -1343,7 +1343,7 @@ Each time an LLM-inferred fact is re-extracted from a new session and matches, �
 
 ### Layer 5 — Periodic Deep Validation
 
-Nightly/weekly background job with four sub-tasks:
+Maintenance sweep (startup catchup + idle opportunistic) with four sub-tasks:
 
 1. **Documentation-vs-code cross-validation** — compare document content hashes against referenced code. Tag stale docs.
 2. **LLM claim re-verification** — sample 20 lowest-confidence LLM-inferred nodes, check against current code via Haiku
@@ -1535,7 +1535,7 @@ Fires when Claude finishes a response. Reads the transcript segment since the la
 
 ## Module 15 — Pluggable LLM Provider
 
-Handles operations that hooks cannot: community summarization (requires full-graph reasoning), deep validation (nightly job with no active session), batch extraction (`npx sia reindex`), and non-Claude-Code agent support.
+Handles operations that hooks cannot: community summarization (requires full-graph reasoning), deep validation (maintenance sweep (startup catchup or idle processing)), batch extraction (`npx sia reindex`), and non-Claude-Code agent support.
 
 ### Provider Registry
 
@@ -1794,7 +1794,7 @@ sia/
 │   │   ├── git-reconcile-layer.ts  # Layer 2: git-commit-driven invalidation
 │   │   ├── stale-read-layer.ts     # Layer 3: per-query validation + read-repair
 │   │   ├── confidence-decay.ts     # Layer 4: trust-tier-specific decay
-│   │   ├── deep-validation.ts      # Layer 5: nightly batch validation
+│   │   ├── deep-validation.ts      # Layer 5: maintenance batch validation
 │   │   └── firewall.ts             # High-fan-out node detection + propagation stop
 │   │
 │   ├── native/
@@ -1857,7 +1857,7 @@ sia/
 │   │   ├── archiver.ts           # soft-archive (NOT for invalidated nodes)
 │   │   ├── consolidation-sweep.ts # → local_dedup_log
 │   │   ├── episodic-promoter.ts  # reads sessions_processed for failed extractions
-│   │   └── scheduler.ts          # nightly job orchestration + freshness checks
+│   │   └── scheduler.ts          # maintenance scheduler (startup catchup + idle + session-end) + freshness checks
 │   │
 │   ├── cli/
 │   │   ├── index.ts              # CLI entry point
@@ -1953,7 +1953,7 @@ sia-native/                          # Rust NAPI-RS module (separate crate)
 
 **Haiku for all LLM tasks.** Classification, consolidation, edge inference, community summarization, security checks, and node dedup resolution are all structured decision tasks. Haiku handles them at high quality at a fraction of larger model cost. These are the only Anthropic API calls Sia makes.
 
-**Separate dedup logs.** `local_dedup_log` (nightly consolidation sweep, intra-developer) and `sync_dedup_log` (post-sync, cross-developer with `peer_id`) are separate tables because they track different processes with different primary key structures. Sharing one table would create key collisions.
+**Separate dedup logs.** `local_dedup_log` (maintenance consolidation sweep, intra-developer) and `sync_dedup_log` (post-sync, cross-developer with `peer_id`) are separate tables because they track different processes with different primary key structures. Sharing one table would create key collisions.
 
 **@napi-rs/keyring for OS keychain.** `keytar` was archived in 2022 with no security patches. `@napi-rs/keyring` is actively maintained, uses NAPI-RS for native bindings, and supports macOS Keychain, Linux Secret Service, and Windows Credential Manager.
 
@@ -2077,7 +2077,7 @@ Configuration lives in `~/.sia/config.json`. Full reference:
   },
   "dirtyPropagationDepth": 2,       // max BFS hops for dirty propagation
   "firewallThreshold": 50,          // edge_count above which a node becomes a firewall
-  "deepValidationSampleSize": 20,   // LLM claims to re-verify per nightly run
+  "deepValidationSampleSize": 20,   // LLM claims to re-verify per maintenance sweep
   "versionRetentionDays": 90,       // days before expired versions are compacted
 
   // Team sync

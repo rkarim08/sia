@@ -67,6 +67,13 @@ export interface SiaConfig {
 
 	airGapped: boolean;
 
+	/** Maintenance scheduler: time threshold before startup catchup triggers (ms). Default 24h. */
+	maintenanceInterval: number;
+	/** Maintenance scheduler: idle gap before opportunistic maintenance starts (ms). Default 60s. */
+	idleTimeoutMs: number;
+	/** Maintenance scheduler: minimum gap between LLM deep validation calls (ms). Default 5s. */
+	deepValidationRateMs: number;
+
 	additionalLanguages: AdditionalLanguage[];
 
 	claudeMdUpdatedAt: string | null;
@@ -116,6 +123,10 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	flaggedImportanceBoost: 0.15,
 
 	airGapped: false,
+
+	maintenanceInterval: 86400000, // 24 hours
+	idleTimeoutMs: 60000, // 60 seconds
+	deepValidationRateMs: 5000, // 5 seconds
 
 	additionalLanguages: [],
 

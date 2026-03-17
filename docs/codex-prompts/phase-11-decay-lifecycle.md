@@ -133,7 +133,7 @@ git push -u origin phase-11/decay-lifecycle
 
 - `invalidateEntity` = fact was superseded (sets `t_valid_until` + `t_expired`) — NEVER use for decay
 - `archiveEntity` = decayed to irrelevance (sets `archived_at` only) — use for decay
-- `local_dedup_log` is for nightly sweeps; `sync_dedup_log` is for post-sync (has `peer_id`)
+- `local_dedup_log` is for maintenance sweeps; `sync_dedup_log` is for post-sync (has `peer_id`)
 - `sharing_rules` table is in meta.db, NOT graph.db
 - The `decayHalfLife` config supports: 'Decision' (90 days), 'Convention' (60), 'Bug' (45), 'Solution' (45), 'default' (30)
 - Do NOT add Co-Authored-By to commits
