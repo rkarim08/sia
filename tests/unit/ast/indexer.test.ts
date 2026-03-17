@@ -85,6 +85,44 @@ describe("indexRepository", () => {
 		expect(rows.rows[0]?.cnt).toBe(1);
 	});
 
+	it("respects .gitignore patterns", async () => {
+		mkdirSync(join(repoRoot, "src"), { recursive: true });
+		mkdirSync(join(repoRoot, "vendor"), { recursive: true });
+		writeFileSync(join(repoRoot, ".gitignore"), "vendor/\n", "utf-8");
+		writeFileSync(join(repoRoot, "src", "kept.ts"), "export function kept() {}", "utf-8");
+		writeFileSync(
+			join(repoRoot, "vendor", "ignored.ts"),
+			"export function ignored() {}",
+			"utf-8",
+		);
+
+		const result = await indexRepository(repoRoot, db, config, { repoHash });
+		const rows = await db.execute(
+			"SELECT name FROM entities WHERE t_valid_until IS NULL",
+		);
+		const names = rows.rows.map((r) => r.name);
+		expect(names).toContain("kept");
+		expect(names).not.toContain("ignored");
+	});
+
+	it("calls onProgress for each processed file", async () => {
+		mkdirSync(join(repoRoot, "src"), { recursive: true });
+		writeFileSync(join(repoRoot, "src", "a.ts"), "export function a() {}", "utf-8");
+		writeFileSync(join(repoRoot, "src", "b.ts"), "export function b() {}", "utf-8");
+
+		const progressCalls: string[] = [];
+		await indexRepository(repoRoot, db, config, {
+			repoHash,
+			onProgress: (p) => {
+				if (p.file) progressCalls.push(p.file);
+			},
+		});
+
+		expect(progressCalls).toHaveLength(2);
+		expect(progressCalls).toContain("src/a.ts");
+		expect(progressCalls).toContain("src/b.ts");
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(

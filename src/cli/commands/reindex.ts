@@ -2,8 +2,11 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type IndexResult, indexRepository } from "@/ast/indexer";
+import { openMetaDb, registerRepo } from "@/graph/meta-db";
 import { openGraphDb } from "@/graph/semantic-db";
 import { getConfig } from "@/shared/config";
+import { detectApiContracts, writeDetectedContracts } from "@/workspace/api-contracts";
+import { detectMonorepoPackages, registerMonorepoPackages } from "@/workspace/detector";
 
 export interface ReindexOptions {
 	cwd?: string;
@@ -14,6 +17,8 @@ export interface ReindexOptions {
 export interface ReindexResult extends IndexResult {
 	repoHash: string;
 	dryRun: boolean;
+	packagesDetected: number;
+	contractsDetected: number;
 }
 
 function findRepoRoot(startDir: string): string | null {
@@ -42,28 +47,59 @@ export async function siaReindex(opts: ReindexOptions = {}): Promise<ReindexResu
 
 	const resolvedRoot = resolve(repoRoot);
 	const repoHash = createHash("sha256").update(resolvedRoot).digest("hex");
+	const isDryRun = opts.dryRun ?? false;
+	const prefix = isDryRun ? "(dry-run) " : "";
 
 	const config = getConfig(opts.siaHome);
 	const db = openGraphDb(repoHash, opts.siaHome);
 
+	let packagesDetected = 0;
+	let contractsDetected = 0;
+
 	try {
+		// Re-detect monorepo structure and API contracts
+		if (!isDryRun) {
+			const metaDb = openMetaDb(opts.siaHome);
+			try {
+				const repoId = await registerRepo(metaDb, resolvedRoot);
+
+				const packages = await detectMonorepoPackages(resolvedRoot);
+				if (packages.length > 0) {
+					await registerMonorepoPackages(metaDb, repoId, resolvedRoot, packages);
+					packagesDetected = packages.length;
+				}
+
+				const contracts = await detectApiContracts(resolvedRoot);
+				if (contracts.length > 0) {
+					await writeDetectedContracts(metaDb, repoId, contracts);
+					contractsDetected = contracts.length;
+				}
+			} finally {
+				await metaDb.close();
+			}
+		}
+
 		const result = await indexRepository(resolvedRoot, db, config, {
-			dryRun: opts.dryRun ?? false,
+			dryRun: isDryRun,
 			repoHash,
-			onProgress: ({ filesProcessed, entitiesCreated, cacheHits }) => {
+			onProgress: ({ filesProcessed, entitiesCreated, file }) => {
 				console.log(
-					`Indexed ${filesProcessed} files (${entitiesCreated} entities, ${cacheHits} cache hits)`,
+					`${prefix}[${filesProcessed}] ${file ?? "..."} (${entitiesCreated} entities)`,
 				);
 			},
 		});
 
 		console.log(
-			`Reindex ${opts.dryRun ? "(dry-run) " : ""}complete: ${result.filesProcessed} files, ${
-				result.entitiesCreated
-			} entities.`,
+			`${prefix}Reindex complete: ${result.filesProcessed} files, ${result.entitiesCreated} entities, ${packagesDetected} packages, ${contractsDetected} contracts.`,
 		);
 
-		return { ...result, repoHash, dryRun: opts.dryRun ?? false };
+		return {
+			...result,
+			repoHash,
+			dryRun: isDryRun,
+			packagesDetected,
+			contractsDetected,
+		};
 	} finally {
 		await db.close();
 	}
