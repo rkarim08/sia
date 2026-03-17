@@ -8,6 +8,7 @@ import type { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import type { SiaSearchInput } from "@/mcp/server";
+import { workspaceSearch } from "@/retrieval/workspace-search";
 
 /** Shape returned for each entity hit in sia_search results. */
 export interface SiaSearchResult {
@@ -27,6 +28,15 @@ export interface SiaSearchResult {
 	extraction_method?: string | null;
 }
 
+/** Dependencies for workspace-scoped search. */
+export interface WorkspaceDeps {
+	metaDb: SiaDb;
+	bridgeDb: SiaDb;
+	workspaceId: string;
+	primaryRepoId: string;
+	siaHome?: string;
+}
+
 /** Maximum number of results sia_search will return regardless of input. */
 const MAX_LIMIT = 15;
 
@@ -43,12 +53,32 @@ const DEFAULT_LIMIT = 5;
  *  - package_path: exact match on package_path column
  *
  * Results are ordered by importance DESC and capped at `limit` (default 5, max 15).
+ * When `workspace: true` and workspaceDeps are provided, delegates to workspace search.
  */
 export async function handleSiaSearch(
 	db: SiaDb,
 	input: z.infer<typeof SiaSearchInput>,
 	_embedder?: Embedder,
+	workspaceDeps?: WorkspaceDeps,
 ): Promise<SiaSearchResult[]> {
+	// Workspace-scoped search
+	if (input.workspace && workspaceDeps) {
+		const result = await workspaceSearch({
+			primaryDb: db,
+			metaDb: workspaceDeps.metaDb,
+			bridgeDb: workspaceDeps.bridgeDb,
+			workspaceId: workspaceDeps.workspaceId,
+			primaryRepoId: workspaceDeps.primaryRepoId,
+			query: input.query,
+			siaHome: workspaceDeps.siaHome,
+			limit: input.limit,
+			paranoid: input.paranoid,
+			node_types: input.node_types,
+			package_path: input.package_path,
+		});
+		return result.entities;
+	}
+
 	const clauses: string[] = ["t_valid_until IS NULL", "archived_at IS NULL"];
 	const params: unknown[] = [];
 

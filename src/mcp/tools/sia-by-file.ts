@@ -4,6 +4,8 @@ import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import type { SiaByFileInput } from "@/mcp/server";
+import type { WorkspaceDeps } from "@/mcp/tools/sia-search";
+import { workspaceSearch } from "@/retrieval/workspace-search";
 
 /** Result shape — same as SiaSearchResult (array of entities). */
 export interface SiaByFileResult {
@@ -20,9 +22,25 @@ export interface SiaByFileResult {
 export async function handleSiaByFile(
 	db: SiaDb,
 	input: z.infer<typeof SiaByFileInput>,
+	workspaceDeps?: WorkspaceDeps,
 ): Promise<SiaByFileResult> {
 	const limit = input.limit ?? 10;
 	const filePath = input.file_path;
+
+	// Workspace-scoped search
+	if (input.workspace && workspaceDeps) {
+		const result = await workspaceSearch({
+			primaryDb: db,
+			metaDb: workspaceDeps.metaDb,
+			bridgeDb: workspaceDeps.bridgeDb,
+			workspaceId: workspaceDeps.workspaceId,
+			primaryRepoId: workspaceDeps.primaryRepoId,
+			query: filePath,
+			siaHome: workspaceDeps.siaHome,
+			limit,
+		});
+		return { entities: result.entities as unknown as Entity[] };
+	}
 
 	// --- Exact match ---
 	const exactResult = await db.execute(
