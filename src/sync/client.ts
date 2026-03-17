@@ -3,7 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { OpenDbOpts, SiaDb } from "@/graph/db-interface";
-import { LibSqlDb, openDb } from "@/graph/db-interface";
+import { LibSqlDb } from "@/graph/db-interface";
 import type { SyncConfig } from "@/shared/config";
 import { SIA_HOME } from "@/shared/config";
 import { getToken } from "@/sync/keychain";
@@ -18,7 +18,7 @@ export async function createSiaDb(
 	opts: OpenDbOpts = {},
 ): Promise<SiaDb> {
 	if (!config.enabled || !config.serverUrl) {
-		return openDb(repoHash, opts);
+		throw new Error("createSiaDb() called without sync enabled. Use openSiaDb() instead.");
 	}
 
 	const token = await getToken(config.serverUrl);

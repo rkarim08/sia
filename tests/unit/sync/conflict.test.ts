@@ -1,22 +1,46 @@
-import { describe, expect, it } from "vitest";
+import { rmSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
 import { detectConflicts } from "@/sync/conflict";
 import { createTestDb } from "./helpers";
 
+let tmpDir: string | undefined;
+
+afterEach(() => {
+	if (tmpDir) {
+		rmSync(tmpDir, { recursive: true, force: true });
+		tmpDir = undefined;
+	}
+});
+
+const now = Date.now();
+
+const ENTITY_INSERT = `INSERT INTO entities (
+	id, type, name, content, summary, package_path,
+	tags, file_paths, trust_tier, confidence, base_confidence,
+	importance, base_importance, access_count, edge_count,
+	last_accessed, created_at, t_created, t_expired, t_valid_from, t_valid_until,
+	visibility, created_by, workspace_scope, hlc_created, hlc_modified, synced_at,
+	conflict_group_id, source_episode, extraction_method, extraction_model, embedding, archived_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+function entityRow(id: string, type: string, name: string, content: string) {
+	return [
+		id, type, name, content, "s", null,
+		"[]", "[]", 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null, null, null,
+		"team", "dev", null, null, null, null,
+		null, null, null, null, null, null,
+	];
+}
+
 describe("detectConflicts", () => {
 	it("flags overlapping similar entities with conflict_group_id", async () => {
-		const db = await createTestDb();
-		await db.execute(
-			"INSERT INTO entities (id, type, name, content, summary, visibility, t_valid_from, t_valid_until, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			["e1", "Concept", "A", "alpha beta gamma", "s", "team", null, null, null],
-		);
-		await db.execute(
-			"INSERT INTO entities (id, type, name, content, summary, visibility, t_valid_from, t_valid_until, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			["e2", "Concept", "A", "alpha beta gamma alpha", "s", "team", null, null, null],
-		);
-		await db.execute(
-			"INSERT INTO entities (id, type, name, content, summary, visibility, t_valid_from, t_valid_until, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			["e3", "Decision", "B", "different", "s", "team", null, null, null],
-		);
+		const result = createTestDb();
+		const db = result.db;
+		tmpDir = result.tmpDir;
+
+		await db.execute(ENTITY_INSERT, entityRow("e1", "Concept", "A", "alpha beta gamma"));
+		await db.execute(ENTITY_INSERT, entityRow("e2", "Concept", "A", "alpha beta gamma alpha"));
+		await db.execute(ENTITY_INSERT, entityRow("e3", "Decision", "B", "different"));
 
 		const count = await detectConflicts(db);
 		expect(count).toBe(1);

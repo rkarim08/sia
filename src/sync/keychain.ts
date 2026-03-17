@@ -23,6 +23,30 @@ async function getKeyring(): Promise<KeyringModule | null> {
 	return keyringModulePromise;
 }
 
+type KeychainEntry = {
+	setPassword(pw: string): Promise<void>;
+	getPassword(): Promise<string | null>;
+	deletePassword(): Promise<void>;
+};
+
+async function getKeychainEntry(serverUrl: string): Promise<KeychainEntry | null> {
+	const keyring = await getKeyring();
+	if (!keyring) return null;
+
+	const EntryCtor =
+		(keyring as any).Entry ??
+		(keyring as any).default?.Entry ??
+		(keyring as any).Keyring ??
+		(keyring as any).default;
+
+	if (!EntryCtor) return null;
+	try {
+		return new EntryCtor(SERVICE_NAME, serverUrl) as KeychainEntry;
+	} catch {
+		return null;
+	}
+}
+
 function readFallback(): Record<string, string> {
 	if (!existsSync(FALLBACK_PATH)) return {};
 	try {
@@ -52,25 +76,17 @@ export async function storeToken(serverUrl: string, token: string): Promise<void
 		return;
 	}
 
-	const keyring = await getKeyring();
-	if (keyring) {
-		const EntryCtor =
-			(keyring as { Entry?: new (s: string, a: string) => any }).Entry ??
-			(keyring as { default?: { Entry?: new (s: string, a: string) => any } }).default?.Entry ??
-			(keyring as { Keyring?: new (s: string, a: string) => any }).Keyring ??
-			(keyring as { default?: new (s: string, a: string) => any }).default;
-		if (EntryCtor) {
-			try {
-				const entry = new EntryCtor(SERVICE_NAME, serverUrl);
-				await entry.setPassword(token);
-				return;
-			} catch {
-				// Fall back to file store on keychain errors (e.g., unavailable keychain)
-			}
+	const entry = await getKeychainEntry(serverUrl);
+	if (entry) {
+		try {
+			await entry.setPassword(token);
+			return;
+		} catch {
+			// Fall back to file store on keychain errors
 		}
-		// If module loaded but no constructor, fall back to file store.
 	}
 
+	console.warn("OS keychain unavailable — falling back to file storage");
 	const map = readFallback();
 	map[serverUrl] = token;
 	writeFallback(map);
@@ -82,24 +98,17 @@ export async function getToken(serverUrl: string): Promise<string | null> {
 		return map[serverUrl] ?? null;
 	}
 
-	const keyring = await getKeyring();
-	if (keyring) {
-		const EntryCtor =
-			(keyring as { Entry?: new (s: string, a: string) => any }).Entry ??
-			(keyring as { default?: { Entry?: new (s: string, a: string) => any } }).default?.Entry ??
-			(keyring as { Keyring?: new (s: string, a: string) => any }).Keyring ??
-			(keyring as { default?: new (s: string, a: string) => any }).default;
-		if (EntryCtor) {
-			try {
-				const entry = new EntryCtor(SERVICE_NAME, serverUrl);
-				const result = await entry.getPassword();
-				return result ?? null;
-			} catch {
-				// fall back to file store
-			}
+	const entry = await getKeychainEntry(serverUrl);
+	if (entry) {
+		try {
+			const result = await entry.getPassword();
+			return result ?? null;
+		} catch {
+			// Fall back to file store
 		}
 	}
 
+	console.warn("OS keychain unavailable — falling back to file storage");
 	const map = readFallback();
 	return map[serverUrl] ?? null;
 }
@@ -114,24 +123,17 @@ export async function deleteToken(serverUrl: string): Promise<void> {
 		return;
 	}
 
-	const keyring = await getKeyring();
-	if (keyring) {
-		const EntryCtor =
-			(keyring as { Entry?: new (s: string, a: string) => any }).Entry ??
-			(keyring as { default?: { Entry?: new (s: string, a: string) => any } }).default?.Entry ??
-			(keyring as { Keyring?: new (s: string, a: string) => any }).Keyring ??
-			(keyring as { default?: new (s: string, a: string) => any }).default;
-		if (EntryCtor) {
-			try {
-				const entry = new EntryCtor(SERVICE_NAME, serverUrl);
-				await entry.deletePassword();
-				return;
-			} catch {
-				// fall back to file store
-			}
+	const entry = await getKeychainEntry(serverUrl);
+	if (entry) {
+		try {
+			await entry.deletePassword();
+			return;
+		} catch {
+			// Fall back to file store
 		}
 	}
 
+	console.warn("OS keychain unavailable — falling back to file storage");
 	const map = readFallback();
 	if (map[serverUrl]) {
 		delete map[serverUrl];

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { rmSync } from "node:fs";
+import { afterEach, describe, expect, it } from "vitest";
 import type { Entity } from "@/graph/entities";
 import { deduplicateEntities } from "@/sync/dedup";
 import { createTestDb } from "./helpers";
@@ -42,37 +43,48 @@ function makeEntity(overrides: Partial<Entity>): Entity {
 	};
 }
 
+let tmpDir: string | undefined;
+
+afterEach(() => {
+	if (tmpDir) {
+		rmSync(tmpDir, { recursive: true, force: true });
+		tmpDir = undefined;
+	}
+});
+
+const now = Date.now();
+
+const ENTITY_INSERT = `INSERT INTO entities (
+	id, type, name, content, summary, package_path,
+	tags, file_paths, trust_tier, confidence, base_confidence,
+	importance, base_importance, access_count, edge_count,
+	last_accessed, created_at, t_created, t_expired, t_valid_from, t_valid_until,
+	visibility, created_by, workspace_scope, hlc_created, hlc_modified, synced_at,
+	conflict_group_id, source_episode, extraction_method, extraction_model, embedding, archived_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
 describe("deduplicateEntities", () => {
 	it("logs merged and different decisions and writes to sync_dedup_log", async () => {
-		const db = await createTestDb();
+		const result = createTestDb();
+		const db = result.db;
+		tmpDir = result.tmpDir;
+
 		const local = makeEntity({ id: "local-1", name: "My Function" });
-		await db.execute(
-			"INSERT INTO entities (id, type, name, content, summary, visibility, created_by, t_valid_from, t_valid_until, archived_at, conflict_group_id, hlc_modified, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			[
-				local.id,
-				local.type,
-				local.name,
-				local.content,
-				local.summary,
-				local.visibility,
-				local.created_by,
-				null,
-				null,
-				null,
-				null,
-				null,
-				null,
-			],
-		);
+		await db.execute(ENTITY_INSERT, [
+			local.id, local.type, local.name, local.content, local.summary, null,
+			"[]", "[]", 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null, null, null,
+			local.visibility, local.created_by, null, null, null, null,
+			null, null, null, null, null, null,
+		]);
 
 		const peers: Entity[] = [
 			makeEntity({ id: "peer-1", name: "My Function", created_by: "peer" }),
 			makeEntity({ id: "peer-2", name: "Completely Different", created_by: "peer" }),
 		];
 
-		const result = await deduplicateEntities(db, peers);
-		expect(result.merged).toBeGreaterThanOrEqual(1);
-		expect(result.different).toBeGreaterThanOrEqual(1);
+		const dedupResult = await deduplicateEntities(db, peers);
+		expect(dedupResult.merged).toBeGreaterThanOrEqual(1);
+		expect(dedupResult.different).toBeGreaterThanOrEqual(1);
 
 		const log = await db.execute("SELECT COUNT(*) as count FROM sync_dedup_log");
 		expect((log.rows[0] as { count: number }).count).toBe(2);
