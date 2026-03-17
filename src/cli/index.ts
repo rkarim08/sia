@@ -1,16 +1,11 @@
 #!/usr/bin/env bun
 
+import { runCommunityCommand } from "@/cli/commands/community";
+
 const VERSION = "0.1.0";
 
-const args = process.argv.slice(2);
-
-if (args.includes("--version") || args.includes("-v")) {
-	console.log(`sia v${VERSION}`);
-	process.exit(0);
-}
-
-if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-	console.log(`sia v${VERSION} — Persistent graph memory for AI coding agents
+function printHelp(): void {
+        console.log(`sia v${VERSION} — Persistent graph memory for AI coding agents
 
 Usage:
   sia <command> [options]
@@ -35,8 +30,34 @@ Options:
   --version, -v        Show version
   --help, -h           Show this help
 `);
-	process.exit(0);
 }
 
-console.error(`Unknown command: ${args[0]}. Run 'sia --help' for usage.`);
-process.exit(1);
+async function main(): Promise<void> {
+        const args = process.argv.slice(2);
+
+        if (args.includes("--version") || args.includes("-v")) {
+                console.log(`sia v${VERSION}`);
+                return;
+        }
+
+        if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+                printHelp();
+                return;
+        }
+
+        const command = args[0];
+        const rest = args.slice(1);
+
+        switch (command) {
+                case "community":
+                        await runCommunityCommand(rest);
+                        return;
+                default:
+                        console.error(`Unknown command: ${command}. Run 'sia --help' for usage.`);
+        }
+}
+
+main().catch((err) => {
+        console.error(err);
+        process.exit(1);
+});
