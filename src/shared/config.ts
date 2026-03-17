@@ -46,6 +46,7 @@ export interface SiaConfig {
 	astCacheDir: string;
 	snapshotDir: string;
 	logDir: string;
+	excludePaths?: string[];
 
 	captureModel: string;
 	minExtractConfidence: number;
@@ -89,6 +90,7 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	astCacheDir: join(SIA_HOME, "ast-cache"),
 	snapshotDir: join(SIA_HOME, "snapshots"),
 	logDir: join(SIA_HOME, "logs"),
+	excludePaths: [],
 
 	captureModel: "claude-haiku-4-5-20251001",
 	minExtractConfidence: 0.6,
