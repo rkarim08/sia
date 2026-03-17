@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 import type { SiaDb } from "@/graph/db-interface";
+import type { LlmClient } from "@/shared/llm-client";
 
 interface CommunityRow {
 	id: string;
@@ -21,12 +22,21 @@ function sha256(value: string): string {
 	return createHash("sha256").update(value).digest("hex");
 }
 
-function formatSummary(entities: TopEntityRow[]): string {
+async function generateSummary(entities: TopEntityRow[], llmClient?: LlmClient): Promise<string> {
 	if (entities.length === 0) {
-		return "Community has no active members.";
+		return "Community has no active members (all entities invalidated or archived).";
 	}
-	const parts = entities.map((e) => `${e.name}: ${e.summary || "No summary available."}`);
-	return `Top members — ${parts.join("; ")}`;
+
+	const entityDescriptions = entities
+		.map((e) => `${e.name}: ${e.summary || "No summary available."}`)
+		.join("\n");
+
+	if (!llmClient) {
+		return `Top members — ${entityDescriptions.replace(/\n/g, "; ")}`;
+	}
+
+	const prompt = `Summarize this code community in a single coherent paragraph (2-4 sentences). Describe what the community does, how its members relate, and what purpose it serves in the codebase.\n\nMembers:\n${entityDescriptions}`;
+	return llmClient.summarize(prompt);
 }
 
 async function loadCommunities(db: SiaDb): Promise<CommunityRow[]> {
@@ -66,6 +76,7 @@ async function memberIds(db: SiaDb, communityId: string): Promise<string[]> {
 export async function summarizeCommunities(
 	db: SiaDb,
 	config: { airGapped: boolean },
+	llmClient?: LlmClient,
 ): Promise<number> {
 	if (config.airGapped) {
 		return 0;
@@ -84,7 +95,7 @@ export async function summarizeCommunities(
 			if (!needsSummary) continue;
 
 			const entities = await topEntities(tx, community.id);
-			const summary = formatSummary(entities);
+			const summary = await generateSummary(entities, llmClient);
 			const ids = await memberIds(tx, community.id);
 			const summaryHash = sha256(ids.join(","));
 
