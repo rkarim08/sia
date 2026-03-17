@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { extractSqlSchema } from "@/ast/extractors/sql-schema";
 import { extractPrismaSchema } from "@/ast/extractors/prisma-schema";
 import { extractManifest } from "@/ast/extractors/project-manifest";
+import { extractSqlSchema } from "@/ast/extractors/sql-schema";
 import { dispatchExtraction } from "@/ast/extractors/tier-dispatch";
 
 describe("extractSqlSchema", () => {
@@ -14,10 +14,10 @@ describe("extractSqlSchema", () => {
 		expect(facts.length).toBeGreaterThanOrEqual(1);
 		const tableFact = facts.find((f) => f.name === "users");
 		expect(tableFact).toBeDefined();
-		expect(tableFact!.tags).toContain("table");
-		expect(tableFact!.trust_tier).toBe(2);
-		expect(tableFact!.confidence).toBe(0.9);
-		expect(tableFact!.extraction_method).toBe("sql-schema");
+		expect(tableFact?.tags).toContain("table");
+		expect(tableFact?.trust_tier).toBe(2);
+		expect(tableFact?.confidence).toBe(0.9);
+		expect(tableFact?.extraction_method).toBe("sql-schema");
 	});
 
 	it("CREATE INDEX produces entity with tags containing 'index'", () => {
@@ -26,8 +26,8 @@ describe("extractSqlSchema", () => {
 		expect(facts.length).toBeGreaterThanOrEqual(1);
 		const indexFact = facts.find((f) => f.name === "idx_name");
 		expect(indexFact).toBeDefined();
-		expect(indexFact!.tags).toContain("index");
-		expect(indexFact!.extraction_method).toBe("sql-schema");
+		expect(indexFact?.tags).toContain("index");
+		expect(indexFact?.extraction_method).toBe("sql-schema");
 	});
 
 	it("handles CREATE TABLE IF NOT EXISTS", () => {
@@ -35,7 +35,7 @@ describe("extractSqlSchema", () => {
 		const facts = extractSqlSchema(sql, "schema.sql");
 		const tableFact = facts.find((f) => f.name === "orders");
 		expect(tableFact).toBeDefined();
-		expect(tableFact!.tags).toContain("table");
+		expect(tableFact?.tags).toContain("table");
 	});
 
 	it("extracts multiple tables and indexes from one file", () => {

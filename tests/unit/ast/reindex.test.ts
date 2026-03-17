@@ -81,9 +81,7 @@ describe("siaReindex", () => {
 	it("throws when no .git directory found", async () => {
 		const noGitDir = mkdtempSync(join(tmpdir(), "sia-reindex-nogit-"));
 		try {
-			await expect(siaReindex({ cwd: noGitDir, siaHome })).rejects.toThrow(
-				/No .git directory/,
-			);
+			await expect(siaReindex({ cwd: noGitDir, siaHome })).rejects.toThrow(/No .git directory/);
 		} finally {
 			rmSync(noGitDir, { recursive: true, force: true });
 		}

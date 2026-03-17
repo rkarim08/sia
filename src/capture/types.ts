@@ -1,7 +1,14 @@
 // Module: types — shared types for the capture pipeline
 
 /** The kind of knowledge entity extracted from a conversation. */
-export type EntityType = "CodeEntity" | "Concept" | "Decision" | "Bug" | "Solution" | "Convention" | "Dependency";
+export type EntityType =
+	| "CodeEntity"
+	| "Concept"
+	| "Decision"
+	| "Bug"
+	| "Solution"
+	| "Convention"
+	| "Dependency";
 
 /** A proposed edge to another entity, resolved by name during consolidation. */
 export interface ProposedRelationship {

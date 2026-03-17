@@ -90,16 +90,10 @@ describe("indexRepository", () => {
 		mkdirSync(join(repoRoot, "vendor"), { recursive: true });
 		writeFileSync(join(repoRoot, ".gitignore"), "vendor/\n", "utf-8");
 		writeFileSync(join(repoRoot, "src", "kept.ts"), "export function kept() {}", "utf-8");
-		writeFileSync(
-			join(repoRoot, "vendor", "ignored.ts"),
-			"export function ignored() {}",
-			"utf-8",
-		);
+		writeFileSync(join(repoRoot, "vendor", "ignored.ts"), "export function ignored() {}", "utf-8");
 
-		const result = await indexRepository(repoRoot, db, config, { repoHash });
-		const rows = await db.execute(
-			"SELECT name FROM entities WHERE t_valid_until IS NULL",
-		);
+		const _result = await indexRepository(repoRoot, db, config, { repoHash });
+		const rows = await db.execute("SELECT name FROM entities WHERE t_valid_until IS NULL");
 		const names = rows.rows.map((r) => r.name);
 		expect(names).toContain("kept");
 		expect(names).not.toContain("ignored");

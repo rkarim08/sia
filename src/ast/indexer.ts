@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { dispatchExtraction } from "@/ast/extractors/tier-dispatch";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
-import { dispatchExtraction } from "@/ast/extractors/tier-dispatch";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";

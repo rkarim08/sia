@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync, watch as fsWatch } from "node:fs";
+import { existsSync, watch as fsWatch, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";

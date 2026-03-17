@@ -1,11 +1,11 @@
 // Module: tier-dispatch — Route file extraction by LanguageConfig.tier
 
 import type { ExtractionTier, SpecialHandling } from "@/ast/languages";
-import type { CandidateFact } from "@/capture/types";
 import { extractTrackA } from "@/capture/track-a-ast";
-import { extractSqlSchema } from "./sql-schema";
+import type { CandidateFact } from "@/capture/types";
 import { extractPrismaSchema } from "./prisma-schema";
 import { extractManifest } from "./project-manifest";
+import { extractSqlSchema } from "./sql-schema";
 
 /**
  * Dispatch extraction to the appropriate extractor based on the language tier

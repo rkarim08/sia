@@ -1,5 +1,4 @@
 import type { SiaDb } from "@/graph/db-interface";
-import { updateEntity } from "@/graph/entities";
 
 export interface PageRankResult {
 	iterations: number;
@@ -44,10 +43,10 @@ export async function computePageRank(
 		nodes.add(edge.to_id);
 
 		if (!outgoing.has(edge.from_id)) outgoing.set(edge.from_id, []);
-		outgoing.get(edge.from_id)!.push(edge.to_id);
+		outgoing.get(edge.from_id)?.push(edge.to_id);
 
 		if (!incoming.has(edge.to_id)) incoming.set(edge.to_id, []);
-		incoming.get(edge.to_id)!.push(edge.from_id);
+		incoming.get(edge.to_id)?.push(edge.from_id);
 	}
 
 	if (nodes.size === 0) {
@@ -104,9 +103,7 @@ export async function computePageRank(
 	}
 
 	if (!converged) {
-		console.warn(
-			`PageRank did not converge after ${maxIter} iterations (delta=${finalDelta})`,
-		);
+		console.warn(`PageRank did not converge after ${maxIter} iterations (delta=${finalDelta})`);
 	}
 
 	const BATCH_SIZE = 500;

@@ -16,12 +16,14 @@ export interface TeamStatus {
 function ensureDeveloperId(config: SiaConfig): string {
 	if (config.sync.developerId) return config.sync.developerId;
 	const id = randomUUID();
-	writeConfig({ sync: {
-		developerId: id,
-		enabled: false,
-		serverUrl: null,
-		syncInterval: 0
-	} });
+	writeConfig({
+		sync: {
+			developerId: id,
+			enabled: false,
+			serverUrl: null,
+			syncInterval: 0,
+		},
+	});
 	return id;
 }
 

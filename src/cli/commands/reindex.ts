@@ -83,9 +83,7 @@ export async function siaReindex(opts: ReindexOptions = {}): Promise<ReindexResu
 			dryRun: isDryRun,
 			repoHash,
 			onProgress: ({ filesProcessed, entitiesCreated, file }) => {
-				console.log(
-					`${prefix}[${filesProcessed}] ${file ?? "..."} (${entitiesCreated} entities)`,
-				);
+				console.log(`${prefix}[${filesProcessed}] ${file ?? "..."} (${entitiesCreated} entities)`);
 			},
 		});
 

@@ -21,9 +21,10 @@ export function extractPrismaSchema(content: string, filePath: string): Candidat
 			.map((l) => l.trim())
 			.filter((l) => l.length > 0 && !l.startsWith("//") && !l.startsWith("@@"));
 
-		const summary = fields.length > 0
-			? `Prisma model ${name}: ${fields.slice(0, 5).join(", ")}${fields.length > 5 ? "..." : ""}`
-			: `Prisma model: ${name}`;
+		const summary =
+			fields.length > 0
+				? `Prisma model ${name}: ${fields.slice(0, 5).join(", ")}${fields.length > 5 ? "..." : ""}`
+				: `Prisma model: ${name}`;
 
 		facts.push({
 			type: "CodeEntity",
