@@ -1,0 +1,2 @@
+// Module: conflicts — stub
+export {};

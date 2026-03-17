@@ -1,0 +1,2 @@
+// Module: team — stub
+export {};

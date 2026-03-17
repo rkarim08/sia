@@ -1,0 +1,2 @@
+// Module: reindex — stub
+export {};

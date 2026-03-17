@@ -1,0 +1,2 @@
+// Module: detector — stub
+export {};

@@ -1,0 +1,2 @@
+// Module: keychain — stub
+export {};

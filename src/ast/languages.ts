@@ -1,0 +1,2 @@
+// Module: languages — stub
+export {};

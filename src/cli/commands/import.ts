@@ -1,0 +1,2 @@
+// Module: import — stub
+export {};

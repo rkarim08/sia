@@ -1,0 +1,2 @@
+// Module: prune — stub
+export {};

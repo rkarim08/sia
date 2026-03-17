@@ -1,0 +1,2 @@
+// Module: config — stub
+export {};

@@ -1,0 +1,2 @@
+// Module: errors — stub
+export {};

@@ -1,0 +1,2 @@
+// Module: community — stub
+export {};

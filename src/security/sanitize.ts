@@ -1,0 +1,2 @@
+// Module: sanitize — stub
+export {};

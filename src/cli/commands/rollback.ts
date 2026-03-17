@@ -1,0 +1,2 @@
+// Module: rollback — stub
+export {};

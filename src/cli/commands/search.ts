@@ -1,0 +1,2 @@
+// Module: search — stub
+export {};

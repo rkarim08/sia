@@ -1,0 +1,2 @@
+// Module: audit — stub
+export {};

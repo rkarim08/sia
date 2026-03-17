@@ -1,0 +1,2 @@
+// Module: share — stub
+export {};

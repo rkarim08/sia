@@ -1,0 +1,2 @@
+// Module: decay — stub
+export {};

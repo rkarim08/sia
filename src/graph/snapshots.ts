@@ -1,0 +1,2 @@
+// Module: snapshots — stub
+export {};

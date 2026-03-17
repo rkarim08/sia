@@ -1,0 +1,2 @@
+// Module: consolidate — stub
+export {};

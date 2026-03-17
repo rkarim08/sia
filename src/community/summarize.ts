@@ -1,0 +1,2 @@
+// Module: summarize — stub
+export {};

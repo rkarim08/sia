@@ -1,0 +1,35 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"outDir": "./dist",
+		"rootDir": ".",
+		"types": ["bun-types"],
+		"paths": {
+			"@/graph/*": ["./src/graph/*"],
+			"@/workspace/*": ["./src/workspace/*"],
+			"@/capture/*": ["./src/capture/*"],
+			"@/ast/*": ["./src/ast/*"],
+			"@/community/*": ["./src/community/*"],
+			"@/retrieval/*": ["./src/retrieval/*"],
+			"@/mcp/*": ["./src/mcp/*"],
+			"@/security/*": ["./src/security/*"],
+			"@/sync/*": ["./src/sync/*"],
+			"@/decay/*": ["./src/decay/*"],
+			"@/cli/*": ["./src/cli/*"],
+			"@/shared/*": ["./src/shared/*"],
+			"@/agent/*": ["./src/agent/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "tests/**/*.ts"],
+	"exclude": ["node_modules", "dist"]
+}

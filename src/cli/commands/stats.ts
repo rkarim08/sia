@@ -1,0 +1,2 @@
+// Module: stats — stub
+export {};

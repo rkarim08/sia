@@ -1,0 +1,2 @@
+// Module: archiver — stub
+export {};

@@ -1,0 +1,2 @@
+// Module: flags — stub
+export {};

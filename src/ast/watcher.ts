@@ -1,0 +1,2 @@
+// Module: watcher — stub
+export {};

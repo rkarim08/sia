@@ -1,0 +1,2 @@
+// Module: logger — stub
+export {};

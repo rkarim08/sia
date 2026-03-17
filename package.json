@@ -1,0 +1,29 @@
+{
+	"name": "sia",
+	"version": "0.1.0",
+	"description": "Persistent graph memory for AI coding agents",
+	"type": "module",
+	"bin": {
+		"sia": "./src/cli/index.ts"
+	},
+	"scripts": {
+		"test": "vitest run --config vitest.config.ts",
+		"test:unit": "vitest run --config vitest.config.ts",
+		"test:integration": "vitest run --config vitest.integration.config.ts",
+		"test:watch": "vitest --config vitest.config.ts",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"uuid": "^13.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.7",
+		"@types/bun": "^1.3.10",
+		"@types/uuid": "^11.0.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.0"
+	}
+}

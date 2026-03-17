@@ -1,0 +1,2 @@
+// Module: indexer — stub
+export {};

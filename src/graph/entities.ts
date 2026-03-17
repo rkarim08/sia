@@ -1,0 +1,2 @@
+// Module: entities — stub
+export {};

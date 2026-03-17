@@ -1,0 +1,2 @@
+// Module: embedder — stub
+export {};

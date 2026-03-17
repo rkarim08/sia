@@ -1,0 +1,2 @@
+// Module: hook — stub
+export {};

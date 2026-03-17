@@ -1,0 +1,2 @@
+// Module: hlc — stub
+export {};
