@@ -553,7 +553,7 @@ For the full architecture with module details, data flow diagrams, database sche
 
 ## Status
 
-Sia is under active development. Phase 1 (storage foundation) is complete with 139 passing tests.
+Sia is under active development.
 
 ---
 
