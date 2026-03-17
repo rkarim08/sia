@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 /** Default root directory for all Sia data: ~/.sia */
-export const SIA_HOME: string = join(homedir(), ".sia");
+export const SIA_HOME: string = join(homedir(), ".sia"); 
 
 /** Configuration for optional sync/replication via @libsql/client. */
 export interface SyncConfig {
