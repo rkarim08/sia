@@ -1,6 +1,7 @@
 // Module: sia-expand — BFS neighbourhood expansion from an entity in the knowledge graph
 
 import type { z } from "zod";
+import { getOrCreateLevel1Summary } from "@/community/raptor";
 import type { SiaDb } from "@/graph/db-interface";
 import type { EdgeRow } from "@/graph/edges";
 import type { Entity } from "@/graph/entities";
@@ -50,6 +51,9 @@ export async function handleSiaExpand(
 	}
 
 	const rootEntity = rootResult.rows[0] as unknown as Entity;
+
+	// Fire-and-forget: lazily generate Level 1 summary for this entity
+	void getOrCreateLevel1Summary(db, input.entity_id);
 
 	// --- BFS ---
 	const visited = new Set<string>([input.entity_id]);
