@@ -20,6 +20,7 @@ import type {
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
+import { insertStagedFact } from "@/graph/staging";
 import { getConfig, type SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
@@ -220,10 +221,28 @@ export async function runPipeline(
 				}
 			} else {
 				try {
-					consolidation = await consolidate(graphDb, allCandidates);
+					// Route Tier 4 candidates to staging instead of consolidation
+					const tier4Candidates = allCandidates.filter((c) => c.trust_tier === 4);
+					const nonTier4Candidates = allCandidates.filter((c) => c.trust_tier !== 4);
+
+					for (const candidate of tier4Candidates) {
+						await insertStagedFact(graphDb, {
+							source_episode: payload.sessionId,
+							proposed_type: candidate.type,
+							proposed_name: candidate.name,
+							proposed_content: candidate.content,
+							proposed_tags: JSON.stringify(candidate.tags ?? []),
+							proposed_file_paths: JSON.stringify(candidate.file_paths ?? []),
+							trust_tier: candidate.trust_tier,
+							raw_confidence: candidate.confidence,
+						});
+					}
+
+					// Only consolidate non-Tier-4 candidates
+					consolidation = await consolidate(graphDb, nonTier4Candidates);
 
 					// Gather IDs of newly added entities for edge inference
-					for (const candidate of allCandidates) {
+					for (const candidate of nonTier4Candidates) {
 						const result = await graphDb.execute(
 							"SELECT id FROM entities WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY t_created DESC LIMIT 1",
 							[candidate.name, candidate.type],
