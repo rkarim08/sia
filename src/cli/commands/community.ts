@@ -37,7 +37,7 @@ async function loadCommunities(
 	const params: unknown[] = [level];
 	let wherePackage = "";
 	if (packagePath) {
-		wherePackage = "AND (package_path = ? OR package_path IS NULL)";
+		wherePackage = "AND package_path = ?";
 		params.push(packagePath);
 	}
 	const result = await db.execute(
@@ -70,6 +70,7 @@ export async function formatCommunityTree(
 ): Promise<string> {
 	const level2 = await loadCommunities(db, 2, opts.packagePath);
 	const level1 = await loadCommunities(db, 1, opts.packagePath);
+	const level0 = await loadCommunities(db, 0, opts.packagePath);
 
 	if (level2.length === 0 && level1.length === 0) {
 		return "No communities yet. Run detection first.";
@@ -95,6 +96,12 @@ export async function formatCommunityTree(
 				for (const entity of entities) {
 					lines.push(`    - ${entity.name} [importance ${entity.importance.toFixed(2)}]`);
 				}
+			}
+
+			// Level 0 — briefly noted
+			const level0Children = level0.filter((c) => c.parentId === child.id);
+			if (level0Children.length > 0) {
+				lines.push(`    (${level0Children.length} fine-grained clusters)`);
 			}
 		}
 	}
