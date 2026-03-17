@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	type RuleOfTwoResult,
-	checkRuleOfTwo,
-} from "@/security/rule-of-two";
+import { checkRuleOfTwo } from "@/security/rule-of-two";
 import type { LlmClient } from "@/shared/llm-client";
 
 /** Mock LlmClient that always classifies as "YES" (injective). */

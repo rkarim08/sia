@@ -6,11 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import {
-	TASK_TYPE_BOOSTS,
-	classifyQuery,
-	packagePathBoost,
-} from "@/retrieval/query-classifier";
+import { classifyQuery, packagePathBoost, TASK_TYPE_BOOSTS } from "@/retrieval/query-classifier";
 
 describe("query-classifier", () => {
 	let tmpDir: string;

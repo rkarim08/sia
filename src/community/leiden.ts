@@ -89,8 +89,12 @@ function buildUnitAdjacency(
 ): Map<string, Map<string, number>> {
 	const adj = new Map<string, Map<string, number>>();
 	const ensure = (id: string): Map<string, number> => {
-		if (!adj.has(id)) adj.set(id, new Map());
-		return adj.get(id)!;
+		let entry = adj.get(id);
+		if (!entry) {
+			entry = new Map();
+			adj.set(id, entry);
+		}
+		return entry;
 	};
 
 	for (const { a, b, w } of edges) {
@@ -140,7 +144,7 @@ function louvain(
 		moved = false;
 		for (const unit of units) {
 			const node = unit.id;
-			const nodeComm = community.get(node)!;
+			const nodeComm = community.get(node) ?? node;
 			const nodeDegree = degrees.get(node) ?? 0;
 
 			// Temporarily remove node from its community
@@ -182,7 +186,7 @@ function louvain(
 
 	const assignment = new Map<string, string>();
 	for (const [node, comm] of community) {
-		assignment.set(node, normalized.get(comm)!);
+		assignment.set(node, normalized.get(comm) ?? comm);
 	}
 	return assignment;
 }
@@ -194,8 +198,12 @@ function refinePartition(
 	// Group nodes by community
 	const communities = new Map<string, string[]>();
 	for (const [node, comm] of assignment) {
-		if (!communities.has(comm)) communities.set(comm, []);
-		communities.get(comm)!.push(node);
+		let members = communities.get(comm);
+		if (!members) {
+			members = [];
+			communities.set(comm, members);
+		}
+		members.push(node);
 	}
 
 	const refined = new Map<string, string>();
@@ -217,7 +225,8 @@ function refinePartition(
 			visited.add(start);
 
 			while (queue.length > 0) {
-				const node = queue.shift()!;
+				const node = queue.shift();
+				if (!node) break;
 				component.push(node);
 				const neighbors = adjacency.get(node);
 				if (neighbors) {
@@ -312,10 +321,13 @@ export async function detectCommunities(
 		if (level === 0 && entityPackages.size > 0) {
 			const byPackage = new Map<string, Unit[]>();
 			for (const unit of units) {
-				const pkg =
-					entityPackages.get([...unit.members][0]) ?? "__root__";
-				if (!byPackage.has(pkg)) byPackage.set(pkg, []);
-				byPackage.get(pkg)!.push(unit);
+				const pkg = entityPackages.get([...unit.members][0]) ?? "__root__";
+				let pkgList = byPackage.get(pkg);
+				if (!pkgList) {
+					pkgList = [];
+					byPackage.set(pkg, pkgList);
+				}
+				pkgList.push(unit);
 			}
 
 			const allDetected: DetectedCommunity[] = [];
@@ -327,22 +339,14 @@ export async function detectCommunities(
 					}
 				}
 
-				const pkgAdj = buildUnitAdjacency(
-					undirectedEdges,
-					pkgEntityToUnit,
-				);
-				const pkgAssignment = louvain(
-					pkgUnits,
-					pkgAdj,
-					resolutions[level],
-				);
+				const pkgAdj = buildUnitAdjacency(undirectedEdges, pkgEntityToUnit);
+				const pkgAssignment = louvain(pkgUnits, pkgAdj, resolutions[level]);
 				const pkgRefined = refinePartition(pkgAssignment, pkgAdj);
 
 				const communityMembers = new Map<string, Set<string>>();
 				for (const unit of pkgUnits) {
 					const commKey = pkgRefined.get(unit.id) ?? unit.id;
-					if (!communityMembers.has(commKey))
-						communityMembers.set(commKey, new Set());
+					if (!communityMembers.has(commKey)) communityMembers.set(commKey, new Set());
 					for (const member of unit.members) {
 						communityMembers.get(commKey)?.add(member);
 					}

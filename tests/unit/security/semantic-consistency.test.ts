@@ -82,8 +82,8 @@ describe("semantic consistency check", () => {
 		const loaded = loadCentroid(repoHash, tempDir);
 
 		expect(loaded).not.toBeNull();
-		expect(loaded!.count).toBe(42);
-		expect(loaded!.centroid).toEqual([0.5, 0.3, 0.2]);
+		expect(loaded?.count).toBe(42);
+		expect(loaded?.centroid).toEqual([0.5, 0.3, 0.2]);
 	});
 
 	it("loadCentroid returns null for missing file", () => {

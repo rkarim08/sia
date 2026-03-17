@@ -70,9 +70,7 @@ describe("buildSummaryTree", () => {
 		// Lazy Level 1: generate on demand via getOrCreateLevel1Summary
 		const summary = await getOrCreateLevel1Summary(db, ids[0]);
 		expect(summary).not.toBeNull();
-		const lvl1Row = await db.execute("SELECT * FROM summary_tree WHERE id = ?", [
-			`lvl1:${ids[0]}`,
-		]);
+		const lvl1Row = await db.execute("SELECT * FROM summary_tree WHERE id = ?", [`lvl1:${ids[0]}`]);
 		expect(lvl1Row.rows.length).toBe(1);
 
 		// Invalidated entity: Level 1 should have expires_at set

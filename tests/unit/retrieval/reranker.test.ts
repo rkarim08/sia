@@ -62,19 +62,13 @@ describe("reranker", () => {
 			{ entityId: entityAll.id, score: 0.9 },
 			{ entityId: entityOne.id, score: 0.8 },
 		];
-		const list2: RankedCandidate[] = [
-			{ entityId: entityAll.id, score: 0.85 },
-		];
-		const list3: RankedCandidate[] = [
-			{ entityId: entityAll.id, score: 0.7 },
-		];
+		const list2: RankedCandidate[] = [{ entityId: entityAll.id, score: 0.85 }];
+		const list3: RankedCandidate[] = [{ entityId: entityAll.id, score: 0.7 }];
 
 		const rrfScores = rrfCombine(list1, list2, list3);
 
 		// entityAll should have a higher RRF score
-		expect(rrfScores.get(entityAll.id)!).toBeGreaterThan(
-			rrfScores.get(entityOne.id)!,
-		);
+		expect(rrfScores.get(entityAll.id)!).toBeGreaterThan(rrfScores.get(entityOne.id)!);
 
 		const results = await rerank(db, rrfScores);
 		expect(results.length).toBe(2);
@@ -208,7 +202,7 @@ describe("reranker", () => {
 		const rrfScores = rrfCombine(list);
 
 		// Without task boost, both should be very close (same tier, confidence, importance)
-		const resultsNoBug = await rerank(db, rrfScores);
+		const _resultsNoBug = await rerank(db, rrfScores);
 
 		// With bug-fix task type, Bug entity should get boosted
 		const resultsBugFix = await rerank(db, rrfScores, { taskType: "bug-fix" });

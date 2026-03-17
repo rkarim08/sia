@@ -31,15 +31,12 @@ describe("createSiaDb", () => {
 	it("throws when sync disabled", async () => {
 		const { createSiaDb } = await import("@/sync/client");
 		await expect(
-			createSiaDb(
-				"repo",
-				{
-					enabled: false,
-					serverUrl: null,
-					developerId: null,
-					syncInterval: 30,
-				},
-			),
+			createSiaDb("repo", {
+				enabled: false,
+				serverUrl: null,
+				developerId: null,
+				syncInterval: 30,
+			}),
 		).rejects.toThrow(/createSiaDb\(\) called without sync enabled/);
 	});
 
@@ -85,8 +82,6 @@ describe("createSiaDb", () => {
 			},
 			{ siaHome: home },
 		);
-		expect(mockCreateClient).toHaveBeenCalledWith(
-			expect.objectContaining({ syncInterval: 42 }),
-		);
+		expect(mockCreateClient).toHaveBeenCalledWith(expect.objectContaining({ syncInterval: 42 }));
 	});
 });

@@ -95,7 +95,10 @@ describe("staging area CRUD", () => {
 			raw_confidence: 0.7,
 		});
 
-		const result = await db.execute("SELECT created_at, expires_at FROM memory_staging WHERE id = ?", [id]);
+		const result = await db.execute(
+			"SELECT created_at, expires_at FROM memory_staging WHERE id = ?",
+			[id],
+		);
 		const row = result.rows[0]!;
 		const createdAt = row.created_at as number;
 		const expiresAt = row.expires_at as number;
@@ -161,7 +164,17 @@ describe("staging area CRUD", () => {
 				id, proposed_type, proposed_name, proposed_content,
 				trust_tier, raw_confidence, validation_status, created_at, expires_at
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			[expiredId, "Concept", "Old fact", "This expired.", 4, 0.8, "pending", pastTime - 7 * 86_400_000, pastTime],
+			[
+				expiredId,
+				"Concept",
+				"Old fact",
+				"This expired.",
+				4,
+				0.8,
+				"pending",
+				pastTime - 7 * 86_400_000,
+				pastTime,
+			],
 		);
 
 		// Insert a non-expired pending fact
@@ -174,7 +187,7 @@ describe("staging area CRUD", () => {
 
 		const pending = await getPendingStagedFacts(db);
 		expect(pending).toHaveLength(1);
-		expect(pending[0]!.id).toBe(freshId);
+		expect(pending[0]?.id).toBe(freshId);
 	});
 
 	// ---------------------------------------------------------------
@@ -194,12 +207,13 @@ describe("staging area CRUD", () => {
 
 		await updateStagingStatus(db, id, "quarantined", "PATTERN_INJECTION_DETECTED");
 
-		const result = await db.execute("SELECT validation_status, rejection_reason FROM memory_staging WHERE id = ?", [
-			id,
-		]);
+		const result = await db.execute(
+			"SELECT validation_status, rejection_reason FROM memory_staging WHERE id = ?",
+			[id],
+		);
 		expect(result.rows).toHaveLength(1);
-		expect(result.rows[0]!.validation_status).toBe("quarantined");
-		expect(result.rows[0]!.rejection_reason).toBe("PATTERN_INJECTION_DETECTED");
+		expect(result.rows[0]?.validation_status).toBe("quarantined");
+		expect(result.rows[0]?.rejection_reason).toBe("PATTERN_INJECTION_DETECTED");
 
 		// Verify QUARANTINE audit entry was written
 		const audit = await db.execute(
@@ -259,7 +273,7 @@ describe("staging area CRUD", () => {
 		// Fresh one is still pending
 		const pending = await getPendingStagedFacts(db);
 		expect(pending).toHaveLength(1);
-		expect(pending[0]!.proposed_name).toBe("Fresh fact");
+		expect(pending[0]?.proposed_name).toBe("Fresh fact");
 	});
 
 	// ---------------------------------------------------------------
@@ -279,9 +293,11 @@ describe("staging area CRUD", () => {
 			raw_confidence: 0.75,
 		});
 
-		const result = await db.execute("SELECT id, source_episode FROM memory_staging WHERE id = ?", [id]);
+		const result = await db.execute("SELECT id, source_episode FROM memory_staging WHERE id = ?", [
+			id,
+		]);
 		expect(result.rows).toHaveLength(1);
-		expect(result.rows[0]!.source_episode).toBe("episode-that-does-not-exist");
+		expect(result.rows[0]?.source_episode).toBe("episode-that-does-not-exist");
 	});
 
 	// ---------------------------------------------------------------
@@ -302,7 +318,7 @@ describe("staging area CRUD", () => {
 
 		const result = await db.execute("SELECT trust_tier FROM memory_staging WHERE id = ?", [id]);
 		expect(result.rows).toHaveLength(1);
-		expect(result.rows[0]!.trust_tier).toBe(4);
+		expect(result.rows[0]?.trust_tier).toBe(4);
 
 		// Also verify audit entry has trust_tier = 4
 		const audit = await db.execute(
@@ -310,6 +326,6 @@ describe("staging area CRUD", () => {
 			[id],
 		);
 		expect(audit.rows).toHaveLength(1);
-		expect(audit.rows[0]!.trust_tier).toBe(4);
+		expect(audit.rows[0]?.trust_tier).toBe(4);
 	});
 });

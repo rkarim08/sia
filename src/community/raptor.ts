@@ -188,9 +188,7 @@ export async function getOrCreateLevel1Summary(
 			`Write a one-paragraph summary of this code entity:\n\nName: ${entity.id}\nContent: ${entity.content.slice(0, 500)}`,
 		);
 	} else {
-		summaryText = entity.summary?.trim()
-			? entity.summary
-			: entity.content.slice(0, 240);
+		summaryText = entity.summary?.trim() ? entity.summary : entity.content.slice(0, 240);
 	}
 
 	const now = Date.now();

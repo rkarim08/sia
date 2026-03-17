@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createFallbackClient, createLlmClient } from "@/shared/llm-client";
 import { DEFAULT_CONFIG } from "@/shared/config";
+import { createFallbackClient, createLlmClient } from "@/shared/llm-client";
 
 describe("LlmClient", () => {
 	it("fallback summarize returns truncated content", async () => {

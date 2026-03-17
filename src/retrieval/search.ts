@@ -56,8 +56,7 @@ export async function hybridSearch(
 	opts: SearchOptions,
 ): Promise<SearchResult> {
 	const limit = opts.limit ?? 15;
-	const communityMinGraphSize =
-		opts.communityMinGraphSize ?? DEFAULT_COMMUNITY_MIN_GRAPH_SIZE;
+	const communityMinGraphSize = opts.communityMinGraphSize ?? DEFAULT_COMMUNITY_MIN_GRAPH_SIZE;
 
 	// --- Classify query ---------------------------------------------------
 	const classification = await classifyQuery(db, opts.query, {
@@ -84,17 +83,11 @@ export async function hybridSearch(
 	const [bm25Results, graphResults, vecResults] = await Promise.all([
 		bm25Search(db, opts.query, searchOpts),
 		graphTraversalSearch(db, opts.query, searchOpts),
-		embedder
-			? vectorSearch(db, opts.query, embedder, searchOpts)
-			: Promise.resolve([]),
+		embedder ? vectorSearch(db, opts.query, embedder, searchOpts) : Promise.resolve([]),
 	]);
 
 	// --- Stage 2: expand 1-hop neighbors ----------------------------------
-	const expandedGraphResults = await expandNeighbors(
-		db,
-		graphResults,
-		opts.paranoid,
-	);
+	const expandedGraphResults = await expandNeighbors(db, graphResults, opts.paranoid);
 
 	// --- Stage 3: RRF combine + rerank ------------------------------------
 	const bm25Candidates: RankedCandidate[] = bm25Results.map((r) => ({
@@ -146,10 +139,7 @@ export async function hybridSearch(
  * Fetch community summaries for global-mode queries.
  * Returns communities that have a non-NULL summary, ordered by member_count DESC.
  */
-async function fetchCommunitySummaries(
-	db: SiaDb,
-	limit: number,
-): Promise<SiaSearchResult[]> {
+async function fetchCommunitySummaries(db: SiaDb, limit: number): Promise<SiaSearchResult[]> {
 	const result = await db.execute(
 		"SELECT * FROM communities WHERE summary IS NOT NULL ORDER BY member_count DESC LIMIT ?",
 		[limit],
@@ -158,7 +148,7 @@ async function fetchCommunitySummaries(
 	return (result.rows as Record<string, unknown>[]).map((row) => ({
 		id: row.id as string,
 		type: "Community",
-		name: (row.id as string),
+		name: row.id as string,
 		summary: (row.summary as string) ?? "",
 		content: (row.summary as string) ?? "",
 		trust_tier: 1,
@@ -232,19 +222,14 @@ async function expandNeighbors(
  * Attach extraction_method to results that don't already have it set.
  * Only queries the DB for results where extraction_method is undefined.
  */
-async function attachProvenance(
-	db: SiaDb,
-	results: SiaSearchResult[],
-): Promise<void> {
+async function attachProvenance(db: SiaDb, results: SiaSearchResult[]): Promise<void> {
 	for (const result of results) {
 		if (result.extraction_method === undefined) {
-			const row = await db.execute(
-				"SELECT extraction_method FROM entities WHERE id = ?",
-				[result.id],
-			);
+			const row = await db.execute("SELECT extraction_method FROM entities WHERE id = ?", [
+				result.id,
+			]);
 			if (row.rows.length > 0) {
-				result.extraction_method =
-					(row.rows[0].extraction_method as string | null) ?? null;
+				result.extraction_method = (row.rows[0].extraction_method as string | null) ?? null;
 			}
 		}
 	}

@@ -107,8 +107,8 @@ export function createMemoryDb(): BunSqliteDb {
 export class LibSqlDb implements SiaDb {
 	constructor(
 		private readonly client: {
-			execute: (...args: any[]) => Promise<any>;
-			batch?: (...args: any[]) => Promise<any>;
+			execute: (...args: unknown[]) => Promise<{ rows?: unknown[] }>;
+			batch?: (...args: unknown[]) => Promise<unknown>;
 			sync?: () => Promise<void>;
 			close?: () => Promise<void>;
 		},

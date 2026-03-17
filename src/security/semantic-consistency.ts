@@ -13,10 +13,7 @@ export interface CentroidState {
  * Load the persisted centroid for a repo.
  * Returns null if the centroid file does not exist.
  */
-export function loadCentroid(
-	repoHash: string,
-	siaHome: string = SIA_HOME,
-): CentroidState | null {
+export function loadCentroid(repoHash: string, siaHome: string = SIA_HOME): CentroidState | null {
 	const filePath = join(siaHome, "repos", repoHash, "centroid.json");
 	if (!existsSync(filePath)) {
 		return null;
@@ -49,10 +46,7 @@ export function saveCentroid(
  *
  * Returns a new CentroidState; the input is not mutated.
  */
-export function updateCentroid(
-	state: CentroidState,
-	newEmbedding: Float32Array,
-): CentroidState {
+export function updateCentroid(state: CentroidState, newEmbedding: Float32Array): CentroidState {
 	const n = state.count;
 	const newCentroid: number[] = new Array(state.centroid.length);
 	for (let i = 0; i < state.centroid.length; i++) {

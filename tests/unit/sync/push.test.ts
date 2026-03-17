@@ -16,11 +16,46 @@ afterEach(() => {
 
 const now = Date.now();
 
-function entityRow(id: string, visibility: string, hlcModified: number | null, syncedAt: number | null) {
+function entityRow(
+	id: string,
+	visibility: string,
+	hlcModified: number | null,
+	syncedAt: number | null,
+) {
 	return [
-		id, "Concept", `Name-${id}`, "content", "summary", null,
-		"[]", "[]", 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null, null, null,
-		visibility, "dev", null, null, hlcModified, syncedAt, null, null, null, null, null, null,
+		id,
+		"Concept",
+		`Name-${id}`,
+		"content",
+		"summary",
+		null,
+		"[]",
+		"[]",
+		3,
+		0.7,
+		0.7,
+		0.5,
+		0.5,
+		0,
+		0,
+		now,
+		now,
+		now,
+		null,
+		null,
+		null,
+		visibility,
+		"dev",
+		null,
+		null,
+		hlcModified,
+		syncedAt,
+		null,
+		null,
+		null,
+		null,
+		null,
+		null,
 	];
 }
 

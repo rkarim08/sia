@@ -35,12 +35,37 @@ function entityRow(
 	},
 ) {
 	return [
-		id, type, name, content, "s", null,
-		"[]", "[]", 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null,
+		id,
+		type,
+		name,
+		content,
+		"s",
+		null,
+		"[]",
+		"[]",
+		3,
+		0.7,
+		0.7,
+		0.5,
+		0.5,
+		0,
+		0,
+		now,
+		now,
+		now,
+		null,
 		overrides?.t_valid_from ?? null,
 		overrides?.t_valid_until ?? null,
-		"team", "dev", null, null, null, null,
-		null, null, null, null,
+		"team",
+		"dev",
+		null,
+		null,
+		null,
+		null,
+		null,
+		null,
+		null,
+		null,
 		overrides?.embedding ?? null,
 		null,
 	];
@@ -54,7 +79,8 @@ describe("detectConflicts", () => {
 
 		// These two share enough words for wordJaccard > 0.95 and have different content
 		// 20 shared words + 1 extra = Jaccard 20/21 ≈ 0.952
-		const sharedWords = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon";
+		const sharedWords =
+			"alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon";
 		await db.execute(ENTITY_INSERT, entityRow("e1", "Concept", "A", sharedWords));
 		await db.execute(ENTITY_INSERT, entityRow("e2", "Concept", "A", `${sharedWords} phi`));
 		await db.execute(ENTITY_INSERT, entityRow("e3", "Decision", "B", "different"));
@@ -98,8 +124,14 @@ describe("detectConflicts", () => {
 		const db = result.db;
 		tmpDir = result.tmpDir;
 
-		await db.execute(ENTITY_INSERT, entityRow("e1", "Concept", "A", "alpha beta gamma delta epsilon"));
-		await db.execute(ENTITY_INSERT, entityRow("e2", "Decision", "A", "alpha beta gamma delta epsilon zeta"));
+		await db.execute(
+			ENTITY_INSERT,
+			entityRow("e1", "Concept", "A", "alpha beta gamma delta epsilon"),
+		);
+		await db.execute(
+			ENTITY_INSERT,
+			entityRow("e2", "Decision", "A", "alpha beta gamma delta epsilon zeta"),
+		);
 
 		const count = await detectConflicts(db);
 		expect(count).toBe(0);
@@ -111,7 +143,7 @@ describe("detectConflicts", () => {
 		tmpDir = result.tmpDir;
 
 		// Create two near-identical embedding vectors (cosine > 0.85)
-		const dimCount = 4;
+		const _dimCount = 4;
 		const bufA = new Float32Array([0.5, 0.5, 0.5, 0.5]);
 		const bufB = new Float32Array([0.5, 0.5, 0.5, 0.51]);
 		const embA = new Uint8Array(bufA.buffer);

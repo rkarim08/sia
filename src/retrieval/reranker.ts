@@ -3,7 +3,7 @@
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import type { SiaSearchResult } from "@/mcp/tools/sia-search";
-import { TASK_TYPE_BOOSTS, packagePathBoost } from "@/retrieval/query-classifier";
+import { packagePathBoost, TASK_TYPE_BOOSTS } from "@/retrieval/query-classifier";
 
 /** A candidate with an entity ID and a score from a single retrieval signal. */
 export interface RankedCandidate {
@@ -92,8 +92,9 @@ export async function rerank(
 	}
 
 	// Determine task-type boosted entity types
-	const boostedTypes: Set<string> | undefined =
-		opts?.taskType ? TASK_TYPE_BOOSTS[opts.taskType] : undefined;
+	const boostedTypes: Set<string> | undefined = opts?.taskType
+		? TASK_TYPE_BOOSTS[opts.taskType]
+		: undefined;
 
 	// Score and filter
 	const scored: Array<{ entity: Entity; finalScore: number }> = [];
@@ -115,11 +116,7 @@ export async function rerank(
 		const pkgBoost = packagePathBoost(entity.package_path, opts?.packagePath ?? null);
 
 		const finalScore =
-			rrfScore *
-				entity.importance *
-				entity.confidence *
-				trustWeight *
-				(1 + taskBoost * 0.3) +
+			rrfScore * entity.importance * entity.confidence * trustWeight * (1 + taskBoost * 0.3) +
 			pkgBoost;
 
 		scored.push({ entity, finalScore });

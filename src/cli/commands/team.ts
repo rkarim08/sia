@@ -95,7 +95,7 @@ export async function teamLeave(opts: { siaHome?: string; db?: SiaDb } = {}): Pr
 
 export async function teamStatus(opts: { siaHome?: string; db?: SiaDb } = {}): Promise<TeamStatus> {
 	const config = getConfig(opts.siaHome);
-	let peerCount = 0;
+	const peerCount = 0;
 	let pendingConflicts = 0;
 	const lastSyncAt: number | null = null;
 

@@ -94,7 +94,9 @@ describe("detectCommunities", () => {
 		// At least one pair of adjacent entities in the chain should share a community
 		let sharedCount = 0;
 		for (let i = 0; i < clusters[0].ids.length - 1; i++) {
-			if (entityToCommunity.get(clusters[0].ids[i]) === entityToCommunity.get(clusters[0].ids[i + 1])) {
+			if (
+				entityToCommunity.get(clusters[0].ids[i]) === entityToCommunity.get(clusters[0].ids[i + 1])
+			) {
 				sharedCount++;
 			}
 		}

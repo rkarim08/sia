@@ -26,18 +26,15 @@ interface PatternEntry {
 const PATTERNS: PatternEntry[] = [
 	{
 		name: "instruction_like",
-		regex:
-			/\b(remember to always|from now on|this is mandatory|you must always|never forget)\b/i,
+		regex: /\b(remember to always|from now on|this is mandatory|you must always|never forget)\b/i,
 	},
 	{
 		name: "authority_claim",
-		regex:
-			/\b(team convention|project rule|always do|never do|mandatory practice|required by)\b/i,
+		regex: /\b(team convention|project rule|always do|never do|mandatory practice|required by)\b/i,
 	},
 	{
 		name: "prompt_injection",
-		regex:
-			/\b(ignore previous|disregard|override instructions|system prompt|you are now)\b/i,
+		regex: /\b(ignore previous|disregard|override instructions|system prompt|you are now)\b/i,
 	},
 	{
 		name: "json_in_text",

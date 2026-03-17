@@ -41,7 +41,7 @@ export function cosineSimilarity(a: Uint8Array | null, b: Uint8Array | null): nu
 /**
  * Compute the magnitude (L2 norm) of an embedding vector.
  */
-function embeddingMagnitude(e: Uint8Array | null): number | null {
+function _embeddingMagnitude(e: Uint8Array | null): number | null {
 	if (!e) return null;
 	const f = new Float32Array(e.buffer, e.byteOffset, Math.floor(e.byteLength / 4));
 	if (f.length === 0) return null;
@@ -121,11 +121,7 @@ export async function deduplicateEntities(
 			// Layer 3: LLM classification for pending pairs (0.80-0.92 range)
 			if (decision === "pending" && llmClient) {
 				const prompt = `Entity A: "${local.name}" — ${local.content}\nEntity B: "${peer.name}" — ${peer.content}\n\nAre these the same entity, different entities, or related entities?`;
-				const classification = await llmClient.classify(prompt, [
-					"SAME",
-					"DIFFERENT",
-					"RELATED",
-				]);
+				const classification = await llmClient.classify(prompt, ["SAME", "DIFFERENT", "RELATED"]);
 
 				if (classification === "SAME") {
 					decision = "merged";

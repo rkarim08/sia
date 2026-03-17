@@ -27,10 +27,7 @@ function createRateLimiter(maxPerMinute: number): RateLimiter {
 async function acquireToken(limiter: RateLimiter): Promise<void> {
 	const now = Date.now();
 	const elapsed = now - limiter.lastRefill;
-	limiter.tokens = Math.min(
-		limiter.maxTokens,
-		limiter.tokens + elapsed * limiter.refillRate,
-	);
+	limiter.tokens = Math.min(limiter.maxTokens, limiter.tokens + elapsed * limiter.refillRate);
 	limiter.lastRefill = now;
 
 	if (limiter.tokens < 1) {
@@ -67,9 +64,7 @@ export function createLlmClient(config: SiaConfig): LlmClient {
 	const limiter = createRateLimiter(10);
 	let anthropicClient: {
 		messages: {
-			create: (
-				opts: Record<string, unknown>,
-			) => Promise<{ content: Array<{ text?: string }> }>;
+			create: (opts: Record<string, unknown>) => Promise<{ content: Array<{ text?: string }> }>;
 		};
 	} | null = null;
 

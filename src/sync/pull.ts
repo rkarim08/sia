@@ -49,7 +49,7 @@ export async function pullChanges(
 		try {
 			const { consolidate } = await import("@/capture/consolidate");
 			const candidates: CandidateFact[] = receivedEntities.map((row) => ({
-				type: (row.type as string) as CandidateFact["type"],
+				type: row.type as string as CandidateFact["type"],
 				name: row.name as string,
 				content: row.content as string,
 				summary: row.summary as string,
@@ -67,7 +67,7 @@ export async function pullChanges(
 						return [];
 					}
 				})(),
-				trust_tier: (row.trust_tier as number) as CandidateFact["trust_tier"],
+				trust_tier: row.trust_tier as number as CandidateFact["trust_tier"],
 				confidence: row.confidence as number,
 				extraction_method: (row.extraction_method as string) ?? undefined,
 			}));
@@ -130,10 +130,9 @@ export async function pullChanges(
 			// Use rawSqlite() directly for VSS INSERT
 			for (const row of embedRows.rows as Array<{ rowid: number; embedding: Uint8Array }>) {
 				try {
-					sqlite.prepare("INSERT OR REPLACE INTO entities_vss(rowid, embedding) VALUES (?, ?)").run(
-						row.rowid,
-						row.embedding,
-					);
+					sqlite
+						.prepare("INSERT OR REPLACE INTO entities_vss(rowid, embedding) VALUES (?, ?)")
+						.run(row.rowid, row.embedding);
 					vssRefreshed++;
 				} catch {
 					// Ignore individual VSS insert failures

@@ -50,8 +50,10 @@ export function extractQueryTerms(query: string): string[] {
 		const b = raw[i + 1];
 		// CamelCase: capitalize first letter of each word
 		const camel =
-			a.charAt(0).toUpperCase() + a.slice(1).toLowerCase() +
-			b.charAt(0).toUpperCase() + b.slice(1).toLowerCase();
+			a.charAt(0).toUpperCase() +
+			a.slice(1).toLowerCase() +
+			b.charAt(0).toUpperCase() +
+			b.slice(1).toLowerCase();
 		terms.add(camel);
 		// snake_case
 		terms.add(`${a.toLowerCase()}_${b.toLowerCase()}`);

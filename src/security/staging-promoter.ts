@@ -8,8 +8,8 @@
 //
 // Pass => promote via consolidation pipeline. Fail => quarantine with reason.
 
-import type { Embedder } from "@/capture/embedder";
 import { consolidate } from "@/capture/consolidate";
+import type { Embedder } from "@/capture/embedder";
 import type { CandidateFact, EntityType } from "@/capture/types";
 import { writeAuditEntry } from "@/graph/audit";
 import type { SiaDb } from "@/graph/db-interface";
@@ -20,10 +20,7 @@ import {
 } from "@/graph/staging";
 import { detectInjection } from "@/security/pattern-detector";
 import { checkRuleOfTwo } from "@/security/rule-of-two";
-import {
-	checkSemanticConsistency,
-	loadCentroid,
-} from "@/security/semantic-consistency";
+import { checkSemanticConsistency, loadCentroid } from "@/security/semantic-consistency";
 import type { LlmClient } from "@/shared/llm-client";
 
 /** Aggregate result of a promotion run. */
@@ -76,15 +73,9 @@ export async function promoteStagedFacts(
 		if (!quarantineReason && opts.embedder) {
 			const embedding = await opts.embedder.embed(fact.proposed_content);
 			if (embedding) {
-				const centroidState = loadCentroid(
-					opts.repoHash,
-					opts.siaHome,
-				);
+				const centroidState = loadCentroid(opts.repoHash, opts.siaHome);
 				if (centroidState) {
-					const semanticResult = checkSemanticConsistency(
-						embedding,
-						centroidState.centroid,
-					);
+					const semanticResult = checkSemanticConsistency(embedding, centroidState.centroid);
 					if (semanticResult.flagged) {
 						quarantineReason = `off_domain: distance=${semanticResult.distance}`;
 					}
@@ -94,7 +85,7 @@ export async function promoteStagedFacts(
 
 		// Check 3: Confidence threshold
 		if (!quarantineReason) {
-			const threshold = fact.trust_tier >= 4 ? 0.75 : 0.60;
+			const threshold = fact.trust_tier >= 4 ? 0.75 : 0.6;
 			if (fact.raw_confidence < threshold) {
 				quarantineReason = "low_confidence";
 			}

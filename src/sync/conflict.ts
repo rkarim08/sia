@@ -48,9 +48,7 @@ export async function detectConflicts(db: SiaDb, llmClient?: LlmClient): Promise
 			const b = entities[j];
 
 			if (a.type !== b.type) continue;
-			if (
-				!rangesOverlap(a.t_valid_from, a.t_valid_until, b.t_valid_from, b.t_valid_until)
-			)
+			if (!rangesOverlap(a.t_valid_from, a.t_valid_until, b.t_valid_from, b.t_valid_until))
 				continue;
 
 			// Pre-filter: skip pairs where embedding magnitude difference > 0.3

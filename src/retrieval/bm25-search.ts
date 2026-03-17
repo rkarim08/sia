@@ -81,9 +81,7 @@ export function sanitizeFts5Query(query: string): string {
 function sanitizeUnquoted(text: string): string {
 	// Remove FTS5 operators and special characters: * + - ^ ~ : ( ) { } < >
 	const cleaned = text.replace(/[*+\-^~:(){}|<>@!.,;'/\\[\]]/g, " ");
-	const tokens = cleaned
-		.split(/\s+/)
-		.filter((t) => t.length > 0);
+	const tokens = cleaned.split(/\s+/).filter((t) => t.length > 0);
 	return tokens.join(" ");
 }
 
@@ -109,10 +107,7 @@ export async function bm25Search(
 	const packagePath = opts?.packagePath;
 
 	// Build the query with optional filters
-	const conditions: string[] = [
-		"e.t_valid_until IS NULL",
-		"e.archived_at IS NULL",
-	];
+	const conditions: string[] = ["e.t_valid_until IS NULL", "e.archived_at IS NULL"];
 	const params: unknown[] = [sanitized];
 
 	if (paranoid) {
