@@ -35,8 +35,10 @@ Sia solves this by capturing knowledge from your AI coding sessions automaticall
 | **Scalability** | Collapses past ~50 entries | Linear degradation | Degrades past ~10K notes | SQLite-backed, tested to 50K nodes with sub-800ms retrieval |
 | **Capture method** | Developer writes manually | Developer writes manually | Developer writes manually | Automatic dual-track: deterministic AST + probabilistic LLM |
 | **Knowledge decay** | Manual cleanup | Manual cleanup | Manual cleanup | Automatic importance decay with configurable half-lives per node kind |
+| **Graph freshness** | Stale facts persist forever | No freshness model | No freshness model | Five-layer freshness engine: file-watcher → git-reconcile → stale-while-revalidate → confidence decay → deep validation |
 | **Visualization** | Not available | Not available | Graph view (built-in) | Interactive D3.js graph explorer (`npx sia graph`) |
 | **Export** | N/A | N/A | Native markdown | Obsidian-compatible markdown vault export/import (round-trip) |
+| **Native performance** | N/A | N/A | N/A | Optional Rust module via NAPI-RS (AST diffing, PageRank, Leiden) with Wasm and TypeScript fallbacks |
 
 **The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration — the developer must bridge the gap manually. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans (connections, context, history) also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
 
@@ -168,7 +170,8 @@ npx sia graph --open
 │   ├── Semantic:   Decision, Convention, Bug, Solution       │
 │   ├── Events:     EditEvent, ExecutionEvent, ErrorEvent     │
 │   ├── Docs:       ContentChunk (from AGENTS.md, ADRs, ...) │
-│   └── Ontology:   edge_constraints (validates all writes)   │
+│   ├── Ontology:   edge_constraints (validates all writes)   │
+│   └── Freshness:  source_deps + dirty propagation engine    │
 │                                                             │
 │   episodic.db ─ Append-only session archive                 │
 └─────────────────────────────────────────────────────────────┘
@@ -243,6 +246,31 @@ Results are fused via Reciprocal Rank Fusion and weighted by:
 - **Graph proximity** (nodes closer to query-mentioned entities score higher)
 
 Progressive throttling prevents excessive tool calls: normal results for calls 1–3, reduced results with warning for calls 4–8, blocked with redirect to `sia_batch_execute` for calls 9+.
+
+### Graph Freshness — Five Layers of Trust
+
+A persistent knowledge graph is only useful if its facts reflect the current codebase. Sia solves this with a five-layer freshness engine where each layer operates at a different timescale, and the invalidation mechanism matches the nature of each fact type:
+
+```
+Layer 1 — File-Watcher Invalidation     [milliseconds]   [handles >90% of cases]
+  File save → Tree-sitter incremental re-parse → surgical node invalidation
+Layer 2 — Git-Commit Reconciliation      [seconds]        [merges, rebases, checkouts]
+  Git operation → diff parse → bounded BFS with firewall nodes
+Layer 3 — Stale-While-Revalidate Reads   [per-query]      [~0.1ms overhead]
+  Fresh → serve instantly | Stale → serve + async re-validate | Rotten → block + repair
+Layer 4 — Confidence Decay               [hours to days]  [LLM-inferred facts only]
+  Exponential decay × trust tier, with Bayesian re-observation reinforcement
+Layer 5 — Periodic Deep Validation       [daily/weekly]   [batch cleanup]
+  Doc-vs-code cross-check → LLM re-verify → PageRank recompute → compaction
+```
+
+**Why different layers for different fact types?** A function signature extracted from an AST is either correct or not — time-based decay is meaningless for it. But a Decision inferred by an LLM six months ago genuinely loses confidence over time unless re-confirmed. Sia applies event-driven invalidation to deterministic facts (Tier 2) and exponential decay with Bayesian re-observation to probabilistic facts (Tier 3).
+
+**The inverted dependency index** (`source_deps` table) maps every source file to every graph node derived from it. When a file changes, a single indexed lookup returns the exact set of affected nodes — no graph scan required. An in-memory Cuckoo filter provides O(1) pre-screening for files with zero dependencies.
+
+**Early cutoff** prevents cascading re-verification: if a source file changes but the derived fact is unchanged (whitespace edit, comment change), propagation stops immediately. This eliminates ~30% of unnecessary re-verification during typical editing sessions.
+
+Each search result carries a `freshness` field (`fresh`, `stale`, or `rotten`) so the agent knows whether to cite a fact with confidence or verify it first.
 
 ### Trust Tiers
 
@@ -443,11 +471,11 @@ sia_fetch_and_index({
 
 #### `sia_stats` — Graph Metrics
 
-Returns node counts by kind, edge counts by type, context savings (session + total), and search/execute call counts.
+Returns node counts by kind, edge counts by type, freshness metrics (fresh/stale/rotten counts, avg confidence by tier), context savings, native module status, and search/execute call counts.
 
 #### `sia_doctor` — Health Check
 
-Checks runtimes, hooks, FTS5, sqlite-vss, ONNX model, and graph integrity (orphan edges, bi-temporal invariants, ontology violations).
+Checks runtimes, hooks, FTS5, sqlite-vss, ONNX model, native module status, community detection backend, graph integrity (orphan edges, bi-temporal invariants, ontology violations), and inverted dependency index coverage.
 
 #### `sia_upgrade` — Self-Update
 
@@ -601,6 +629,23 @@ Sia uses Tree-sitter for deterministic structural extraction with an extensible 
 
 `sia_execute` supports 11 runtimes for isolated subprocess execution: Python, Node.js, Bun, Bash, Ruby, Go, Rust, Java, PHP, Perl, and R.
 
+### Native Performance Module (Optional)
+
+Sia includes an optional Rust module (`@sia/native`) distributed as prebuilt binaries via npm for the two highest-cost hot paths. No Rust toolchain is required on your machine — prebuilt binaries are downloaded during `npm install`.
+
+The module provides three APIs:
+- **AST diffing** — GumTree algorithm for structural comparison of parse trees (5–20x faster than JavaScript)
+- **Graph algorithms** — PageRank, shortest path, betweenness centrality, connected components via petgraph (2–4x faster)
+- **Leiden community detection** — via the graphrs crate, replacing any need for a Python subprocess
+
+Graceful three-tier fallback: Rust native → Wasm → pure TypeScript. All three tiers produce identical results. `npx sia doctor` reports which backend is active.
+
+| Operation | Rust Native | Wasm | TypeScript |
+|-----------|------------|------|------------|
+| AST diff (500-node trees) | < 10ms | < 25ms | < 100ms |
+| PageRank (50K nodes) | < 20ms | < 50ms | < 80ms |
+| Leiden (50K nodes, 3 levels) | < 500ms | < 500ms | < 1s (Louvain) |
+
 ### Adding Languages
 
 Register additional Tree-sitter grammars at runtime without modifying source code:
@@ -635,6 +680,7 @@ npx sia prune                       # Clean up decayed entities
 npx sia doctor                      # Health check (runtimes, hooks, model, graph integrity, ontology)
 npx sia upgrade                     # Self-update with migration
 npx sia rollback <timestamp>        # Restore graph to a previous state
+npx sia freshness                   # Graph freshness report (fresh/stale/rotten counts, confidence)
 ```
 
 ### Knowledge Commands
@@ -789,16 +835,26 @@ All data lives in `~/.sia/`:
 | Sandbox execution (simple script) | <5s |
 | Graph visualization (100 nodes) | <3s render |
 | Documentation discovery (≤50 files) | <2s |
+| Fresh node retrieval | < 0.05ms |
+| Stale check (per node) | < 0.2ms |
+| File-save invalidation (end-to-end) | < 200ms |
+| Git-commit reconciliation (5 files) | < 2s |
+| Dirty propagation (10K graph) | < 1ms |
+| AST diff (Rust native, 500 nodes) | < 10ms |
+| PageRank (Rust native, 50K nodes) | < 20ms |
+| Nightly deep validation | < 60s |
 
 ---
 
 ## Architecture
 
-Sia is composed of eleven modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, team sync, sandbox execution engine, ontology layer, and knowledge/documentation engine.
+Sia is composed of thirteen modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, team sync, sandbox execution engine, ontology layer, knowledge/documentation engine, freshness engine, and native performance module.
 
-**Write path**: Hook fires → event node creation → dual-track extraction (AST + LLM) → ontology validation → two-phase consolidation (ADD/UPDATE/INVALIDATE/NOOP) → atomic graph write
+**Write path**: Hook fires → event node creation → dual-track extraction (AST + LLM) → ontology validation → two-phase consolidation → atomic graph write → **inverted dependency index update → dirty propagation**
 
 **Read path**: MCP query → three-stage retrieval (vector + BM25 + graph traversal) → RRF reranking with trust weighting → progressive throttling → context assembly
+
+**Freshness path**: File change → Layer 1 file-watcher invalidation → dirty propagation with early cutoff → Layer 3 stale-while-revalidate on next read → Layer 4 confidence decay for LLM-inferred facts → Layer 5 nightly deep validation
 
 **Session continuity path**: PreCompact → priority-weighted subgraph serialization → SessionStart → subgraph deserialization + graph re-query → Session Guide injection
 
@@ -813,6 +869,7 @@ For the full architecture with module details, data flow diagrams, database sche
 - **Transport**: Standard MCP stdio
 - **AI Agent**: Claude Code (primary), any MCP-compatible agent
 - **Documentation formats**: AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, Windsurf rules, Copilot instructions, and 15+ more
+- **Native module**: Prebuilt for macOS (ARM/Intel), Linux (x64/ARM64, glibc/musl), Windows (x64). Wasm and TypeScript fallbacks when unavailable.
 
 ---
 
