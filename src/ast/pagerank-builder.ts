@@ -1,6 +1,13 @@
 import type { SiaDb } from "@/graph/db-interface";
 import { updateEntity } from "@/graph/entities";
 
+export interface PageRankResult {
+	iterations: number;
+	converged: boolean;
+	finalDelta: number;
+	nodesScored: number;
+}
+
 interface EdgeRow {
 	from_id: string;
 	to_id: string;
@@ -13,11 +20,16 @@ function buildTeleportVector(nodes: string[], activeFileIds: string[]): Map<stri
 		return new Map(nodes.map((id) => [id, uniform]));
 	}
 
-	const weight = 1 / bias.size;
-	return new Map(nodes.map((id) => [id, bias.has(id) ? weight : 0]));
+	const epsilon = 0.01;
+	const activeWeight = (1 - epsilon) / bias.size;
+	const passiveWeight = epsilon / nodes.length;
+	return new Map(nodes.map((id) => [id, bias.has(id) ? activeWeight : passiveWeight]));
 }
 
-export async function computePageRank(db: SiaDb, activeFileIds: string[] = []): Promise<void> {
+export async function computePageRank(
+	db: SiaDb,
+	activeFileIds: string[] = [],
+): Promise<PageRankResult> {
 	const { rows } = await db.execute(
 		"SELECT from_id, to_id FROM edges WHERE t_valid_until IS NULL AND type IN ('calls','imports','inherits_from')",
 	);
@@ -31,12 +43,15 @@ export async function computePageRank(db: SiaDb, activeFileIds: string[] = []): 
 		nodes.add(edge.from_id);
 		nodes.add(edge.to_id);
 
-		outgoing.set(edge.from_id, [...(outgoing.get(edge.from_id) ?? []), edge.to_id]);
-		incoming.set(edge.to_id, [...(incoming.get(edge.to_id) ?? []), edge.from_id]);
+		if (!outgoing.has(edge.from_id)) outgoing.set(edge.from_id, []);
+		outgoing.get(edge.from_id)!.push(edge.to_id);
+
+		if (!incoming.has(edge.to_id)) incoming.set(edge.to_id, []);
+		incoming.get(edge.to_id)!.push(edge.from_id);
 	}
 
 	if (nodes.size === 0) {
-		return;
+		return { iterations: 0, converged: true, finalDelta: 0, nodesScored: 0 };
 	}
 
 	const nodeList = [...nodes];
@@ -45,11 +60,16 @@ export async function computePageRank(db: SiaDb, activeFileIds: string[] = []): 
 		activeFileIds.filter((id) => nodes.has(id)),
 	);
 	const damping = 0.85;
+	const maxIter = 30;
 	const n = nodeList.length;
 
 	let scores = new Map<string, number>(nodeList.map((id) => [id, teleport.get(id) ?? 1 / n]));
+	let converged = false;
+	let finalDelta = 0;
+	let iterationCount = 0;
 
-	for (let iter = 0; iter < 30; iter++) {
+	for (let iter = 0; iter < maxIter; iter++) {
+		iterationCount = iter + 1;
 		const newScores = new Map<string, number>();
 		const danglingSum = nodeList.reduce((sum, id) => {
 			const out = outgoing.get(id);
@@ -76,10 +96,33 @@ export async function computePageRank(db: SiaDb, activeFileIds: string[] = []): 
 			delta += Math.abs((newScores.get(node) ?? 0) - (scores.get(node) ?? 0));
 		}
 		scores = newScores;
-		if (delta < 1e-6) break;
+		finalDelta = delta;
+		if (delta < 1e-6) {
+			converged = true;
+			break;
+		}
 	}
 
-	await Promise.all(
-		nodeList.map((id) => updateEntity(db, id, { importance: scores.get(id) ?? 0 })),
-	);
+	if (!converged) {
+		console.warn(
+			`PageRank did not converge after ${maxIter} iterations (delta=${finalDelta})`,
+		);
+	}
+
+	const BATCH_SIZE = 500;
+	for (let i = 0; i < nodeList.length; i += BATCH_SIZE) {
+		const batch = nodeList.slice(i, i + BATCH_SIZE);
+		const statements = batch.map((id) => ({
+			sql: "UPDATE entities SET importance = ? WHERE id = ?",
+			params: [scores.get(id) ?? 0, id],
+		}));
+		await db.executeMany(statements);
+	}
+
+	return {
+		iterations: iterationCount,
+		converged,
+		finalDelta,
+		nodesScored: nodeList.length,
+	};
 }

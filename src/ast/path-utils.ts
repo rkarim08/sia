@@ -5,6 +5,11 @@ export interface IgnoreMatcher {
 	shouldIgnore(absPath: string, isDir: boolean): boolean;
 }
 
+export interface GitignoreRule {
+	regex: RegExp;
+	dirOnly: boolean;
+}
+
 /** Normalize a path to posix-style separators for consistent matching. */
 export function toPosixPath(path: string): string {
 	return path.split(sep).join("/");
@@ -24,16 +29,35 @@ function patternToRegExp(pattern: string): RegExp {
 	return new RegExp(`(^|/)${wildcarded}(/.*)?$`);
 }
 
-function loadGitignorePatterns(repoRoot: string): RegExp[] {
+function loadGitignorePatterns(repoRoot: string): {
+	ignore: GitignoreRule[];
+	negate: GitignoreRule[];
+} {
 	const gitignorePath = join(repoRoot, ".gitignore");
-	if (!existsSync(gitignorePath)) return [];
+	if (!existsSync(gitignorePath)) return { ignore: [], negate: [] };
 
 	const lines = readFileSync(gitignorePath, "utf-8")
 		.split("\n")
 		.map((line) => line.trim())
 		.filter((line) => line.length > 0 && !line.startsWith("#"));
 
-	return lines.map((line) => patternToRegExp(line));
+	const ignoreRules: GitignoreRule[] = [];
+	const negateRules: GitignoreRule[] = [];
+
+	for (const line of lines) {
+		if (line.startsWith("!")) {
+			const raw = line.slice(1);
+			const isDirOnly = raw.endsWith("/");
+			const cleanLine = isDirOnly ? raw.slice(0, -1) : raw;
+			negateRules.push({ regex: patternToRegExp(cleanLine), dirOnly: isDirOnly });
+		} else {
+			const isDirOnly = line.endsWith("/");
+			const cleanLine = isDirOnly ? line.slice(0, -1) : line;
+			ignoreRules.push({ regex: patternToRegExp(cleanLine), dirOnly: isDirOnly });
+		}
+	}
+
+	return { ignore: ignoreRules, negate: negateRules };
 }
 
 /**
@@ -41,7 +65,7 @@ function loadGitignorePatterns(repoRoot: string): RegExp[] {
  */
 export function createIgnoreMatcher(repoRoot: string, excludePaths: string[] = []): IgnoreMatcher {
 	const root = resolve(repoRoot);
-	const gitignorePatterns = loadGitignorePatterns(root);
+	const gitignoreResult = loadGitignorePatterns(root);
 	const defaultExcludes = [
 		"node_modules",
 		".git",
@@ -73,19 +97,25 @@ export function createIgnoreMatcher(repoRoot: string, excludePaths: string[] = [
 				}
 			}
 
-			// Apply .gitignore-style patterns (best-effort)
-			for (const regex of gitignorePatterns) {
-				if (regex.test(rel)) {
-					return true;
+			// Apply gitignore patterns with negation support
+			let gitIgnored = false;
+			for (const rule of gitignoreResult.ignore) {
+				if (rule.dirOnly && !isDir) continue;
+				if (rule.regex.test(rel)) {
+					gitIgnored = true;
+					break;
 				}
 			}
-
-			// If the pattern ends with a slash, only ignore directories
-			for (const line of configuredExcludes) {
-				if (line.endsWith("/") && rel.startsWith(line.slice(0, -1)) && isDir) {
-					return true;
+			if (gitIgnored) {
+				for (const rule of gitignoreResult.negate) {
+					if (rule.dirOnly && !isDir) continue;
+					if (rule.regex.test(rel)) {
+						gitIgnored = false;
+						break;
+					}
 				}
 			}
+			if (gitIgnored) return true;
 
 			return false;
 		},

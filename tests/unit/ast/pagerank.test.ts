@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { computePageRank } from "@/ast/pagerank-builder";
-import { insertEdge } from "@/graph/edges";
+import { insertEdge, invalidateEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 
@@ -110,5 +110,65 @@ describe("computePageRank", () => {
 		}
 
 		expect(importance[b.id]).toBeGreaterThanOrEqual(importance[a.id]);
+	});
+
+	it("returns early for empty graph", async () => {
+		const result = await computePageRank(db);
+		expect(result.nodesScored).toBe(0);
+		expect(result.converged).toBe(true);
+	});
+
+	it("excludes invalidated edges from computation", async () => {
+		const a = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "EdgeA",
+			content: "A",
+			summary: "A",
+			trust_tier: 2,
+			confidence: 0.92,
+		});
+		const b = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "EdgeB",
+			content: "B",
+			summary: "B",
+			trust_tier: 2,
+			confidence: 0.92,
+		});
+		const edge = await insertEdge(db, {
+			from_id: b.id,
+			to_id: a.id,
+			type: "imports",
+		});
+		await invalidateEdge(db, edge.id);
+
+		const result = await computePageRank(db);
+		expect(result.nodesScored).toBe(0);
+	});
+
+	it("returns convergence metrics", async () => {
+		const a = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "ConvA",
+			content: "A",
+			summary: "A",
+			trust_tier: 2,
+			confidence: 0.92,
+		});
+		const b = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "ConvB",
+			content: "B",
+			summary: "B",
+			trust_tier: 2,
+			confidence: 0.92,
+		});
+		await insertEdge(db, { from_id: a.id, to_id: b.id, type: "calls" });
+
+		const result = await computePageRank(db);
+		expect(result.converged).toBe(true);
+		expect(result.iterations).toBeGreaterThan(0);
+		expect(result.finalDelta).toBeLessThan(1e-6);
+		expect(result.nodesScored).toBe(2);
 	});
 });
