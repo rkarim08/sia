@@ -1,5 +1,10 @@
 // Module: db-interface — SiaDb interface and BunSqliteDb adapter
+
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import type { SyncConfig } from "@/shared/config";
+import { SIA_HOME } from "@/shared/config";
 
 /** Returns true for SQL statements that produce rows (SELECT, PRAGMA, RETURNING, etc.) */
 function isReadStatement(sql: string): boolean {
@@ -88,4 +93,56 @@ export class BunSqliteDb implements SiaDb {
  */
 export function createMemoryDb(): BunSqliteDb {
 	return new BunSqliteDb(new Database(":memory:"));
+}
+
+// ---------------------------------------------------------------------------
+// openDb factory & openSiaDb router
+// ---------------------------------------------------------------------------
+
+/** Options for openDb / openSiaDb. */
+export interface OpenDbOpts {
+	readonly?: boolean;
+	/** Override SIA_HOME (useful for testing). */
+	siaHome?: string;
+}
+
+/**
+ * Open (or create) a bun:sqlite database at `{siaHome}/repos/{repoHash}/graph.db`.
+ * Sets WAL journal mode, NORMAL synchronous, and foreign_keys ON unless `readonly`.
+ */
+export function openDb(repoHash: string, opts: OpenDbOpts = {}): BunSqliteDb {
+	const home = opts.siaHome ?? SIA_HOME;
+	const dir = join(home, "repos", repoHash);
+	mkdirSync(dir, { recursive: true });
+
+	const dbPath = join(dir, "graph.db");
+	const db = new Database(dbPath, { readonly: opts.readonly ?? false });
+
+	if (!opts.readonly) {
+		db.pragma("journal_mode = WAL");
+		db.pragma("synchronous = NORMAL");
+		db.pragma("foreign_keys = ON");
+	}
+
+	return new BunSqliteDb(db);
+}
+
+/**
+ * Open the appropriate SiaDb implementation based on SyncConfig.
+ *
+ * - sync disabled or no serverUrl  => local bun:sqlite via openDb
+ * - sync enabled + serverUrl       => dynamic import createSiaDb from @/sync/client
+ */
+export async function openSiaDb(
+	repoHash: string,
+	syncConfig: SyncConfig,
+	opts: OpenDbOpts = {},
+): Promise<SiaDb> {
+	if (!syncConfig.enabled || !syncConfig.serverUrl) {
+		return openDb(repoHash, opts);
+	}
+
+	// Dynamic import so that @/sync/client is only loaded when sync is actually used
+	const { createSiaDb } = await import("@/sync/client");
+	return createSiaDb(repoHash, syncConfig, opts);
 }
