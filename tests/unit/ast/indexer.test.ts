@@ -66,6 +66,25 @@ describe("indexRepository", () => {
 		expect(second.entitiesCreated).toBe(0);
 	});
 
+	it("updates existing entities instead of creating duplicates on re-index", async () => {
+		mkdirSync(join(repoRoot, "src"), { recursive: true });
+		writeFileSync(join(repoRoot, "src", "dup.ts"), "export function dup() { return 1; }", "utf-8");
+		await indexRepository(repoRoot, db, config, { repoHash });
+
+		// Modify file content
+		writeFileSync(join(repoRoot, "src", "dup.ts"), "export function dup() { return 2; }", "utf-8");
+		// Clear cache to force re-processing
+		const cachePath = join(config.astCacheDir, repoHash, "index-cache.json");
+		writeFileSync(cachePath, "{}", "utf-8");
+
+		await indexRepository(repoRoot, db, config, { repoHash });
+
+		const rows = await db.execute(
+			"SELECT COUNT(*) as cnt FROM entities WHERE name = 'dup' AND t_valid_until IS NULL",
+		);
+		expect(rows.rows[0]?.cnt).toBe(1);
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(

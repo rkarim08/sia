@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join, relative, resolve } from "node:path";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
-import { extractTrackA } from "@/capture/track-a-ast";
+import { dispatchExtraction } from "@/ast/extractors/tier-dispatch";
 import type { SiaDb } from "@/graph/db-interface";
-import { insertEntity } from "@/graph/entities";
+import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
 
 export interface IndexResult {
@@ -95,23 +95,39 @@ export async function indexRepository(
 			}
 
 			const content = readFileSync(absPath, "utf-8");
-			const facts = extractTrackA(content, relPath);
+			const facts = language
+				? dispatchExtraction(content, relPath, language.tier, language.specialHandling)
+				: [];
 			const packagePath = detectPackagePath(relPath);
 
 			for (const fact of facts) {
 				if (!opts.dryRun) {
-					await insertEntity(db, {
-						type: fact.type,
-						name: fact.name,
-						content: fact.content,
-						summary: fact.summary,
-						tags: JSON.stringify(fact.tags ?? []),
-						file_paths: JSON.stringify(fact.file_paths ?? [relPath]),
-						trust_tier: fact.trust_tier,
-						confidence: fact.confidence,
-						package_path: packagePath,
-						extraction_method: fact.extraction_method ?? null,
-					});
+					// Dedup: check for existing active entity with same name in the same file
+					const existing = await db.execute(
+						`SELECT id FROM entities
+						 WHERE name = ? AND file_paths LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL`,
+						[fact.name, `%${relPath}%`],
+					);
+					if (existing.rows.length > 0) {
+						await updateEntity(db, existing.rows[0].id as string, {
+							content: fact.content,
+							summary: fact.summary,
+							tags: JSON.stringify(fact.tags ?? []),
+						});
+					} else {
+						await insertEntity(db, {
+							type: fact.type,
+							name: fact.name,
+							content: fact.content,
+							summary: fact.summary,
+							tags: JSON.stringify(fact.tags ?? []),
+							file_paths: JSON.stringify(fact.file_paths ?? [relPath]),
+							trust_tier: fact.trust_tier,
+							confidence: fact.confidence,
+							package_path: packagePath,
+							extraction_method: fact.extraction_method ?? null,
+						});
+					}
 				}
 				entitiesCreated += 1;
 			}
