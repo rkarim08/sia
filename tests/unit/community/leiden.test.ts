@@ -1,20 +1,35 @@
-import { mkdtempSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { detectCommunities } from "@/community/leiden";
+import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 
-function createDb() {
-	const dir = mkdtempSync(join(tmpdir(), "sia-community-"));
-	return openGraphDb("test-repo", dir);
-}
-
 describe("detectCommunities", () => {
+	let tmpDir: string;
+	let db: SiaDb | undefined;
+
+	function makeTmp(): string {
+		const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
+		mkdirSync(dir, { recursive: true });
+		return dir;
+	}
+
+	afterEach(async () => {
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
+		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+	});
+
 	it("creates multi-level communities from active edges", async () => {
-		const db = createDb();
+		tmpDir = makeTmp();
+		db = openGraphDb("test-repo", tmpDir);
 		const clusters: Array<{ pkg: string; ids: string[] }> = [
 			{ pkg: "pkg/a", ids: [] },
 			{ pkg: "pkg/b", ids: [] },
@@ -56,6 +71,33 @@ describe("detectCommunities", () => {
 			clusters.reduce((sum, c) => sum + c.ids.length, 0),
 		);
 
-		await db.close();
+		// Verify that entities in cluster A are grouped into Level 0 communities
+		// (fewer distinct communities than entities, showing real clustering)
+		const placeholders = clusters[0].ids.map(() => "?").join(",");
+		const clusterAMembers = await db.execute(
+			`SELECT cm.entity_id, cm.community_id
+			 FROM community_members cm
+			 WHERE cm.entity_id IN (${placeholders})
+			   AND cm.level = 0`,
+			clusters[0].ids,
+		);
+		const entityToCommunity = new Map<string, string>();
+		for (const row of clusterAMembers.rows) {
+			const r = row as { entity_id: string; community_id: string };
+			entityToCommunity.set(r.entity_id, r.community_id);
+		}
+		// All cluster A entities should have a Level 0 community assignment
+		expect(entityToCommunity.size).toBe(clusters[0].ids.length);
+		// The number of distinct communities should be less than the number of entities
+		const distinctCommunities = new Set(entityToCommunity.values());
+		expect(distinctCommunities.size).toBeLessThan(clusters[0].ids.length);
+		// At least one pair of adjacent entities in the chain should share a community
+		let sharedCount = 0;
+		for (let i = 0; i < clusters[0].ids.length - 1; i++) {
+			if (entityToCommunity.get(clusters[0].ids[i]) === entityToCommunity.get(clusters[0].ids[i + 1])) {
+				sharedCount++;
+			}
+		}
+		expect(sharedCount).toBeGreaterThan(0);
 	});
 });

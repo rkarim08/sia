@@ -1,18 +1,14 @@
-import { mkdtempSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { detectCommunities } from "@/community/leiden";
 import { summarizeCommunities } from "@/community/summarize";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-
-function createDb() {
-	const dir = mkdtempSync(join(tmpdir(), "sia-summary-"));
-	return openGraphDb("summary-repo", dir);
-}
 
 async function seedSmallGraph(db: SiaDb) {
 	const ids: string[] = [];
@@ -32,8 +28,26 @@ async function seedSmallGraph(db: SiaDb) {
 }
 
 describe("summarizeCommunities", () => {
+	let tmpDir: string;
+	let db: SiaDb | undefined;
+
+	function makeTmp(): string {
+		const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
+		mkdirSync(dir, { recursive: true });
+		return dir;
+	}
+
+	afterEach(async () => {
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
+		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+	});
+
 	it("creates summaries and refreshes when membership changes", async () => {
-		const db = createDb();
+		tmpDir = makeTmp();
+		db = openGraphDb("summary-repo", tmpDir);
 		await seedSmallGraph(db);
 		await detectCommunities(db);
 
@@ -98,7 +112,5 @@ describe("summarizeCommunities", () => {
 		expect(
 			(afterAirGapped.rows[0] as { last_summary_member_count: number }).last_summary_member_count,
 		).toBe(prevCount);
-
-		await db.close();
 	});
 });

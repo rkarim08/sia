@@ -1,7 +1,8 @@
-import { mkdtempSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { detectCommunities } from "@/community/leiden";
 import { buildSummaryTree, getOrCreateLevel1Summary } from "@/community/raptor";
 import { summarizeCommunities } from "@/community/summarize";
@@ -9,11 +10,6 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-
-function createDb() {
-	const dir = mkdtempSync(join(tmpdir(), "sia-raptor-"));
-	return openGraphDb("raptor-repo", dir);
-}
 
 async function seedGraph(db: SiaDb) {
 	const ids: string[] = [];
@@ -33,8 +29,26 @@ async function seedGraph(db: SiaDb) {
 }
 
 describe("buildSummaryTree", () => {
+	let tmpDir: string;
+	let db: SiaDb | undefined;
+
+	function makeTmp(): string {
+		const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
+		mkdirSync(dir, { recursive: true });
+		return dir;
+	}
+
+	afterEach(async () => {
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
+		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+	});
+
 	it("populates Level 0, 2, 3 eagerly; Level 1 is lazy", async () => {
-		const db = createDb();
+		tmpDir = makeTmp();
+		db = openGraphDb("raptor-repo", tmpDir);
 		const ids = await seedGraph(db);
 
 		await detectCommunities(db);
@@ -69,7 +83,5 @@ describe("buildSummaryTree", () => {
 			`lvl1:${ids[1]}`,
 		]);
 		expect((expired.rows[0] as { expires_at: number | null }).expires_at).not.toBeNull();
-
-		await db.close();
 	});
 });
