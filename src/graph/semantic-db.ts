@@ -2,8 +2,9 @@
 
 import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { BunSqliteDb } from "@/graph/db-interface";
+import { SIA_HOME } from "@/shared/config";
 
 /**
  * Open (or create) a SQLite database at `dbPath`, apply WAL/NORMAL/FK pragmas,
@@ -63,4 +64,28 @@ export function runMigrations(dbPath: string, migrationsDir: string): BunSqliteD
 	}
 
 	return new BunSqliteDb(db);
+}
+
+/**
+ * Open (or create) the semantic graph database for a given repo.
+ * Resolves to `{siaHome}/repos/{repoHash}/graph.db` and applies
+ * migrations from the `migrations/semantic` directory.
+ */
+export function openGraphDb(repoHash: string, siaHome?: string): BunSqliteDb {
+	const home = siaHome ?? SIA_HOME;
+	const dbPath = join(home, "repos", repoHash, "graph.db");
+	const migrationsDir = resolve(import.meta.dirname, "../../migrations/semantic");
+	return runMigrations(dbPath, migrationsDir);
+}
+
+/**
+ * Open (or create) the episodic database for a given repo.
+ * Resolves to `{siaHome}/repos/{repoHash}/episodic.db` and applies
+ * migrations from the `migrations/episodic` directory.
+ */
+export function openEpisodicDb(repoHash: string, siaHome?: string): BunSqliteDb {
+	const home = siaHome ?? SIA_HOME;
+	const dbPath = join(home, "repos", repoHash, "episodic.db");
+	const migrationsDir = resolve(import.meta.dirname, "../../migrations/episodic");
+	return runMigrations(dbPath, migrationsDir);
 }
