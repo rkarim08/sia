@@ -39,6 +39,8 @@ Sia solves this by capturing knowledge from your AI coding sessions automaticall
 | **Visualization** | Not available | Not available | Graph view (built-in) | Interactive D3.js graph explorer (`npx sia graph`) |
 | **Export** | N/A | N/A | Native markdown | Obsidian-compatible markdown vault export/import (round-trip) |
 | **Native performance** | N/A | N/A | N/A | Optional Rust module via NAPI-RS (AST diffing, PageRank, Leiden) with Wasm and TypeScript fallbacks |
+| **Knowledge capture** | N/A | N/A | N/A | Three-layer: hooks (real-time, $0) → CLAUDE.md directives (proactive, $0) → pluggable LLM fallback |
+| **Cross-agent support** | Claude Code only | Claude Code only | N/A | Claude Code (native), Cursor, Cline (hook adapters), Windsurf/Aider (MCP-only fallback) |
 
 **The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration — the developer must bridge the gap manually. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans (connections, context, history) also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
 
@@ -153,23 +155,24 @@ npx sia graph --open
 │  SessionStart ─┘    │         │  sia_at_time             │
 │       │             │         │  sia_note                │
 │       ▼             │         │  sia_execute + 8 more    │
-│  Event nodes        │         │       │                  │
-│  Dual-track extract │         │       ▼                  │
-│  Ontology validate  │         │  Vector + BM25 + Graph   │
-│  Consolidate        │         │  ──► RRF reranking       │
-│       │             │         │  ──► Trust weighting     │
+│  Hook capture ($0)  │         │       │                  │
+│  Event nodes        │         │       ▼                  │
+│  Dual-track extract │         │  Vector + BM25 + Graph   │
+│  Ontology validate  │         │  ──► RRF reranking       │
+│  Consolidate        │         │  ──► Trust weighting     │
+│       │             │         │       │                  │
 │       ▼             │         │       │                  │
 └───────┬─────────────┘         └───────┬──────────────────┘
         │                               │
         ▼                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    ~/.sia/repos/<hash>/                      │
+│                    ~/.sia/repos/<hash>/                     │
 │                                                             │
 │   graph.db ─── Unified knowledge graph                      │
 │   ├── Structural: CodeSymbol, FileNode, PackageNode         │
 │   ├── Semantic:   Decision, Convention, Bug, Solution       │
 │   ├── Events:     EditEvent, ExecutionEvent, ErrorEvent     │
-│   ├── Docs:       ContentChunk (from AGENTS.md, ADRs, ...) │
+│   ├── Docs:       ContentChunk (from AGENTS.md, ADRs, ...)  │
 │   ├── Ontology:   edge_constraints (validates all writes)   │
 │   └── Freshness:  source_deps + dirty propagation engine    │
 │                                                             │
@@ -191,6 +194,38 @@ When a Claude Code session ends (or during specific hook events), Sia's capture 
    - All edges validated against the ontology constraint layer before commit
    - Target: ≥80% of candidates are NOOP or UPDATE — the graph stays compact
 4. **Atomic write** commits all changes in a single transaction with a full audit log
+
+### Hooks-First Knowledge Capture
+
+Sia's primary capture mechanism uses Claude Code's hook system to observe every tool operation at the moment it happens — at zero additional LLM cost. This is architecturally superior to re-analyzing session transcripts with a separate LLM because Claude already has full context when it writes code, runs commands, and makes decisions.
+
+**Three-layer capture architecture:**
+
+```
+Layer 1: Claude Code Hooks (real-time, deterministic, $0)
+  PostToolUse → extracts knowledge from every Write, Edit, Bash, Read operation
+  Stop → processes transcript for decisions expressed in natural language
+  PreCompact → snapshots graph state before context compaction
+  SessionStart → injects relevant graph context into new sessions
+
+Layer 2: CLAUDE.md Behavioral Directives (proactive, $0)
+  Claude calls sia_note when it makes architectural decisions
+  Claude calls sia_search before starting new tasks
+  Captures the "why" — reasoning, alternatives, context
+
+Layer 3: Pluggable LLM Provider (offline + fallback)
+  Community summarization (requires full-graph reasoning)
+  Deep validation (nightly background job)
+  Non-Claude-Code agents (Cursor, Windsurf, Cline)
+  Built on Vercel AI SDK — supports Anthropic, OpenAI, Google, Ollama
+```
+
+**How capture works in practice:** When Claude writes a file, the PostToolUse hook receives the full file path and content, triggers AST extraction for CodeSymbol nodes, creates an EditEvent, and detects knowledge patterns in comments (decisions, conventions, TODOs) — all deterministically, with zero LLM calls. When Claude discusses a decision in conversation without calling `sia_note`, the Stop hook catches it by scanning the transcript segment. The result: ~90% cost reduction compared to the pure-API approach (~$0.04/day vs ~$0.36/day), with richer knowledge capture because hooks observe at the moment of maximum context.
+
+**Three capture modes** (configured in `sia.config.yaml`):
+- **`hooks`** (default for Claude Code): Real-time hook capture + LLM for offline operations only
+- **`api`** (fallback for non-Claude-Code agents): All extraction via pluggable LLM provider
+- **`hybrid`**: Hooks for real-time + LLM for batch operations like `npx sia reindex`
 
 ### Session Continuity
 
@@ -475,7 +510,7 @@ Returns node counts by kind, edge counts by type, freshness metrics (fresh/stale
 
 #### `sia_doctor` — Health Check
 
-Checks runtimes, hooks, FTS5, sqlite-vss, ONNX model, native module status, community detection backend, graph integrity (orphan edges, bi-temporal invariants, ontology violations), and inverted dependency index coverage.
+Checks runtimes, hooks (HTTP connectivity + command executability), capture mode, LLM provider health, FTS5, sqlite-vss, ONNX model, native module status, community detection backend, graph integrity (orphan edges, bi-temporal invariants, ontology violations), and inverted dependency index coverage. Reports estimated daily cost based on capture mode.
 
 #### `sia_upgrade` — Self-Update
 
@@ -681,6 +716,7 @@ npx sia doctor                      # Health check (runtimes, hooks, model, grap
 npx sia upgrade                     # Self-update with migration
 npx sia rollback <timestamp>        # Restore graph to a previous state
 npx sia freshness                   # Graph freshness report (fresh/stale/rotten counts, confidence)
+npx sia doctor --providers          # LLM provider connectivity and cost estimate
 ```
 
 ### Knowledge Commands
@@ -754,6 +790,39 @@ All configuration lives in `~/.sia/config.json`. Created automatically by `npx s
 | `freshnessDivergenceThreshold` | `90` | Days before documentation is flagged as potentially stale |
 | `freshnessPenalty` | `0.15` | Importance penalty for stale documentation |
 
+### Capture Mode and LLM Providers
+
+Sia's capture mode and LLM provider configuration lives in `sia.config.yaml` (separate from `~/.sia/config.json` which handles graph settings):
+
+```yaml
+capture:
+  mode: hooks              # hooks | api | hybrid
+  hookPort: 4521           # HTTP port for hook event receiver
+
+providers:
+  summarize:               # community summaries (active in all modes)
+    provider: anthropic
+    model: claude-sonnet-4
+  validate:                # nightly deep validation (active in all modes)
+    provider: ollama
+    model: qwen2.5-coder:7b
+  extract:                 # knowledge extraction (active in api/hybrid only)
+    provider: anthropic
+    model: claude-haiku-4-5
+  consolidate:             # graph consolidation (active in api/hybrid only)
+    provider: anthropic
+    model: claude-haiku-4-5
+
+fallback:
+  chain: [anthropic, openai, ollama]
+  maxRetries: 3
+
+costTracking:
+  budgetPerDay: 1.00       # daily spend cap
+```
+
+In `hooks` mode (the default when Claude Code is detected), only the `summarize` and `validate` providers make LLM calls. The `extract` and `consolidate` roles are dormant — hooks handle real-time knowledge capture at zero LLM cost.
+
 ### Decay Half-Lives
 
 | Node Kind | Half-Life | Rationale |
@@ -772,8 +841,9 @@ Set `"airGapped": true` to run Sia with zero outbound network calls. This disabl
 - Two-phase consolidation (falls back to direct-write)
 - Community summary generation (serves cached summaries)
 - Rule of Two security check (deterministic checks still run)
+- Layer 3 LLM provider calls (hooks and deterministic extraction still run normally)
 
-The ONNX embedder, vector search, BM25, graph traversal, sandbox execution, and documentation ingestion are all local and unaffected.
+The ONNX embedder, vector search, BM25, graph traversal, hooks-first capture, sandbox execution, and documentation ingestion are all local and unaffected.
 
 ### Sync Configuration
 
@@ -848,13 +918,15 @@ All data lives in `~/.sia/`:
 
 ## Architecture
 
-Sia is composed of thirteen modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, team sync, sandbox execution engine, ontology layer, knowledge/documentation engine, freshness engine, and native performance module.
+Sia is composed of fifteen modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, team sync, sandbox execution engine, ontology layer, knowledge/documentation engine, freshness engine, native performance module, hooks-first capture engine, and pluggable LLM provider.
 
 **Write path**: Hook fires → event node creation → dual-track extraction (AST + LLM) → ontology validation → two-phase consolidation → atomic graph write → **inverted dependency index update → dirty propagation**
 
 **Read path**: MCP query → three-stage retrieval (vector + BM25 + graph traversal) → RRF reranking with trust weighting → progressive throttling → context assembly
 
 **Freshness path**: File change → Layer 1 file-watcher invalidation → dirty propagation with early cutoff → Layer 3 stale-while-revalidate on next read → Layer 4 confidence decay for LLM-inferred facts → Layer 5 nightly deep validation
+
+**Capture path**: PostToolUse hook → deterministic extraction (Write/Edit/Bash/Read handlers) → event nodes + AST extraction → consolidation pipeline | Stop hook → transcript analysis → semantic knowledge extraction
 
 **Session continuity path**: PreCompact → priority-weighted subgraph serialization → SessionStart → subgraph deserialization + graph re-query → Session Guide injection
 
@@ -867,7 +939,8 @@ For the full architecture with module details, data flow diagrams, database sche
 - **OS**: macOS, Linux, Windows (WSL2)
 - **Runtime**: Node.js 18+, Bun 1.0+
 - **Transport**: Standard MCP stdio
-- **AI Agent**: Claude Code (primary), any MCP-compatible agent
+- **AI Agent**: Claude Code (native hooks), Cursor (hook adapter), Cline (hook adapter), Windsurf/Aider (MCP-only with api capture mode), any MCP-compatible agent
+- **LLM Providers**: Anthropic (Claude), OpenAI (GPT), Google (Gemini), Ollama (local models) via Vercel AI SDK
 - **Documentation formats**: AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, Windsurf rules, Copilot instructions, and 15+ more
 - **Native module**: Prebuilt for macOS (ARM/Intel), Linux (x64/ARM64, glibc/musl), Windows (x64). Wasm and TypeScript fallbacks when unavailable.
 
