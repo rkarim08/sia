@@ -14,7 +14,7 @@ const MAX_SEQ_LENGTH = 128;
  * The Embedder interface: embed text into a float vector, and clean up resources.
  */
 export interface Embedder {
-	embed(text: string): Promise<Float32Array | null>;
+	embed(text: string, trustTier?: number): Promise<Float32Array | null>;
 	close(): void;
 }
 
