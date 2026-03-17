@@ -171,21 +171,15 @@ sia enable-flagging / disable-flagging
 
 ---
 
-## Architecture Overview
+## Architecture
 
-Sia's extraction pipeline runs two parallel tracks:
+Sia is composed of eight modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, and team sync.
 
-- **Track A (deterministic)**: Tree-sitter AST parsing + NLP extraction — produces Tier 2 structural facts
-- **Track B (probabilistic)**: LLM-based extraction via Haiku — produces Tier 3 inferred facts
+**Write path**: Hook fires → dual-track extraction (AST + LLM) → two-phase consolidation (ADD/UPDATE/INVALIDATE/NOOP) → atomic graph write
 
-Both tracks feed a two-phase consolidation pipeline that merges near-duplicates, detects contradictions, and applies four operations: ADD, UPDATE, INVALIDATE, or NOOP. Target compression: ≥80% of raw candidates result in NOOP or UPDATE.
+**Read path**: MCP query → three-stage retrieval (vector + BM25 + graph traversal) → RRF reranking → context assembly
 
-Retrieval combines three signals via Reciprocal Rank Fusion:
-1. **Vector similarity** — local ONNX embeddings
-2. **BM25 keyword search** — SQLite FTS5
-3. **Graph traversal** — PersonalizedPageRank from mentioned entities
-
-Community detection uses the Leiden algorithm at three hierarchy levels with LLM-generated summaries cached by content hash.
+For the full architecture with module details, data flow diagrams, schema design, and key algorithms, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 
@@ -224,7 +218,7 @@ All data lives in `~/.sia/`:
 
 ## Status
 
-Sia is under active development. See [`plans/SIA_TASKS.md`](plans/SIA_TASKS.md) for the engineering backlog and delivery plan.
+Sia is under active development.
 
 ---
 
