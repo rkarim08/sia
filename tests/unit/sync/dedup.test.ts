@@ -89,4 +89,63 @@ describe("deduplicateEntities", () => {
 		const log = await db.execute("SELECT COUNT(*) as count FROM sync_dedup_log");
 		expect((log.rows[0] as { count: number }).count).toBe(2);
 	});
+
+	it("normalizeName preserves hyphens and underscores", async () => {
+		const result = createTestDb();
+		const db = result.db;
+		tmpDir = result.tmpDir;
+
+		// Insert a local entity with a hyphenated name
+		const local = makeEntity({ id: "local-hy", name: "my-function_name" });
+		await db.execute(ENTITY_INSERT, [
+			local.id, local.type, local.name, local.content, local.summary, null,
+			"[]", "[]", 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null, null, null,
+			local.visibility, local.created_by, null, null, null, null,
+			null, null, null, null, null, null,
+		]);
+
+		// A peer with the same hyphenated name should be detected as merged (Layer 1 exact name match)
+		const peers: Entity[] = [
+			makeEntity({ id: "peer-hy", name: "my-function_name", created_by: "peer" }),
+		];
+
+		const dedupResult = await deduplicateEntities(db, peers);
+		expect(dedupResult.merged).toBe(1);
+	});
+
+	it("Layer 1: exact name match still merges correctly", async () => {
+		const result = createTestDb();
+		const db = result.db;
+		tmpDir = result.tmpDir;
+
+		await db.execute(ENTITY_INSERT, [
+			"local-x", "Concept", "ExactName", "some content", "s", null,
+			'["tag1"]', '["file1.ts"]', 3, 0.7, 0.7, 0.5, 0.5, 0, 0, now, now, now, null, null, null,
+			"team", "local", null, null, null, null,
+			null, null, null, null, null, null,
+		]);
+
+		const peers: Entity[] = [
+			makeEntity({
+				id: "peer-x",
+				name: "ExactName",
+				tags: '["tag2"]',
+				file_paths: '["file2.ts"]',
+				created_by: "peer",
+			}),
+		];
+
+		const dedupResult = await deduplicateEntities(db, peers);
+		expect(dedupResult.merged).toBe(1);
+
+		// After merge, the surviving entity should have unioned tags
+		const rows = await db.execute("SELECT tags, file_paths FROM entities WHERE id = 'local-x'");
+		const row = rows.rows[0] as { tags: string; file_paths: string };
+		const tags = JSON.parse(row.tags);
+		const filePaths = JSON.parse(row.file_paths);
+		expect(tags).toContain("tag1");
+		expect(tags).toContain("tag2");
+		expect(filePaths).toContain("file1.ts");
+		expect(filePaths).toContain("file2.ts");
+	});
 });
