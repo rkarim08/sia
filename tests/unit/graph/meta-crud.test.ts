@@ -10,6 +10,7 @@ import {
 	getRepoByPath,
 	getSharingRules,
 	getWorkspaceRepos,
+	listWorkspaces,
 	openMetaDb,
 	registerRepo,
 	removeRepoFromWorkspace,
@@ -213,5 +214,29 @@ describe("meta-db CRUD (workspace and repo registry)", () => {
 
 		const ruleIds = rules.map((r) => r.id as string).sort();
 		expect(ruleIds).toEqual(["rule-global", "rule-ws"]);
+	});
+
+	// ---------------------------------------------------------------
+	// listWorkspaces
+	// ---------------------------------------------------------------
+
+	it("listWorkspaces returns all workspaces with member counts", async () => {
+		tmpDir = makeTmp();
+		db = openMetaDb(tmpDir);
+
+		const ws1 = await createWorkspace(db, "workspace-one");
+		const ws2 = await createWorkspace(db, "workspace-two");
+
+		const repoId = await registerRepo(db, "/tmp/list-ws-repo");
+		await addRepoToWorkspace(db, ws1, repoId);
+
+		const list = await listWorkspaces(db);
+		expect(list).toHaveLength(2);
+
+		const ws1Entry = list.find((w) => w.name === "workspace-one");
+		expect(ws1Entry?.member_count).toBe(1);
+
+		const ws2Entry = list.find((w) => w.name === "workspace-two");
+		expect(ws2Entry?.member_count).toBe(0);
 	});
 });

@@ -139,6 +139,50 @@ export async function getWorkspaceRepos(
 }
 
 // ---------------------------------------------------------------------------
+// Workspace listing
+// ---------------------------------------------------------------------------
+
+/** Row shape returned by listWorkspaces. */
+export interface WorkspaceListItem {
+	id: string;
+	name: string;
+	created_at: number;
+	member_count: number;
+}
+
+/**
+ * List all workspaces with their member counts.
+ */
+export async function listWorkspaces(db: SiaDb): Promise<WorkspaceListItem[]> {
+	const result = await db.execute(
+		`SELECT w.id, w.name, w.created_at,
+		        COUNT(wr.repo_id) as member_count
+		 FROM workspaces w
+		 LEFT JOIN workspace_repos wr ON wr.workspace_id = w.id
+		 GROUP BY w.id
+		 ORDER BY w.name`,
+	);
+	return result.rows as unknown as WorkspaceListItem[];
+}
+
+/**
+ * Get the count of api_contracts for repos in a workspace.
+ */
+export async function getWorkspaceContractCount(
+	db: SiaDb,
+	workspaceId: string,
+): Promise<number> {
+	const result = await db.execute(
+		`SELECT COUNT(*) as cnt FROM api_contracts ac
+		 WHERE ac.provider_repo_id IN (
+		   SELECT repo_id FROM workspace_repos WHERE workspace_id = ?
+		 )`,
+		[workspaceId],
+	);
+	return (result.rows[0]?.cnt as number) ?? 0;
+}
+
+// ---------------------------------------------------------------------------
 // Sharing rules
 // ---------------------------------------------------------------------------
 
