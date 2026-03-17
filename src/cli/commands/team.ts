@@ -11,6 +11,9 @@ export interface TeamStatus {
 	serverUrl: string | null;
 	developerId: string | null;
 	syncInterval: number;
+	peerCount: number;
+	pendingConflicts: number;
+	lastSyncAt: number | null;
 }
 
 function ensureDeveloperId(config: SiaConfig): string {
@@ -84,16 +87,32 @@ export async function teamLeave(opts: { siaHome?: string; db?: SiaDb } = {}): Pr
 	);
 
 	if (opts.db) {
-		await opts.db.execute("UPDATE entities SET visibility = 'private', workspace_scope = NULL");
+		await opts.db.execute(
+			"UPDATE entities SET visibility = 'private', workspace_scope = NULL, synced_at = NULL",
+		);
 	}
 }
 
-export function teamStatus(opts: { siaHome?: string } = {}): TeamStatus {
+export async function teamStatus(opts: { siaHome?: string; db?: SiaDb } = {}): Promise<TeamStatus> {
 	const config = getConfig(opts.siaHome);
+	let peerCount = 0;
+	let pendingConflicts = 0;
+	const lastSyncAt: number | null = null;
+
+	if (opts.db) {
+		const conflicts = await opts.db.execute(
+			"SELECT COUNT(DISTINCT conflict_group_id) as cnt FROM entities WHERE conflict_group_id IS NOT NULL AND t_valid_until IS NULL",
+		);
+		pendingConflicts = (conflicts.rows[0]?.cnt as number) ?? 0;
+	}
+
 	return {
 		enabled: config.sync.enabled,
 		serverUrl: config.sync.serverUrl,
 		developerId: config.sync.developerId,
 		syncInterval: config.sync.syncInterval,
+		peerCount,
+		pendingConflicts,
+		lastSyncAt,
 	};
 }
