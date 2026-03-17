@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	getLanguageByExtension,
+	LANGUAGE_REGISTRY,
 	type LanguageConfig,
 	type LanguageRegistry,
-	LANGUAGE_REGISTRY,
-	getLanguageByExtension,
 	mergeAdditionalLanguages,
 } from "@/ast/languages";
 
@@ -77,13 +77,13 @@ describe("languages registry", () => {
 	// ---- Special handling ----
 
 	it("C has specialHandling c-include-paths", () => {
-		const c = LANGUAGE_REGISTRY["c"];
+		const c = LANGUAGE_REGISTRY.c;
 		expect(c).toBeDefined();
 		expect(c.specialHandling).toBe("c-include-paths");
 	});
 
 	it("C++ has specialHandling c-include-paths", () => {
-		const cpp = LANGUAGE_REGISTRY["cpp"];
+		const cpp = LANGUAGE_REGISTRY.cpp;
 		expect(cpp).toBeDefined();
 		expect(cpp.specialHandling).toBe("c-include-paths");
 	});
@@ -110,15 +110,15 @@ describe("languages registry", () => {
 	it("getLanguageByExtension resolves .ts to typescript", () => {
 		const result = getLanguageByExtension(".ts");
 		expect(result).not.toBeNull();
-		expect(result!.name).toBe("typescript");
-		expect(result!.tier).toBe("A");
+		expect(result?.name).toBe("typescript");
+		expect(result?.tier).toBe("A");
 	});
 
 	it("getLanguageByExtension resolves .py to python", () => {
 		const result = getLanguageByExtension(".py");
 		expect(result).not.toBeNull();
-		expect(result!.name).toBe("python");
-		expect(result!.tier).toBe("A");
+		expect(result?.name).toBe("python");
+		expect(result?.tier).toBe("A");
 	});
 
 	it("getLanguageByExtension returns null for unknown extension", () => {
@@ -134,10 +134,10 @@ describe("languages registry", () => {
 			{ name: "crystal", extensions: [".cr"], grammar: "tree-sitter-crystal", tier: "B" },
 		]);
 
-		expect(registry["crystal"]).toBeDefined();
-		expect(registry["crystal"].name).toBe("crystal");
-		expect(registry["crystal"].tier).toBe("B");
-		expect(registry["crystal"].treeSitterGrammar).toBe("tree-sitter-crystal");
+		expect(registry.crystal).toBeDefined();
+		expect(registry.crystal.name).toBe("crystal");
+		expect(registry.crystal.tier).toBe("B");
+		expect(registry.crystal.treeSitterGrammar).toBe("tree-sitter-crystal");
 	});
 
 	it("mergeAdditionalLanguages resolves added language by extension", () => {
@@ -148,12 +148,12 @@ describe("languages registry", () => {
 
 		const result = getLanguageByExtension(".cr", registry);
 		expect(result).not.toBeNull();
-		expect(result!.name).toBe("crystal");
+		expect(result?.name).toBe("crystal");
 	});
 
 	it("mergeAdditionalLanguages does not overwrite existing language", () => {
 		const registry: LanguageRegistry = { ...LANGUAGE_REGISTRY };
-		const originalGrammar = registry["typescript"].treeSitterGrammar;
+		const originalGrammar = registry.typescript.treeSitterGrammar;
 
 		mergeAdditionalLanguages(registry, [
 			{
@@ -165,6 +165,6 @@ describe("languages registry", () => {
 		]);
 
 		// Should still have the original grammar, not overwritten
-		expect(registry["typescript"].treeSitterGrammar).toBe(originalGrammar);
+		expect(registry.typescript.treeSitterGrammar).toBe(originalGrammar);
 	});
 });

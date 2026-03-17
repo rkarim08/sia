@@ -29,9 +29,7 @@ export async function detectMonorepoPackages(repoRoot: string): Promise<string[]
 			const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
 			const workspaces = pkgJson?.workspaces;
 			if (workspaces) {
-				const patterns = Array.isArray(workspaces)
-					? workspaces
-					: (workspaces.packages ?? []);
+				const patterns = Array.isArray(workspaces) ? workspaces : (workspaces.packages ?? []);
 				if (patterns.length > 0) return expandGlobs(repoRoot, patterns as string[]);
 			}
 		} catch {
@@ -76,11 +74,7 @@ function parsePnpmWorkspace(content: string): string[] {
 		}
 		if (inPackages) {
 			if (trimmed.startsWith("- ")) {
-				const pattern = trimmed
-					.slice(2)
-					.trim()
-					.replace(/^['"]/, "")
-					.replace(/['"]$/, "");
+				const pattern = trimmed.slice(2).trim().replace(/^['"]/, "").replace(/['"]$/, "");
 				if (pattern) patterns.push(pattern);
 			} else if (trimmed && !trimmed.startsWith("#")) {
 				break;
@@ -176,10 +170,7 @@ export async function registerMonorepoPackages(
 	rootPath: string,
 	packagePaths: string[],
 ): Promise<void> {
-	await db.execute(
-		"UPDATE repos SET detected_type = 'monorepo_root' WHERE id = ?",
-		[rootRepoId],
-	);
+	await db.execute("UPDATE repos SET detected_type = 'monorepo_root' WHERE id = ?", [rootRepoId]);
 
 	for (const pkgPath of packagePaths) {
 		const fullPath = resolve(rootPath, pkgPath);

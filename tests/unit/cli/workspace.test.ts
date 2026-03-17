@@ -3,9 +3,6 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SiaDb } from "@/graph/db-interface";
-import { openBridgeDb } from "@/graph/bridge-db";
-import { openMetaDb } from "@/graph/meta-db";
 import {
 	workspaceAdd,
 	workspaceCreate,
@@ -13,6 +10,9 @@ import {
 	workspaceRemove,
 	workspaceShow,
 } from "@/cli/commands/workspace";
+import { openBridgeDb } from "@/graph/bridge-db";
+import type { SiaDb } from "@/graph/db-interface";
+import { openMetaDb } from "@/graph/meta-db";
 
 describe("workspace CLI commands", () => {
 	let tmpDir: string;

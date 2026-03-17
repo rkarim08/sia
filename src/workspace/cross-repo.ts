@@ -19,11 +19,7 @@ export interface PeerRepo {
  * Uses a plain ATTACH DATABASE statement. Does NOT set WAL pragma on the
  * attached connection — the caller opens it read-only.
  */
-export async function attachPeerRepo(
-	db: SiaDb,
-	peerDbPath: string,
-	alias: string,
-): Promise<void> {
+export async function attachPeerRepo(db: SiaDb, peerDbPath: string, alias: string): Promise<void> {
 	await db.execute(`ATTACH DATABASE ? AS ${alias}`, [peerDbPath]);
 }
 

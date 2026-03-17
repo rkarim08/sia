@@ -4,12 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import {
-	addRepoToWorkspace,
-	createWorkspace,
-	openMetaDb,
-	registerRepo,
-} from "@/graph/meta-db";
+import { addRepoToWorkspace, createWorkspace, openMetaDb, registerRepo } from "@/graph/meta-db";
 import { openGraphDb } from "@/graph/semantic-db";
 import { getPeerRepos } from "@/workspace/cross-repo";
 

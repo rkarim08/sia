@@ -225,7 +225,7 @@ describe("meta-db CRUD (workspace and repo registry)", () => {
 		db = openMetaDb(tmpDir);
 
 		const ws1 = await createWorkspace(db, "workspace-one");
-		const ws2 = await createWorkspace(db, "workspace-two");
+		const _ws2 = await createWorkspace(db, "workspace-two");
 
 		const repoId = await registerRepo(db, "/tmp/list-ws-repo");
 		await addRepoToWorkspace(db, ws1, repoId);

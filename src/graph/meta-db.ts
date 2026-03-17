@@ -168,10 +168,7 @@ export async function listWorkspaces(db: SiaDb): Promise<WorkspaceListItem[]> {
 /**
  * Get the count of api_contracts for repos in a workspace.
  */
-export async function getWorkspaceContractCount(
-	db: SiaDb,
-	workspaceId: string,
-): Promise<number> {
+export async function getWorkspaceContractCount(db: SiaDb, workspaceId: string): Promise<number> {
 	const result = await db.execute(
 		`SELECT COUNT(*) as cnt FROM api_contracts ac
 		 WHERE ac.provider_repo_id IN (

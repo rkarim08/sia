@@ -5,11 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openMetaDb, registerRepo } from "@/graph/meta-db";
-import {
-	type SiaManifest,
-	parseManifest,
-	writeManifestContracts,
-} from "@/workspace/manifest";
+import { parseManifest, type SiaManifest, writeManifestContracts } from "@/workspace/manifest";
 
 describe("manifest — .sia-manifest.yaml parser and contract writer", () => {
 	let tmpDir: string;
@@ -53,27 +49,27 @@ depends_on:
 		const manifest = parseManifest(yaml);
 		expect(manifest).not.toBeNull();
 
-		expect(manifest!.provides).toHaveLength(2);
-		expect(manifest!.provides[0]).toEqual({
+		expect(manifest?.provides).toHaveLength(2);
+		expect(manifest?.provides[0]).toEqual({
 			type: "openapi",
 			path: "openapi.yaml",
 			package: undefined,
 		});
-		expect(manifest!.provides[1]).toEqual({
+		expect(manifest?.provides[1]).toEqual({
 			type: "graphql",
 			path: "schema.graphql",
 			package: undefined,
 		});
 
-		expect(manifest!.consumes).toHaveLength(1);
-		expect(manifest!.consumes[0]).toEqual({
+		expect(manifest?.consumes).toHaveLength(1);
+		expect(manifest?.consumes[0]).toEqual({
 			type: "npm-package",
 			path: undefined,
 			package: "@acme/shared",
 		});
 
-		expect(manifest!.depends_on).toHaveLength(1);
-		expect(manifest!.depends_on[0]).toEqual({
+		expect(manifest?.depends_on).toHaveLength(1);
+		expect(manifest?.depends_on[0]).toEqual({
 			type: "ts-reference",
 			path: "../shared/tsconfig.json",
 			package: undefined,
@@ -94,17 +90,17 @@ depends_on:
 	it("returns empty arrays for empty manifest", () => {
 		const manifest = parseManifest("");
 		expect(manifest).not.toBeNull();
-		expect(manifest!.provides).toEqual([]);
-		expect(manifest!.consumes).toEqual([]);
-		expect(manifest!.depends_on).toEqual([]);
+		expect(manifest?.provides).toEqual([]);
+		expect(manifest?.consumes).toEqual([]);
+		expect(manifest?.depends_on).toEqual([]);
 	});
 
 	it("returns empty arrays for manifest with only unrecognized keys", () => {
 		const manifest = parseManifest("foo: bar\nbaz: 42");
 		expect(manifest).not.toBeNull();
-		expect(manifest!.provides).toEqual([]);
-		expect(manifest!.consumes).toEqual([]);
-		expect(manifest!.depends_on).toEqual([]);
+		expect(manifest?.provides).toEqual([]);
+		expect(manifest?.consumes).toEqual([]);
+		expect(manifest?.depends_on).toEqual([]);
 	});
 
 	it("filters out items missing the type field", () => {
@@ -118,9 +114,9 @@ provides:
 
 		const manifest = parseManifest(yaml);
 		expect(manifest).not.toBeNull();
-		expect(manifest!.provides).toHaveLength(2);
-		expect(manifest!.provides[0]?.type).toBe("openapi");
-		expect(manifest!.provides[1]?.type).toBe("graphql");
+		expect(manifest?.provides).toHaveLength(2);
+		expect(manifest?.provides[0]?.type).toBe("openapi");
+		expect(manifest?.provides[1]?.type).toBe("graphql");
 	});
 
 	it("supports all 11 contract types", () => {
@@ -143,9 +139,9 @@ provides:
 
 		const manifest = parseManifest(yaml);
 		expect(manifest).not.toBeNull();
-		expect(manifest!.provides).toHaveLength(11);
+		expect(manifest?.provides).toHaveLength(11);
 
-		const parsedTypes = manifest!.provides.map((c) => c.type);
+		const parsedTypes = manifest?.provides.map((c) => c.type);
 		expect(parsedTypes).toEqual(contractTypes);
 	});
 
@@ -181,23 +177,23 @@ provides:
 		// provides: provider -> consumer, type=openapi, spec_path=openapi.yaml
 		const openapi = result.rows.find((r) => r.contract_type === "openapi");
 		expect(openapi).toBeDefined();
-		expect(openapi!.provider_repo_id).toBe(providerRepoId);
-		expect(openapi!.consumer_repo_id).toBe(consumerRepoId);
-		expect(openapi!.spec_path).toBe("openapi.yaml");
+		expect(openapi?.provider_repo_id).toBe(providerRepoId);
+		expect(openapi?.consumer_repo_id).toBe(consumerRepoId);
+		expect(openapi?.spec_path).toBe("openapi.yaml");
 
 		// consumes: consumer -> provider (reversed), type=npm-package, spec_path from package
 		const npm = result.rows.find((r) => r.contract_type === "npm-package");
 		expect(npm).toBeDefined();
-		expect(npm!.provider_repo_id).toBe(consumerRepoId);
-		expect(npm!.consumer_repo_id).toBe(providerRepoId);
-		expect(npm!.spec_path).toBe("@acme/shared");
+		expect(npm?.provider_repo_id).toBe(consumerRepoId);
+		expect(npm?.consumer_repo_id).toBe(providerRepoId);
+		expect(npm?.spec_path).toBe("@acme/shared");
 
 		// depends_on: consumer -> provider (reversed), type=ts-reference
 		const tsRef = result.rows.find((r) => r.contract_type === "ts-reference");
 		expect(tsRef).toBeDefined();
-		expect(tsRef!.provider_repo_id).toBe(consumerRepoId);
-		expect(tsRef!.consumer_repo_id).toBe(providerRepoId);
-		expect(tsRef!.spec_path).toBe("../shared/tsconfig.json");
+		expect(tsRef?.provider_repo_id).toBe(consumerRepoId);
+		expect(tsRef?.consumer_repo_id).toBe(providerRepoId);
+		expect(tsRef?.spec_path).toBe("../shared/tsconfig.json");
 	});
 
 	it("contracts are idempotent on re-write", async () => {

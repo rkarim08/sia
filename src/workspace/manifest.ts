@@ -117,10 +117,11 @@ async function upsertContract(
 	);
 
 	if (existing.rows.length > 0) {
-		await db.execute(
-			"UPDATE api_contracts SET detected_at = ?, spec_path = ? WHERE id = ?",
-			[opts.now, opts.specPath, existing.rows[0]?.id as string],
-		);
+		await db.execute("UPDATE api_contracts SET detected_at = ?, spec_path = ? WHERE id = ?", [
+			opts.now,
+			opts.specPath,
+			existing.rows[0]?.id as string,
+		]);
 		return;
 	}
 

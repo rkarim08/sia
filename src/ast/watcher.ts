@@ -118,7 +118,7 @@ async function createUnderlyingWatcher(
 		const watcher = fsWatch(root, { recursive: true }, (eventType, filename) => {
 			if (!filename) return;
 			const absPath = join(root, filename.toString());
-			const rel = toPosixPath(relative(root, absPath));
+			const _rel = toPosixPath(relative(root, absPath));
 			if (ignoreMatcher.shouldIgnore(absPath, false)) return;
 			if (eventType === "rename") {
 				// rename can be add or delete; check existence

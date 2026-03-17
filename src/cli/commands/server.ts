@@ -9,25 +9,25 @@ const STATUS_PATH = join(SIA_HOME, "sqld.status");
 type ServerState = "running" | "stopped";
 
 function readState(): ServerState {
-        if (!existsSync(STATUS_PATH)) return "stopped";
-        const raw = readFileSync(STATUS_PATH, "utf-8").trim();
-        return raw === "running" ? "running" : "stopped";
+	if (!existsSync(STATUS_PATH)) return "stopped";
+	const raw = readFileSync(STATUS_PATH, "utf-8").trim();
+	return raw === "running" ? "running" : "stopped";
 }
 
 function writeState(state: ServerState): void {
-        writeFileSync(STATUS_PATH, state, "utf-8");
+	writeFileSync(STATUS_PATH, state, "utf-8");
 }
 
 export function serverStatus(): ServerState {
-        return readState();
+	return readState();
 }
 
 export function serverStart(): ServerState {
-        writeState("running");
-        return "running";
+	writeState("running");
+	return "running";
 }
 
 export function serverStop(): ServerState {
-        writeState("stopped");
-        return "stopped";
+	writeState("stopped");
+	return "stopped";
 }

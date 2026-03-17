@@ -3,14 +3,9 @@ import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SiaDb } from "@/graph/db-interface";
 import { openBridgeDb } from "@/graph/bridge-db";
-import {
-	addRepoToWorkspace,
-	createWorkspace,
-	openMetaDb,
-	registerRepo,
-} from "@/graph/meta-db";
+import type { SiaDb } from "@/graph/db-interface";
+import { addRepoToWorkspace, createWorkspace, openMetaDb, registerRepo } from "@/graph/meta-db";
 import { openGraphDb } from "@/graph/semantic-db";
 import { workspaceSearch } from "@/retrieval/workspace-search";
 
@@ -27,11 +22,7 @@ describe("workspace-search", () => {
 		return dir;
 	}
 
-	async function insertEntity(
-		db: SiaDb,
-		name: string,
-		importance = 0.5,
-	): Promise<string> {
+	async function insertEntity(db: SiaDb, name: string, importance = 0.5): Promise<string> {
 		const id = randomUUID();
 		const now = Date.now();
 		await db.execute(

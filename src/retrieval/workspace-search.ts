@@ -2,8 +2,8 @@
 
 import type { SiaDb } from "@/graph/db-interface";
 import type { SiaSearchResult } from "@/mcp/tools/sia-search";
-import { getPeerRepos } from "@/workspace/cross-repo";
 import { SIA_HOME } from "@/shared/config";
+import { getPeerRepos } from "@/workspace/cross-repo";
 
 /** Options for workspaceSearch. */
 export interface WorkspaceSearchOpts {
@@ -39,20 +39,13 @@ const MAX_PEERS = 8;
  * Missing peers produce metadata entries, not errors.
  * Does NOT set WAL pragma on attached read-only databases.
  */
-export async function workspaceSearch(
-	opts: WorkspaceSearchOpts,
-): Promise<WorkspaceSearchResult> {
+export async function workspaceSearch(opts: WorkspaceSearchOpts): Promise<WorkspaceSearchResult> {
 	const siaHome = opts.siaHome ?? SIA_HOME;
 	const limit = opts.limit ?? 15;
 	const missingRepos: string[] = [];
 
 	// Get peers from meta.db
-	const allPeers = await getPeerRepos(
-		opts.metaDb,
-		opts.workspaceId,
-		opts.primaryRepoId,
-		siaHome,
-	);
+	const allPeers = await getPeerRepos(opts.metaDb, opts.workspaceId, opts.primaryRepoId, siaHome);
 
 	// Cap at MAX_PEERS
 	const peers = allPeers.slice(0, MAX_PEERS);
@@ -82,10 +75,7 @@ export async function workspaceSearch(
 	// Query primary
 	const allEntities: SiaSearchResult[] = [];
 	const primarySql = `SELECT * FROM entities WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
-	const primaryResult = await opts.primaryDb.execute(primarySql, [
-		...filterParams,
-		limit,
-	]);
+	const primaryResult = await opts.primaryDb.execute(primarySql, [...filterParams, limit]);
 
 	for (const row of primaryResult.rows) {
 		allEntities.push(mapRow(row, null));
@@ -94,15 +84,10 @@ export async function workspaceSearch(
 	// Query each peer via ATTACH
 	for (const peer of peers) {
 		try {
-			await opts.primaryDb.execute("ATTACH DATABASE ? AS peer_db", [
-				peer.graphDbPath,
-			]);
+			await opts.primaryDb.execute("ATTACH DATABASE ? AS peer_db", [peer.graphDbPath]);
 
 			const peerSql = `SELECT * FROM peer_db.entities WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
-			const peerResult = await opts.primaryDb.execute(peerSql, [
-				...filterParams,
-				limit,
-			]);
+			const peerResult = await opts.primaryDb.execute(peerSql, [...filterParams, limit]);
 
 			for (const row of peerResult.rows) {
 				allEntities.push(mapRow(row, peer.name));
@@ -126,10 +111,7 @@ export async function workspaceSearch(
 	return { entities: capped, missingRepos };
 }
 
-function mapRow(
-	row: Record<string, unknown>,
-	sourceRepoName: string | null,
-): SiaSearchResult {
+function mapRow(row: Record<string, unknown>, sourceRepoName: string | null): SiaSearchResult {
 	return {
 		id: row.id as string,
 		type: row.type as string,

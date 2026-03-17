@@ -5,10 +5,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openMetaDb, registerRepo } from "@/graph/meta-db";
-import {
-	detectMonorepoPackages,
-	registerMonorepoPackages,
-} from "@/workspace/detector";
+import { detectMonorepoPackages, registerMonorepoPackages } from "@/workspace/detector";
 
 describe("detector — monorepo auto-detection", () => {
 	let tmpDir: string;
@@ -161,10 +158,7 @@ include(":feature:auth", ":feature:dashboard")
 	it("turbo.json alone produces no packages (informational only)", async () => {
 		tmpDir = makeTmp();
 
-		writeFileSync(
-			join(tmpDir, "turbo.json"),
-			JSON.stringify({ pipeline: { build: {} } }),
-		);
+		writeFileSync(join(tmpDir, "turbo.json"), JSON.stringify({ pipeline: { build: {} } }));
 
 		const packages = await detectMonorepoPackages(tmpDir);
 		expect(packages).toEqual([]);
@@ -177,10 +171,7 @@ include(":feature:auth", ":feature:dashboard")
 	it("turborepo + pnpm-workspace.yaml uses pnpm detection", async () => {
 		tmpDir = makeTmp();
 
-		writeFileSync(
-			join(tmpDir, "turbo.json"),
-			JSON.stringify({ pipeline: { build: {} } }),
-		);
+		writeFileSync(join(tmpDir, "turbo.json"), JSON.stringify({ pipeline: { build: {} } }));
 
 		writeFileSync(
 			join(tmpDir, "pnpm-workspace.yaml"),
@@ -280,10 +271,7 @@ describe("detector — registerMonorepoPackages", () => {
 		const rootPath = "/tmp/my-monorepo";
 		const rootRepoId = await registerRepo(db, rootPath);
 
-		await registerMonorepoPackages(db, rootRepoId, rootPath, [
-			"packages/core",
-			"packages/utils",
-		]);
+		await registerMonorepoPackages(db, rootRepoId, rootPath, ["packages/core", "packages/utils"]);
 
 		// Root repo should be marked as monorepo_root
 		const rootResult = await db.execute("SELECT * FROM repos WHERE id = ?", [rootRepoId]);
@@ -337,10 +325,9 @@ describe("detector — registerMonorepoPackages", () => {
 		expect(rootResult.rows[0]?.detected_type).toBe("monorepo_root");
 
 		// Should have exactly one package, not two
-		const pkgsResult = await db.execute(
-			"SELECT * FROM repos WHERE monorepo_root_id = ?",
-			[rootRepoId],
-		);
+		const pkgsResult = await db.execute("SELECT * FROM repos WHERE monorepo_root_id = ?", [
+			rootRepoId,
+		]);
 		expect(pkgsResult.rows).toHaveLength(1);
 		expect(pkgsResult.rows[0]?.name).toBe("libs/shared");
 		expect(pkgsResult.rows[0]?.detected_type).toBe("monorepo_package");
