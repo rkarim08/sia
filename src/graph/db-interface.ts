@@ -92,7 +92,74 @@ export class BunSqliteDb implements SiaDb {
  * Create an in-memory BunSqliteDb instance (for testing).
  */
 export function createMemoryDb(): BunSqliteDb {
-	return new BunSqliteDb(new Database(":memory:"));
+        return new BunSqliteDb(new Database(":memory:"));
+}
+
+// ---------------------------------------------------------------------------
+// LibSqlDb — embedded replica via @libsql/client
+// ---------------------------------------------------------------------------
+
+export class LibSqlDb implements SiaDb {
+        constructor(private readonly client: { execute: (...args: any[]) => Promise<any>; batch?: (...args: any[]) => Promise<any>; sync?: () => Promise<void>; close?: () => Promise<void> }) {}
+
+        async execute(sql: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[] }> {
+                const result = await this.client.execute({ sql, args: params as unknown[] });
+                const rows = Array.isArray(result?.rows)
+                        ? (result.rows.map((row: unknown) => row as Record<string, unknown>))
+                        : [];
+                return { rows };
+        }
+
+        async executeMany(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+                if (typeof this.client.batch === "function") {
+                        await this.client.batch(
+                                statements.map(({ sql, params = [] }) => ({ sql, args: params as unknown[] })),
+                                "deferred",
+                        );
+                        return;
+                }
+
+                for (const { sql, params = [] } of statements) {
+                        await this.client.execute({ sql, args: params as unknown[] });
+                }
+        }
+
+        async transaction(fn: (db: SiaDb) => Promise<void>): Promise<void> {
+                const txProxy: SiaDb = {
+                        execute: (sql, params) => this.execute(sql, params),
+                        executeMany: (stmts) => this.executeMany(stmts),
+                        transaction: async () => {
+                                throw new Error("Nested transactions not supported");
+                        },
+                        close: async () => {},
+                        rawSqlite: () => null,
+                };
+
+                await this.client.execute("BEGIN");
+                try {
+                        await fn(txProxy);
+                        await this.client.execute("COMMIT");
+                } catch (err) {
+                        await this.client.execute("ROLLBACK");
+                        throw err;
+                }
+        }
+
+        async close(): Promise<void> {
+                if (typeof this.client.close === "function") {
+                        await this.client.close();
+                }
+        }
+
+        rawSqlite(): Database | null {
+                return null;
+        }
+
+        async sync(): Promise<void> {
+                if (typeof this.client.sync === "function") {
+                        await this.client.sync();
+                }
+        }
 }
 
 // ---------------------------------------------------------------------------
