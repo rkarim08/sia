@@ -49,6 +49,8 @@ const EDGE_TYPE_WEIGHTS: Record<string, number> = {
 	calls: 0.5,
 	imports: 0.5,
 	inherits_from: 0.5,
+	contains: 0.5,
+	depends_on: 0.5,
 	co_occurrence: 0.3,
 	cochange: 0.2,
 	"git-cochange": 0.2,
@@ -56,7 +58,7 @@ const EDGE_TYPE_WEIGHTS: Record<string, number> = {
 
 function weightForEdge(type: string | null, base: number): number {
 	// Specification notes equal weights for now, but keep the map for future tuning.
-	const typeWeight = type ? (EDGE_TYPE_WEIGHTS[type] ?? 1) : 1;
+	const typeWeight = type ? (EDGE_TYPE_WEIGHTS[type] ?? 0.3) : 0.3;
 	return base * typeWeight;
 }
 
@@ -116,6 +118,7 @@ function louvain(
 	units: Unit[],
 	adjacency: Map<string, Map<string, number>>,
 	resolution: number,
+	maxIterations = 100,
 ): Map<string, string> {
 	const community = new Map<string, string>();
 	const sumTot = new Map<string, number>();
@@ -130,8 +133,10 @@ function louvain(
 
 	const m2 = Array.from(degrees.values()).reduce((a, b) => a + b, 0) || 1; // 2 * total edge weight
 
+	let iterations = 0;
 	let moved = true;
-	while (moved) {
+	while (moved && iterations < maxIterations) {
+		iterations++;
 		moved = false;
 		for (const unit of units) {
 			const node = unit.id;
@@ -180,6 +185,60 @@ function louvain(
 		assignment.set(node, normalized.get(comm)!);
 	}
 	return assignment;
+}
+
+function refinePartition(
+	assignment: Map<string, string>,
+	adjacency: Map<string, Map<string, number>>,
+): Map<string, string> {
+	// Group nodes by community
+	const communities = new Map<string, string[]>();
+	for (const [node, comm] of assignment) {
+		if (!communities.has(comm)) communities.set(comm, []);
+		communities.get(comm)!.push(node);
+	}
+
+	const refined = new Map<string, string>();
+	for (const [comm, members] of communities) {
+		if (members.length <= 1) {
+			for (const m of members) refined.set(m, comm);
+			continue;
+		}
+
+		// BFS to find connected components within this community
+		const memberSet = new Set(members);
+		const visited = new Set<string>();
+		let componentIdx = 0;
+
+		for (const start of members) {
+			if (visited.has(start)) continue;
+			const component: string[] = [];
+			const queue = [start];
+			visited.add(start);
+
+			while (queue.length > 0) {
+				const node = queue.shift()!;
+				component.push(node);
+				const neighbors = adjacency.get(node);
+				if (neighbors) {
+					for (const [neighbor] of neighbors) {
+						if (memberSet.has(neighbor) && !visited.has(neighbor)) {
+							visited.add(neighbor);
+							queue.push(neighbor);
+						}
+					}
+				}
+			}
+
+			const compId = componentIdx === 0 ? comm : `${comm}_${componentIdx}`;
+			for (const node of component) {
+				refined.set(node, compId);
+			}
+			componentIdx++;
+		}
+	}
+
+	return refined;
 }
 
 function determinePackagePath(
@@ -249,6 +308,63 @@ export async function detectCommunities(
 	const levelCommunities: DetectedCommunity[][] = [];
 
 	for (let level = 0; level < resolutions.length; level++) {
+		// Per-package Level 0: group entities by package_path, run separate louvain+refine per package
+		if (level === 0 && entityPackages.size > 0) {
+			const byPackage = new Map<string, Unit[]>();
+			for (const unit of units) {
+				const pkg =
+					entityPackages.get([...unit.members][0]) ?? "__root__";
+				if (!byPackage.has(pkg)) byPackage.set(pkg, []);
+				byPackage.get(pkg)!.push(unit);
+			}
+
+			const allDetected: DetectedCommunity[] = [];
+			for (const [pkg, pkgUnits] of byPackage) {
+				const pkgEntityToUnit = new Map<string, string>();
+				for (const unit of pkgUnits) {
+					for (const member of unit.members) {
+						pkgEntityToUnit.set(member, unit.id);
+					}
+				}
+
+				const pkgAdj = buildUnitAdjacency(
+					undirectedEdges,
+					pkgEntityToUnit,
+				);
+				const pkgAssignment = louvain(
+					pkgUnits,
+					pkgAdj,
+					resolutions[level],
+				);
+				const pkgRefined = refinePartition(pkgAssignment, pkgAdj);
+
+				const communityMembers = new Map<string, Set<string>>();
+				for (const unit of pkgUnits) {
+					const commKey = pkgRefined.get(unit.id) ?? unit.id;
+					if (!communityMembers.has(commKey))
+						communityMembers.set(commKey, new Set());
+					for (const member of unit.members) {
+						communityMembers.get(commKey)?.add(member);
+					}
+				}
+
+				for (const [_key, members] of communityMembers) {
+					const id = randomUUID();
+					allDetected.push({
+						id,
+						level: 0,
+						members,
+						parentId: null,
+						packagePath: pkg === "__root__" ? null : pkg,
+					});
+				}
+			}
+
+			levelCommunities.push(allDetected);
+			units = allDetected.map((c) => ({ id: c.id, members: c.members }));
+			continue;
+		}
+
 		const entityToUnit = new Map<string, string>();
 		for (const unit of units) {
 			for (const member of unit.members) {
@@ -258,11 +374,12 @@ export async function detectCommunities(
 
 		const unitAdj = buildUnitAdjacency(undirectedEdges, entityToUnit);
 		const assignment = louvain(units, unitAdj, resolutions[level]);
+		const refinedAssignment = refinePartition(assignment, unitAdj);
 
 		const communityMembers = new Map<string, Set<string>>();
 		const communityUnits = new Map<string, Unit[]>();
 		for (const unit of units) {
-			const commKey = assignment.get(unit.id) ?? unit.id;
+			const commKey = refinedAssignment.get(unit.id) ?? unit.id;
 			if (!communityMembers.has(commKey)) {
 				communityMembers.set(commKey, new Set());
 				communityUnits.set(commKey, []);
