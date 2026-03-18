@@ -1,0 +1,24 @@
+[package]
+name = "sia-native"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.16", default-features = false, features = ["napi9"] }
+napi-derive = "2.16"
+petgraph = "0.7"
+siphasher = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = ">=2.1.4, <2.2"
+
+[profile.release]
+lto = true
+strip = "symbols"
+codegen-units = 1
