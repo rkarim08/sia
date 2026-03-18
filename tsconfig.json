@@ -30,7 +30,9 @@
 			"@/agent/*": ["./src/agent/*"],
 			"@/ontology/*": ["./src/ontology/*"],
 			"@/knowledge/*": ["./src/knowledge/*"],
-			"@/visualization/*": ["./src/visualization/*"]
+			"@/visualization/*": ["./src/visualization/*"],
+			"@/freshness/*": ["./src/freshness/*"],
+			"@/native/*": ["./src/native/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],

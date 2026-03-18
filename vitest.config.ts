@@ -25,6 +25,8 @@ export default defineConfig({
 			"@/ontology": resolve(__dirname, "src/ontology"),
 			"@/knowledge": resolve(__dirname, "src/knowledge"),
 			"@/visualization": resolve(__dirname, "src/visualization"),
+			"@/freshness": resolve(__dirname, "src/freshness"),
+			"@/native": resolve(__dirname, "src/native"),
 		},
 	},
 });
