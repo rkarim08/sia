@@ -6,12 +6,14 @@ import type { CandidateFact } from "@/capture/types";
 import { extractPrismaSchema } from "./prisma-schema";
 import { extractManifest } from "./project-manifest";
 import { extractSqlSchema } from "./sql-schema";
+import { extractTierA } from "./tier-a";
 
 /**
  * Dispatch extraction to the appropriate extractor based on the language tier
  * and optional special-handling hint.
  *
- * - Tier A/B: regex-based structural extraction via extractTrackA
+ * - Tier A: full structural extraction via extractTierA (15 languages)
+ * - Tier B: regex-based structural extraction via extractTrackA
  * - Tier C sql-schema: SQL CREATE TABLE / INDEX extraction
  * - Tier C prisma-schema: Prisma model extraction
  * - Tier D project-manifest: manifest dependency extraction
@@ -25,6 +27,7 @@ export function dispatchExtraction(
 ): CandidateFact[] {
 	switch (tier) {
 		case "A":
+			return extractTierA(content, filePath);
 		case "B":
 			return extractTrackA(content, filePath);
 
