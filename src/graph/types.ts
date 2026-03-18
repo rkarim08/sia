@@ -87,6 +87,16 @@ export interface SiaSearchResult {
 	t_valid_until?: UnixMs | null;
 	source_repo_id?: string;
 	source_repo_name?: string;
+	freshness?: "fresh" | "stale" | "rotten";
+	freshness_detail?: {
+		source_path: string;
+		source_mtime: number;
+		extraction_time: number;
+		divergence_seconds: number;
+		confidence: number;
+		alpha?: number;
+		beta?: number;
+	};
 }
 
 export interface SiaEdge {
