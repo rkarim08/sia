@@ -27,11 +27,15 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: ${{ matrix.settings.target }}
-      - name: Install NAPI-RS CLI
-        run: npm i -g @napi-rs/cli
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        working-directory: sia-native
+        run: npm install
       - name: Build
         working-directory: sia-native
-        run: napi build --platform --release
+        run: npx napi build --platform --release
       - uses: actions/upload-artifact@v4
         with:
           name: binding-${{ matrix.settings.target }}
