@@ -22,11 +22,21 @@ export function runMigrations(dbPath: string, migrationsDir: string): BunSqliteD
 	// Open (or create) the database.
 	const db = new Database(dbPath);
 
-	// Pragmas — WAL for concurrent reads, synchronous NORMAL for safety,
+	// page_size must come first — only effective on a brand-new file before any
+	// tables exist; silently a no-op on existing databases.
+	db.exec("PRAGMA page_size = 4096");
+
+	// WAL for concurrent reads, synchronous NORMAL for safety,
 	// foreign keys enforced.
 	db.exec("PRAGMA journal_mode = WAL");
 	db.exec("PRAGMA synchronous = NORMAL");
 	db.exec("PRAGMA foreign_keys = ON");
+
+	// Performance hardening: memory-mapped I/O (1 GB virtual window, demand-paged
+	// by the OS), temp tables kept in RAM, and a 64 MB page cache.
+	db.exec("PRAGMA mmap_size = 1073741824");
+	db.exec("PRAGMA temp_store = MEMORY");
+	db.exec("PRAGMA cache_size = -64000");
 
 	// Ensure the bookkeeping table exists.
 	db.exec(`
