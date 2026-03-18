@@ -60,7 +60,7 @@ describe("cross-repo edge CRUD (bridge-db)", () => {
 		const result = await db.execute("SELECT * FROM cross_repo_edges WHERE id = ?", [id]);
 		expect(result.rows).toHaveLength(1);
 
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		expect(row.source_repo_id).toBe("repo-a");
 		expect(row.source_entity_id).toBe("ent-1");
 		expect(row.target_repo_id).toBe("repo-b");
@@ -98,7 +98,7 @@ describe("cross-repo edge CRUD (bridge-db)", () => {
 		const result = await db.execute("SELECT * FROM cross_repo_edges WHERE id = ?", [id]);
 		expect(result.rows).toHaveLength(1);
 
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		expect(row.t_valid_until).toBe(invalidationTs);
 		expect(row.t_expired).toBe(invalidationTs);
 	});

@@ -58,9 +58,10 @@ describe("episodic.db schema (001_initial)", () => {
 
 		// Manually sync the FTS content table (content-sync triggers are not
 		// automatic for external-content FTS5 tables — the caller must populate).
-		const raw = db.rawSqlite()!;
+		const raw = db.rawSqlite();
+		expect(raw).toBeDefined();
 		raw
-			.prepare(
+			?.prepare(
 				`INSERT INTO episodes_fts (rowid, content, file_path, tool_name)
 			 SELECT rowid, content, file_path, tool_name FROM episodes WHERE id = ?`,
 			)

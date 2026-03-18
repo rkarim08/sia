@@ -33,11 +33,13 @@ async function getKeychainEntry(serverUrl: string): Promise<KeychainEntry | null
 	const keyring = await getKeyring();
 	if (!keyring) return null;
 
+	const kr = keyring as Record<string, unknown>;
+	const krDefault = kr.default as Record<string, unknown> | undefined;
 	const EntryCtor =
-		(keyring as any).Entry ??
-		(keyring as any).default?.Entry ??
-		(keyring as any).Keyring ??
-		(keyring as any).default;
+		(kr.Entry as (new (...args: unknown[]) => KeychainEntry) | undefined) ??
+		(krDefault?.Entry as (new (...args: unknown[]) => KeychainEntry) | undefined) ??
+		(kr.Keyring as (new (...args: unknown[]) => KeychainEntry) | undefined) ??
+		(krDefault as unknown as (new (...args: unknown[]) => KeychainEntry) | undefined);
 
 	if (!EntryCtor) return null;
 	try {

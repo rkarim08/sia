@@ -278,7 +278,7 @@ describe("consolidate", () => {
 			};
 		}
 		const bombDb: SiaDb = {
-			execute: (sql, params) => wrapWithBomb(db!).execute(sql, params),
+			execute: (sql, params) => wrapWithBomb(db as SiaDb).execute(sql, params),
 			executeMany: (stmts) => db?.executeMany(stmts),
 			transaction: async (fn) => {
 				// Delegate to real transaction but re-wrap the tx proxy with our bomb

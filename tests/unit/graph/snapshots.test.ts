@@ -201,7 +201,7 @@ describe("snapshot rollback", () => {
 		// The key proof: read the most recent snapshot file — it should contain
 		// the pre-rollback state (2 entities, not 1), because createSnapshot
 		// was called before the restore wiped the graph.
-		const latestSnapshotPath = snapshotsAfter[snapshotsAfter.length - 1]!;
+		const latestSnapshotPath = snapshotsAfter[snapshotsAfter.length - 1] as string;
 		const latestData = JSON.parse(readFileSync(latestSnapshotPath, "utf-8")) as SnapshotData;
 		expect(latestData.entities).toHaveLength(2);
 	});

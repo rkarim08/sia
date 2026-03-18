@@ -122,7 +122,7 @@ describe("edge CRUD layer", () => {
 		const result = await db.execute("SELECT * FROM edges WHERE id = ?", [edge.id]);
 		expect(result.rows).toHaveLength(1);
 
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		expect(row.t_valid_until).toBe(invalidationTs);
 		expect(row.t_expired).toBe(invalidationTs);
 

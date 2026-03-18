@@ -129,7 +129,7 @@ describe("audit log write layer", () => {
 		const result = await db.execute("SELECT * FROM audit_log WHERE entity_id = ?", ["ent-stage-1"]);
 		expect(result.rows).toHaveLength(1);
 
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		expect(row.id).toBeDefined();
 		expect(typeof row.ts).toBe("number");
 		expect(row.operation).toBe("STAGE");

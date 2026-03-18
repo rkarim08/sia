@@ -68,7 +68,9 @@ describe("reranker", () => {
 		const rrfScores = rrfCombine(list1, list2, list3);
 
 		// entityAll should have a higher RRF score
-		expect(rrfScores.get(entityAll.id)!).toBeGreaterThan(rrfScores.get(entityOne.id)!);
+		expect(rrfScores.get(entityAll.id) as number).toBeGreaterThan(
+			rrfScores.get(entityOne.id) as number,
+		);
 
 		const results = await rerank(db, rrfScores);
 		expect(results.length).toBe(2);

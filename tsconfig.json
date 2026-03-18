@@ -27,7 +27,10 @@
 			"@/decay/*": ["./src/decay/*"],
 			"@/cli/*": ["./src/cli/*"],
 			"@/shared/*": ["./src/shared/*"],
-			"@/agent/*": ["./src/agent/*"]
+			"@/agent/*": ["./src/agent/*"],
+			"@/ontology/*": ["./src/ontology/*"],
+			"@/knowledge/*": ["./src/knowledge/*"],
+			"@/visualization/*": ["./src/visualization/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],

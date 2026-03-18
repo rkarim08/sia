@@ -22,6 +22,9 @@ export default defineConfig({
 			"@/cli": resolve(__dirname, "src/cli"),
 			"@/shared": resolve(__dirname, "src/shared"),
 			"@/agent": resolve(__dirname, "src/agent"),
+			"@/ontology": resolve(__dirname, "src/ontology"),
+			"@/knowledge": resolve(__dirname, "src/knowledge"),
+			"@/visualization": resolve(__dirname, "src/visualization"),
 		},
 	},
 });

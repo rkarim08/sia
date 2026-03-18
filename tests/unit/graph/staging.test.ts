@@ -57,7 +57,7 @@ describe("staging area CRUD", () => {
 		const result = await db.execute("SELECT * FROM memory_staging WHERE id = ?", [id]);
 		expect(result.rows).toHaveLength(1);
 
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		expect(row.id).toBe(id);
 		expect(row.source_episode).toBe("ep-1");
 		expect(row.proposed_type).toBe("Convention");
@@ -99,7 +99,7 @@ describe("staging area CRUD", () => {
 			"SELECT created_at, expires_at FROM memory_staging WHERE id = ?",
 			[id],
 		);
-		const row = result.rows[0]!;
+		const row = result.rows[0] as Record<string, unknown>;
 		const createdAt = row.created_at as number;
 		const expiresAt = row.expires_at as number;
 
