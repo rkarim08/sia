@@ -159,9 +159,9 @@ describe("dispatchExtraction", () => {
 		expect(facts[0].name).toBe("hello");
 	});
 
-	it("routes Tier B to extractTrackA", () => {
-		const c = "pub fn greet() {}";
-		const facts = dispatchExtraction(c, "lib.rs", "B");
+	it("routes Tier B to extractTierB", () => {
+		const c = "void greet() {}";
+		const facts = dispatchExtraction(c, "lib.c", "B");
 		expect(facts.length).toBeGreaterThanOrEqual(1);
 		expect(facts[0].name).toBe("greet");
 	});
