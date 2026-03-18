@@ -15,7 +15,8 @@ export type AuditOperation =
 	| "SYNC_RECV"
 	| "SYNC_SEND"
 	| "ARCHIVE"
-	| "VSS_REFRESH";
+	| "VSS_REFRESH"
+	| "PAGERANK_UPDATE";
 
 /** Optional detail fields matching audit_log columns. */
 export interface AuditDetails {
