@@ -160,7 +160,7 @@ describe("processFlags", () => {
 		);
 		expect(entities.rows.length).toBeGreaterThanOrEqual(1);
 
-		const entity = entities.rows[0] as Entity;
+		const entity = entities.rows[0] as unknown as Entity;
 		expect(entity.type).toBe("Concept");
 		expect(entity.name).toBe("Important architectural decision about microservic");
 		expect(entity.content).toBe("Important architectural decision about microservices");
@@ -194,7 +194,7 @@ describe("processFlags", () => {
 			"SELECT confidence FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(entities.rows).toHaveLength(1);
-		expect((entities.rows[0] as Entity).confidence).toBe(0.4);
+		expect((entities.rows[0] as unknown as Entity).confidence).toBe(0.4);
 	});
 
 	// ---------------------------------------------------------------
@@ -222,7 +222,7 @@ describe("processFlags", () => {
 			"SELECT base_importance, importance FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(entities.rows).toHaveLength(1);
-		const entity = entities.rows[0] as Entity;
+		const entity = entities.rows[0] as unknown as Entity;
 		// Default base_importance (0.5) + boost (0.15) = 0.65
 		expect(entity.base_importance).toBeCloseTo(0.65, 5);
 		expect(entity.importance).toBeCloseTo(0.65, 5);

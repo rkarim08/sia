@@ -1,6 +1,6 @@
 // Module: db-interface — SiaDb interface and BunSqliteDb adapter
 
-import { Database } from "bun:sqlite";
+import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { SyncConfig } from "@/shared/config";
@@ -40,16 +40,16 @@ export class BunSqliteDb implements SiaDb {
 	async execute(sql: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[] }> {
 		const stmt = this.db.prepare(sql);
 		if (isReadStatement(sql)) {
-			const rows = stmt.all(...params) as Record<string, unknown>[];
+			const rows = stmt.all(...(params as SQLQueryBindings[])) as Record<string, unknown>[];
 			return { rows };
 		}
-		stmt.run(...params);
+		stmt.run(...(params as SQLQueryBindings[]));
 		return { rows: [] };
 	}
 
 	async executeMany(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
 		for (const { sql, params = [] } of statements) {
-			this.db.prepare(sql).run(...params);
+			this.db.prepare(sql).run(...(params as SQLQueryBindings[]));
 		}
 	}
 
@@ -198,9 +198,9 @@ export function openDb(repoHash: string, opts: OpenDbOpts = {}): BunSqliteDb {
 	const db = new Database(dbPath, { readonly: opts.readonly ?? false });
 
 	if (!opts.readonly) {
-		db.pragma("journal_mode = WAL");
-		db.pragma("synchronous = NORMAL");
-		db.pragma("foreign_keys = ON");
+		(db as unknown as { pragma: (s: string) => void }).pragma("journal_mode = WAL");
+		(db as unknown as { pragma: (s: string) => void }).pragma("synchronous = NORMAL");
+		(db as unknown as { pragma: (s: string) => void }).pragma("foreign_keys = ON");
 	}
 
 	return new BunSqliteDb(db);

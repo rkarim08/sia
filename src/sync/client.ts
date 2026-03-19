@@ -39,5 +39,5 @@ export async function createSiaDb(
 		syncInterval: config.syncInterval,
 	});
 
-	return new LibSqlDb(client);
+	return new LibSqlDb(client as unknown as ConstructorParameters<typeof LibSqlDb>[0]);
 }

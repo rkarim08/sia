@@ -2,4 +2,4 @@
 // so that `import { Database } from "bun:sqlite"` resolves in vitest (Node.js)
 import BetterSqlite3 from "better-sqlite3";
 
-export const Database = BetterSqlite3;
+export const Database: typeof BetterSqlite3 = BetterSqlite3;

@@ -54,7 +54,7 @@ export async function getEpisodesBySession(db: SiaDb, sessionId: string): Promis
 		"SELECT id, session_id, ts, type, role, content, tool_name, file_path, trust_tier FROM episodes WHERE session_id = ? ORDER BY ts ASC",
 		[sessionId],
 	);
-	return result.rows as Episode[];
+	return result.rows as unknown as Episode[];
 }
 
 /**
@@ -66,7 +66,7 @@ export async function getRecentEpisodes(db: SiaDb, limit = 20): Promise<Episode[
 		"SELECT id, session_id, ts, type, role, content, tool_name, file_path, trust_tier FROM episodes ORDER BY ts DESC LIMIT ?",
 		[limit],
 	);
-	return result.rows as Episode[];
+	return result.rows as unknown as Episode[];
 }
 
 /**

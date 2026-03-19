@@ -10,15 +10,11 @@ const mockCreateClient = vi.fn(() => ({
 	sync: vi.fn(async () => {}),
 }));
 
-vi.mock(
-	"@libsql/client",
-	() => {
-		return {
-			createClient: mockCreateClient,
-		};
-	},
-	{ virtual: true },
-);
+vi.mock("@libsql/client", () => {
+	return {
+		createClient: mockCreateClient,
+	};
+});
 
 vi.mock("@/sync/keychain", () => ({
 	getToken: vi.fn(async (url: string) => {

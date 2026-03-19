@@ -102,8 +102,8 @@ describe("consolidate", () => {
 			["Brand New Entity"],
 		);
 		expect(rows.rows).toHaveLength(1);
-		expect((rows.rows[0] as Entity).type).toBe("Concept");
-		expect((rows.rows[0] as Entity).content).toBe("some content about testing");
+		expect((rows.rows[0] as unknown as Entity).type).toBe("Concept");
+		expect((rows.rows[0] as unknown as Entity).content).toBe("some content about testing");
 
 		// Verify audit log entry
 		const audit = await db.execute("SELECT operation FROM audit_log WHERE operation = 'ADD'");
@@ -182,10 +182,10 @@ describe("consolidate", () => {
 			["Evolving Entity"],
 		);
 		expect(rows.rows).toHaveLength(1);
-		expect((rows.rows[0] as Entity).content).toBe(
+		expect((rows.rows[0] as unknown as Entity).content).toBe(
 			"alpha beta gamma delta epsilon zeta eta new1 new2 new3",
 		);
-		expect((rows.rows[0] as Entity).summary).toBe("Updated summary");
+		expect((rows.rows[0] as unknown as Entity).summary).toBe("Updated summary");
 	});
 
 	// ---------------------------------------------------------------
@@ -222,7 +222,7 @@ describe("consolidate", () => {
 
 		// Old entity should be invalidated
 		const oldEntity = await db.execute("SELECT * FROM entities WHERE id = ?", [original.id]);
-		expect((oldEntity.rows[0] as Entity).t_valid_until).not.toBeNull();
+		expect((oldEntity.rows[0] as unknown as Entity).t_valid_until).not.toBeNull();
 
 		// New entity should exist
 		const newRows = await db.execute(
@@ -230,10 +230,10 @@ describe("consolidate", () => {
 			["Architecture Choice"],
 		);
 		expect(newRows.rows).toHaveLength(1);
-		expect((newRows.rows[0] as Entity).content).toBe(
+		expect((newRows.rows[0] as unknown as Entity).content).toBe(
 			"microservices deployed on kubernetes with event sourcing",
 		);
-		expect((newRows.rows[0] as Entity).id).not.toBe(original.id);
+		expect((newRows.rows[0] as unknown as Entity).id).not.toBe(original.id);
 
 		// Verify audit entries for both INVALIDATE and ADD
 		const auditInvalidate = await db.execute(
@@ -279,15 +279,15 @@ describe("consolidate", () => {
 		}
 		const bombDb: SiaDb = {
 			execute: (sql, params) => wrapWithBomb(db as SiaDb).execute(sql, params),
-			executeMany: (stmts) => db?.executeMany(stmts),
+			executeMany: (stmts) => (db as SiaDb).executeMany(stmts),
 			transaction: async (fn) => {
 				// Delegate to real transaction but re-wrap the tx proxy with our bomb
-				await db?.transaction(async (tx) => {
+				await (db as SiaDb).transaction(async (tx) => {
 					await fn(wrapWithBomb(tx));
 				});
 			},
-			close: () => db?.close(),
-			rawSqlite: () => db?.rawSqlite(),
+			close: () => (db as SiaDb).close(),
+			rawSqlite: () => (db as SiaDb).rawSqlite(),
 		};
 
 		const candidates = [

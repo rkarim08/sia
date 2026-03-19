@@ -27,7 +27,11 @@
 			"!**/*.md",
 			"!**/migrations/**/*.sql",
 			"!**/src/agent/**/*.md",
-			"!**/.claude"
+			"!**/.claude",
+			"!sia-native/index.d.ts",
+			"!sia-native/index.js",
+			"!sia-native/target",
+			"!sia-native/package.json"
 		]
 	}
 }

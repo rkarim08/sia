@@ -64,7 +64,7 @@ export async function insertCommunity(db: SiaDb, input: InsertCommunityInput): P
  */
 export async function getCommunity(db: SiaDb, id: string): Promise<Community | null> {
 	const result = await db.execute("SELECT * FROM communities WHERE id = ?", [id]);
-	return (result.rows[0] as Community | undefined) ?? null;
+	return (result.rows[0] as unknown as Community | undefined) ?? null;
 }
 
 /**
@@ -80,11 +80,11 @@ export async function getCommunityByLevel(
 			"SELECT * FROM communities WHERE level = ? AND package_path = ?",
 			[level, packagePath],
 		);
-		return result.rows as Community[];
+		return result.rows as unknown as Community[];
 	}
 
 	const result = await db.execute("SELECT * FROM communities WHERE level = ?", [level]);
-	return result.rows as Community[];
+	return result.rows as unknown as Community[];
 }
 
 /**
@@ -140,7 +140,7 @@ export async function getMembers(db: SiaDb, communityId: string): Promise<Commun
 	const result = await db.execute("SELECT * FROM community_members WHERE community_id = ?", [
 		communityId,
 	]);
-	return result.rows as CommunityMember[];
+	return result.rows as unknown as CommunityMember[];
 }
 
 /**

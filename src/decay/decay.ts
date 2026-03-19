@@ -61,7 +61,7 @@ export async function decayBatch(
 		[batchSize, offset],
 	);
 
-	const entities = result.rows as Entity[];
+	const entities = result.rows as unknown as Entity[];
 	const now = Date.now();
 
 	for (const entity of entities) {

@@ -32,7 +32,7 @@ export async function computePageRank(
 	const { rows } = await db.execute(
 		"SELECT from_id, to_id FROM edges WHERE t_valid_until IS NULL AND type IN ('calls','imports','inherits_from')",
 	);
-	const edges = rows as EdgeRow[];
+	const edges = rows as unknown as EdgeRow[];
 
 	const nodes = new Set<string>();
 	const outgoing = new Map<string, string[]>();

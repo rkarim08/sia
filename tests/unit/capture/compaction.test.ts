@@ -52,7 +52,7 @@ describe("compactSession", () => {
 		);
 		expect(result.rows).toHaveLength(1);
 
-		const entity = result.rows[0] as Entity;
+		const entity = result.rows[0] as unknown as Entity;
 		expect(entity.type).toBe("Concept");
 		expect(JSON.parse(entity.tags)).toEqual(["session-compaction"]);
 		// Summary should be first 200 chars

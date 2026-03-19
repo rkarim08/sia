@@ -178,7 +178,8 @@ describe("consolidation sweep", () => {
 		const { rows } = await db.execute("SELECT entity_a_id, entity_b_id FROM local_dedup_log");
 		expect(rows).toHaveLength(1);
 		// entity_a_id should always be less than entity_b_id (canonical ordering)
-		expect(rows[0]?.entity_a_id < rows[0]?.entity_b_id).toBe(true);
+		const row = rows[0] as { entity_a_id: string; entity_b_id: string };
+		expect(row.entity_a_id < row.entity_b_id).toBe(true);
 	});
 
 	// ---------------------------------------------------------------

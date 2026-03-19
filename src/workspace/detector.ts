@@ -121,16 +121,16 @@ function walkForFile(
 	maxDepth: number,
 ): void {
 	if (maxDepth <= 0) return;
-	let entries: ReturnType<typeof readdirSync>;
+	let entries: import("node:fs").Dirent[];
 	try {
-		entries = readdirSync(dir, { withFileTypes: true });
+		entries = readdirSync(dir, { withFileTypes: true }) as import("node:fs").Dirent[];
 	} catch {
 		return;
 	}
 	for (const entry of entries) {
-		if (entry.name === "node_modules" || entry.name === ".git") continue;
+		if ((entry.name as string) === "node_modules" || (entry.name as string) === ".git") continue;
 		if (entry.isDirectory()) {
-			const childPath = join(dir, entry.name);
+			const childPath = join(dir, entry.name as string);
 			if (existsSync(join(childPath, filename))) {
 				results.push(relative(rootDir, childPath));
 			}

@@ -91,7 +91,7 @@ export async function deduplicateEntities(
 	const localRows = await db.execute(
 		"SELECT * FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL",
 	);
-	const locals = localRows.rows as Entity[];
+	const locals = localRows.rows as unknown as Entity[];
 	const now = Date.now();
 
 	const result: DedupeResult = { merged: 0, flagged: 0, different: 0 };

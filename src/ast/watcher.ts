@@ -26,7 +26,7 @@ async function getEntitiesForPath(db: SiaDb, relPath: string): Promise<TrackedEn
 		"SELECT id, name, content FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL AND file_paths LIKE ?",
 		[pattern],
 	);
-	return result.rows as TrackedEntity[];
+	return result.rows as unknown as TrackedEntity[];
 }
 
 async function invalidateEdgesForEntity(db: SiaDb, entityId: string, ts: number): Promise<void> {
@@ -117,7 +117,7 @@ async function createUnderlyingWatcher(
 		watcher.on("change", onChange);
 		watcher.on("add", onChange);
 		watcher.on("unlink", onDelete);
-		watcher.on("ready", onReady);
+		(watcher as unknown as { on: (event: string, cb: () => void) => void }).on("ready", onReady);
 		return watcher;
 	} catch {
 		// Fallback: fs.watch (recursive on macOS/Windows)
@@ -159,14 +159,14 @@ export function createWatcher(repoRoot: string, db: SiaDb, config: SiaConfig): F
 	async function syncOnce(): Promise<void> {
 		const seen = new Set<string>();
 		const walk = async (dir: string): Promise<void> => {
-			let entries: ReturnType<typeof readdirSync>;
+			let entries: import("node:fs").Dirent[];
 			try {
-				entries = readdirSync(dir, { withFileTypes: true });
+				entries = readdirSync(dir, { withFileTypes: true }) as import("node:fs").Dirent[];
 			} catch {
 				return;
 			}
 			for (const entry of entries) {
-				const absPath = join(dir, entry.name);
+				const absPath = join(dir, entry.name as string);
 				const isDir = entry.isDirectory();
 				if (ignoreMatcher.shouldIgnore(absPath, isDir)) continue;
 				if (isDir) {

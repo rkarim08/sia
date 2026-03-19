@@ -200,7 +200,7 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
  */
 export async function getEntity(db: SiaDb, id: string): Promise<Entity | undefined> {
 	const result = await db.execute("SELECT * FROM entities WHERE id = ?", [id]);
-	return (result.rows[0] as Entity | undefined) ?? undefined;
+	return (result.rows[0] as unknown as Entity | undefined) ?? undefined;
 }
 
 /**
@@ -274,7 +274,7 @@ export async function getActiveEntities(
 	const params = limit ? [limit] : [];
 
 	const result = await db.execute(sql, params);
-	return result.rows as Entity[];
+	return result.rows as unknown as Entity[];
 }
 
 /**
@@ -286,5 +286,5 @@ export async function getEntitiesByPackage(db: SiaDb, packagePath: string): Prom
 		"SELECT * FROM entities WHERE package_path = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 		[packagePath],
 	);
-	return result.rows as Entity[];
+	return result.rows as unknown as Entity[];
 }

@@ -118,7 +118,7 @@ describe("enforceResponseBudget", () => {
 			content: "content",
 			tags: [],
 			file_paths: [],
-			trust_tier: "code",
+			trust_tier: 1 as const,
 			confidence: 1,
 			importance: 1,
 		};

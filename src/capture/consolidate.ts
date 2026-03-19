@@ -60,7 +60,7 @@ export async function consolidate(
 				[candidate.name, candidate.type],
 			);
 
-			const match = existing.rows[0] as Entity | undefined;
+			const match = existing.rows[0] as unknown as Entity | undefined;
 
 			if (!match) {
 				// 2. No match — ADD

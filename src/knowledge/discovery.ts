@@ -87,18 +87,18 @@ function findSubPackageDirs(repoRoot: string, maxDepth = 4): string[] {
 	function walk(dir: string, depth: number): void {
 		if (depth > maxDepth) return;
 
-		let entries: ReturnType<typeof readdirSync>;
+		let entries: import("node:fs").Dirent[];
 		try {
-			entries = readdirSync(dir, { withFileTypes: true });
+			entries = readdirSync(dir, { withFileTypes: true }) as import("node:fs").Dirent[];
 		} catch {
 			return;
 		}
 
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
-			if (EXCLUDED_DIRS.has(entry.name)) continue;
+			if (EXCLUDED_DIRS.has(entry.name as string)) continue;
 
-			const subDir = join(dir, entry.name);
+			const subDir = join(dir, entry.name as string);
 
 			// Check if this directory has a package manifest
 			const hasManifest = PACKAGE_MANIFESTS.some((m) => existsSync(join(subDir, m)));
@@ -192,18 +192,18 @@ function resolvePattern(
 		const searchDir = resolve(baseDir, dirPart);
 
 		if (existsSync(searchDir) && isDirectory(searchDir)) {
-			let entries: ReturnType<typeof readdirSync>;
+			let entries: import("node:fs").Dirent[];
 			try {
-				entries = readdirSync(searchDir, { withFileTypes: true });
+				entries = readdirSync(searchDir, { withFileTypes: true }) as import("node:fs").Dirent[];
 			} catch {
 				return results;
 			}
 
 			for (const entry of entries) {
 				if (!entry.isFile()) continue;
-				if (!entry.name.endsWith(suffix)) continue;
+				if (!(entry.name as string).endsWith(suffix)) continue;
 
-				const absPath = join(searchDir, entry.name);
+				const absPath = join(searchDir, entry.name as string);
 				const relPath = relative(absRoot, absPath);
 
 				if (!isExcludedPath(relPath)) {

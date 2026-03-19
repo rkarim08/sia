@@ -127,7 +127,7 @@ describe("entity CRUD layer", () => {
 		await touchEntity(db, entity.id);
 		const after1 = await getEntity(db, entity.id);
 		expect(after1?.access_count).toBe(1);
-		expect(after1?.last_accessed).toBeGreaterThanOrEqual(before?.last_accessed);
+		expect(after1?.last_accessed).toBeGreaterThanOrEqual(before?.last_accessed ?? 0);
 
 		await touchEntity(db, entity.id);
 		const after2 = await getEntity(db, entity.id);

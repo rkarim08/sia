@@ -38,7 +38,7 @@ export async function detectConflicts(db: SiaDb, llmClient?: LlmClient): Promise
 	const result = await db.execute(
 		"SELECT * FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL",
 	);
-	const entities = result.rows as Entity[];
+	const entities = result.rows as unknown as Entity[];
 
 	let conflicts = 0;
 
