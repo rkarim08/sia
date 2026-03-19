@@ -27,6 +27,8 @@ export default defineConfig({
 			"@/visualization": resolve(__dirname, "src/visualization"),
 			"@/freshness": resolve(__dirname, "src/freshness"),
 			"@/native": resolve(__dirname, "src/native"),
+			"@/hooks": resolve(__dirname, "src/hooks"),
+			"@/llm": resolve(__dirname, "src/llm"),
 		},
 	},
 });

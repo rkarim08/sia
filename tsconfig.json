@@ -32,7 +32,9 @@
 			"@/knowledge/*": ["./src/knowledge/*"],
 			"@/visualization/*": ["./src/visualization/*"],
 			"@/freshness/*": ["./src/freshness/*"],
-			"@/native/*": ["./src/native/*"]
+			"@/native/*": ["./src/native/*"],
+			"@/hooks/*": ["./src/hooks/*"],
+			"@/llm/*": ["./src/llm/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],
