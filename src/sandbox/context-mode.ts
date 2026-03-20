@@ -34,6 +34,58 @@ export interface ContextModeResult {
 }
 
 // ---------------------------------------------------------------------------
+// headingChunker strategy — splits markdown by heading lines outside code blocks
+// ---------------------------------------------------------------------------
+
+export const headingChunker: ChunkStrategy = {
+	name: "headingChunker",
+
+	chunk(content: string): RawChunk[] {
+		const lines = content.split("\n");
+		const chunks: RawChunk[] = [];
+		let inCodeBlock = false;
+		let currentHeading = "";
+		let currentLines: string[] = [];
+
+		const flush = () => {
+			if (currentLines.length > 0) {
+				chunks.push({
+					text: currentLines.join("\n"),
+					metadata: { heading: currentHeading },
+				});
+			}
+		};
+
+		for (const line of lines) {
+			// Track code fence state
+			if (line.trimStart().startsWith("```")) {
+				inCodeBlock = !inCodeBlock;
+				currentLines.push(line);
+				continue;
+			}
+
+			// Only split on headings outside code blocks
+			if (!inCodeBlock && /^#{1,6} /.test(line)) {
+				flush();
+				currentHeading = line;
+				currentLines = [line];
+			} else {
+				currentLines.push(line);
+			}
+		}
+
+		flush();
+
+		// If no headings were found, return single chunk
+		if (chunks.length === 0) {
+			return [{ text: content, metadata: { heading: "" } }];
+		}
+
+		return chunks;
+	},
+};
+
+// ---------------------------------------------------------------------------
 // lineChunker strategy — groups newline-delimited lines into ~512-token (~2048 char) paragraphs
 // ---------------------------------------------------------------------------
 
@@ -46,7 +98,6 @@ export const lineChunker: ChunkStrategy = {
 		const lines = content.split("\n");
 		const chunks: RawChunk[] = [];
 		let current = "";
-		let startLine = 0;
 		let currentStart = 0;
 
 		for (let i = 0; i < lines.length; i++) {
@@ -60,7 +111,6 @@ export const lineChunker: ChunkStrategy = {
 				});
 				current = line;
 				currentStart = i;
-				startLine = i;
 			} else {
 				current = candidate;
 			}
