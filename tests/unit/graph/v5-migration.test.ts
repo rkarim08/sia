@@ -372,6 +372,184 @@ describe("v5 schema migration (004_v5_unified_schema)", () => {
 		expect(result.rows).toHaveLength(1);
 	});
 
+	// ---------------------------------------------------------------
+	// Migration 005: backfill event node kinds
+	// ---------------------------------------------------------------
+
+	it("005 backfill: nodes named 'Edit: *' with kind='CodeEntity' get kind='EditEvent'", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("v5-backfill-edit", tmpDir);
+
+		// Insert a node that looks like an Edit event (as if created by old code)
+		const id = randomUUID();
+		const now = Date.now();
+		await db.execute(
+			`INSERT INTO graph_nodes (
+				id, type, name, content, summary,
+				tags, file_paths, trust_tier, confidence, base_confidence,
+				importance, base_importance, access_count, edge_count,
+				last_accessed, created_at,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				visibility, created_by, kind
+			) VALUES (
+				?, 'CodeEntity', ?, 'edit content', 'edit summary',
+				'[]', '[]', 3, 0.7, 0.7,
+				0.5, 0.5, 0, 0,
+				?, ?,
+				?, NULL, NULL, NULL,
+				'private', 'dev-1', 'CodeEntity'
+			)`,
+			[id, "Edit: some-file.ts", now, now, now],
+		);
+
+		// Verify kind is 'CodeEntity' before we simulate re-running the migration SQL
+		const before = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		expect(before.rows[0]?.kind).toBe("CodeEntity");
+
+		// Simulate the migration UPDATE
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'EditEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Edit: %'",
+		);
+
+		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		expect(after.rows[0]?.kind).toBe("EditEvent");
+	});
+
+	it("005 backfill: nodes named 'Bash: *' with kind='CodeEntity' get kind='ExecutionEvent'", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("v5-backfill-bash", tmpDir);
+
+		const id = randomUUID();
+		const now = Date.now();
+		await db.execute(
+			`INSERT INTO graph_nodes (
+				id, type, name, content, summary,
+				tags, file_paths, trust_tier, confidence, base_confidence,
+				importance, base_importance, access_count, edge_count,
+				last_accessed, created_at,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				visibility, created_by, kind
+			) VALUES (
+				?, 'CodeEntity', ?, 'bash content', 'bash summary',
+				'[]', '[]', 3, 0.7, 0.7,
+				0.5, 0.5, 0, 0,
+				?, ?,
+				?, NULL, NULL, NULL,
+				'private', 'dev-1', 'CodeEntity'
+			)`,
+			[id, "Bash: git status", now, now, now],
+		);
+
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'ExecutionEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Bash: %'",
+		);
+
+		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		expect(after.rows[0]?.kind).toBe("ExecutionEvent");
+	});
+
+	it("005 backfill: nodes named 'Git: *' with kind='CodeEntity' get kind='GitEvent'", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("v5-backfill-git", tmpDir);
+
+		const id = randomUUID();
+		const now = Date.now();
+		await db.execute(
+			`INSERT INTO graph_nodes (
+				id, type, name, content, summary,
+				tags, file_paths, trust_tier, confidence, base_confidence,
+				importance, base_importance, access_count, edge_count,
+				last_accessed, created_at,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				visibility, created_by, kind
+			) VALUES (
+				?, 'CodeEntity', ?, 'git content', 'git summary',
+				'[]', '[]', 3, 0.7, 0.7,
+				0.5, 0.5, 0, 0,
+				?, ?,
+				?, NULL, NULL, NULL,
+				'private', 'dev-1', 'CodeEntity'
+			)`,
+			[id, "Git: commit abc", now, now, now],
+		);
+
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'GitEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Git: %'",
+		);
+
+		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		expect(after.rows[0]?.kind).toBe("GitEvent");
+	});
+
+	it("005 backfill: nodes named 'Error: *' with kind='CodeEntity' get kind='ErrorEvent'", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("v5-backfill-error", tmpDir);
+
+		const id = randomUUID();
+		const now = Date.now();
+		await db.execute(
+			`INSERT INTO graph_nodes (
+				id, type, name, content, summary,
+				tags, file_paths, trust_tier, confidence, base_confidence,
+				importance, base_importance, access_count, edge_count,
+				last_accessed, created_at,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				visibility, created_by, kind
+			) VALUES (
+				?, 'CodeEntity', ?, 'error content', 'error summary',
+				'[]', '[]', 3, 0.7, 0.7,
+				0.5, 0.5, 0, 0,
+				?, ?,
+				?, NULL, NULL, NULL,
+				'private', 'dev-1', 'CodeEntity'
+			)`,
+			[id, "Error: npm test", now, now, now],
+		);
+
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'ErrorEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Error: %'",
+		);
+
+		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		expect(after.rows[0]?.kind).toBe("ErrorEvent");
+	});
+
+	it("005 backfill: nodes with non-matching names are not reclassified", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("v5-backfill-no-change", tmpDir);
+
+		const id = randomUUID();
+		const now = Date.now();
+		await db.execute(
+			`INSERT INTO graph_nodes (
+				id, type, name, content, summary,
+				tags, file_paths, trust_tier, confidence, base_confidence,
+				importance, base_importance, access_count, edge_count,
+				last_accessed, created_at,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				visibility, created_by, kind
+			) VALUES (
+				?, 'CodeEntity', ?, 'content', 'summary',
+				'[]', '[]', 3, 0.7, 0.7,
+				0.5, 0.5, 0, 0,
+				?, ?,
+				?, NULL, NULL, NULL,
+				'private', 'dev-1', 'CodeEntity'
+			)`,
+			[id, "SomeOtherEntity", now, now, now],
+		);
+
+		// Run all four backfill statements
+		await db.execute("UPDATE graph_nodes SET kind = 'EditEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Edit: %'");
+		await db.execute("UPDATE graph_nodes SET kind = 'ExecutionEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Bash: %'");
+		await db.execute("UPDATE graph_nodes SET kind = 'GitEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Git: %'");
+		await db.execute("UPDATE graph_nodes SET kind = 'ErrorEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Error: %'");
+
+		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
+		// Should remain CodeEntity
+		expect(after.rows[0]?.kind).toBe("CodeEntity");
+	});
+
 	it("can insert into search_throttle", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("v5-search-throttle-insert", tmpDir);
