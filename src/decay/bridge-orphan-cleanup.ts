@@ -118,7 +118,7 @@ export async function bridgeOrphanBatch(
 			return repoPathCache.get(repoId) ?? null;
 		}
 		const result = await metaDb?.execute("SELECT path FROM repos WHERE id = ?", [repoId]);
-		const path = (result.rows[0]?.path as string) ?? null;
+		const path = (result?.rows[0]?.path as string) ?? null;
 		repoPathCache.set(repoId, path);
 		return path;
 	}

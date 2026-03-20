@@ -57,9 +57,11 @@ export function applyContextMode(
 			for (const word of intentWords) {
 				const lowerWord = word.toLowerCase();
 				let pos = 0;
-				while ((pos = lowerChunk.indexOf(lowerWord, pos)) !== -1) {
+				let idx = lowerChunk.indexOf(lowerWord, pos);
+				while (idx !== -1) {
 					score++;
-					pos += lowerWord.length;
+					pos = idx + lowerWord.length;
+					idx = lowerChunk.indexOf(lowerWord, pos);
 				}
 			}
 		}

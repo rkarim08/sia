@@ -67,6 +67,11 @@ describe("CuckooFilter", () => {
 		expect(filter.contains("src/foo.ts")).toBe(false);
 	});
 
+	it("remove unknown path returns false", () => {
+		const filter = new CuckooFilter();
+		expect(filter.remove("src/nonexistent.ts")).toBe(false);
+	});
+
 	it("clear empties the filter", () => {
 		const filter = new CuckooFilter();
 		filter.add("src/a.ts");
@@ -84,6 +89,30 @@ describe("CuckooFilter", () => {
 		filter.add("src/a.ts");
 		filter.add("src/b.ts");
 		filter.add("src/a.ts"); // duplicate
+		expect(filter.size).toBe(2);
+	});
+
+	it("add returns true on success, dedup returns true without size change", () => {
+		const filter = new CuckooFilter();
+		const first = filter.add("src/x.ts");
+		expect(first).toBe(true);
+		expect(filter.size).toBe(1);
+
+		const second = filter.add("src/x.ts");
+		expect(second).toBe(true);
+		expect(filter.size).toBe(1); // size unchanged
+	});
+
+	it("remove does not break contains for other items", () => {
+		const filter = new CuckooFilter();
+		filter.add("src/a.ts");
+		filter.add("src/b.ts");
+		filter.add("src/c.ts");
+		filter.remove("src/b.ts");
+
+		expect(filter.contains("src/a.ts")).toBe(true);
+		expect(filter.contains("src/b.ts")).toBe(false);
+		expect(filter.contains("src/c.ts")).toBe(true);
 		expect(filter.size).toBe(2);
 	});
 
@@ -152,6 +181,91 @@ describe("CuckooFilter", () => {
 		db = openGraphDb("cuckoo-empty", tmpDir);
 
 		const filter = await CuckooFilter.fromDatabase(db);
+		expect(filter.size).toBe(0);
+	});
+
+	// ---------------------------------------------------------------
+	// Eviction, capacity, and statistical tests
+	// ---------------------------------------------------------------
+
+	it("handles eviction: all items found after filling to 90% capacity", () => {
+		const filter = new CuckooFilter(256); // small: ~64 buckets * 4 slots
+		const items: string[] = [];
+		const target = Math.floor(256 * 0.9);
+
+		for (let i = 0; i < target; i++) {
+			const path = `src/eviction_test_file_${i}.ts`;
+			items.push(path);
+			expect(filter.add(path)).toBe(true);
+		}
+
+		for (const item of items) {
+			expect(filter.contains(item)).toBe(true);
+		}
+		expect(filter.size).toBe(target);
+	});
+
+	it("eviction then remove: item in alternate bucket is removable", () => {
+		const filter = new CuckooFilter(16); // tiny: 4 buckets
+		const added: string[] = [];
+
+		for (let i = 0; i < 14; i++) {
+			const item = `evict_rm_${i}`;
+			if (filter.add(item)) {
+				added.push(item);
+			}
+		}
+
+		// Must have added at least one item to remove
+		expect(added.length).toBeGreaterThan(0);
+		const last = added[added.length - 1];
+		const sizeBefore = filter.size;
+		expect(filter.remove(last)).toBe(true);
+		expect(filter.contains(last)).toBe(false);
+		expect(filter.size).toBe(sizeBefore - 1);
+	});
+
+	it("returns false when filter is full", () => {
+		const filter = new CuckooFilter(16);
+		let fullDetected = false;
+
+		for (let i = 0; i < 100; i++) {
+			if (!filter.add(`full_test_${i}`)) {
+				fullDetected = true;
+				break;
+			}
+		}
+
+		expect(fullDetected).toBe(true);
+	});
+
+	it("throws on capacity exceeding ceiling", () => {
+		expect(() => new CuckooFilter(300000)).toThrow(/too large/);
+	});
+
+	it("false positive rate < 0.1% for 50K items", () => {
+		const filter = new CuckooFilter(65536);
+
+		for (let i = 0; i < 50_000; i++) {
+			filter.add(`src/path/file_${i}_${i * 31}.ts`);
+		}
+		// Allow for rare hash collisions causing near-50K (within 0.1% of 50K)
+		expect(filter.size).toBeGreaterThanOrEqual(49_950);
+
+		let falsePositives = 0;
+		const testCount = 10_000;
+		for (let i = 0; i < testCount; i++) {
+			if (filter.contains(`src/other/notinserted_${i}_${i * 17}.ts`)) {
+				falsePositives++;
+			}
+		}
+
+		const rate = falsePositives / testCount;
+		expect(rate).toBeLessThan(0.001); // < 0.1%
+	});
+
+	it("constructor accepts default capacity", () => {
+		const filter = new CuckooFilter();
 		expect(filter.size).toBe(0);
 	});
 });
