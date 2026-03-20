@@ -111,10 +111,10 @@ describe("capture/track-b-llm", () => {
 	});
 
 	// ---------------------------------------------------------------
-	// All results have extraction_method='llm-haiku'
+	// All results have extraction_method='pattern-match'
 	// ---------------------------------------------------------------
 
-	it("all results have extraction_method='llm-haiku'", async () => {
+	it("all results have extraction_method='pattern-match'", async () => {
 		const result = await extractTrackB(
 			"We chose TypeScript.\nThe regression broke the tests.\nYou never commit directly to main.\nThe patch resolved the build issue.",
 			{
@@ -125,7 +125,7 @@ describe("capture/track-b-llm", () => {
 		);
 		expect(result.length).toBeGreaterThan(0);
 		for (const fact of result) {
-			expect(fact.extraction_method).toBe("llm-haiku");
+			expect(fact.extraction_method).toBe("pattern-match");
 		}
 	});
 });

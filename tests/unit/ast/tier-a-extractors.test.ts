@@ -50,7 +50,7 @@ const name = user.getUser("123");
 				expect(fn.tags).toContain("typescript");
 				expect(fn.trust_tier).toBe(2);
 				expect(fn.confidence).toBe(0.92);
-				expect(fn.extraction_method).toBe("tree-sitter");
+				expect(fn.extraction_method).toBe("regex-ast");
 				expect(fn.file_paths).toEqual(["src/services/api.ts"]);
 			}
 		});

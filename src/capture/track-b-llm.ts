@@ -62,7 +62,7 @@ export async function extractTrackB(
 					file_paths: [],
 					trust_tier: 3,
 					confidence: 0.7,
-					extraction_method: "llm-haiku",
+					extraction_method: "pattern-match",
 				});
 				break;
 			}
