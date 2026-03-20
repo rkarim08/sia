@@ -1,5 +1,9 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { detectLanguage, executeSubprocess } from "@/sandbox/executor";
+
+const hasGcc = spawnSync("gcc", ["--version"], { timeout: 3000 }).status === 0;
+const hasGpp = spawnSync("g++", ["--version"], { timeout: 3000 }).status === 0;
 
 describe("executeSubprocess", () => {
 	it("executes a bash script and captures stdout", async () => {
@@ -66,6 +70,38 @@ describe("executeSubprocess", () => {
 		await expect(
 			executeSubprocess({ language: "cobol", code: "DISPLAY 'HI'", timeout: 5000 }),
 		).rejects.toThrow("Unsupported language: cobol");
+	});
+});
+
+describe("compiled languages", () => {
+	it.skipIf(!hasGcc)("executes a C program", async () => {
+		const result = await executeSubprocess({
+			language: "c",
+			code: '#include <stdio.h>\nint main() { printf("hello c"); return 0; }',
+			timeout: 10000,
+		});
+		expect(result.stdout.trim()).toBe("hello c");
+		expect(result.exitCode).toBe(0);
+	});
+
+	it.skipIf(!hasGpp)("executes a C++ program", async () => {
+		const result = await executeSubprocess({
+			language: "cpp",
+			code: '#include <iostream>\nint main() { std::cout << "hello cpp"; return 0; }',
+			timeout: 10000,
+		});
+		expect(result.stdout.trim()).toBe("hello cpp");
+		expect(result.exitCode).toBe(0);
+	});
+
+	it.skipIf(!hasGcc)("returns compile error for invalid C code", async () => {
+		const result = await executeSubprocess({
+			language: "c",
+			code: "this is not valid C code",
+			timeout: 10000,
+		});
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stderr).toBeTruthy();
 	});
 });
 

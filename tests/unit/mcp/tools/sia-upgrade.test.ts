@@ -81,4 +81,20 @@ describe("sia_upgrade tool", () => {
 		tmpDirs.push(emptyDir);
 		expect(detectInstallationType(emptyDir)).toBe("binary");
 	});
+
+	// -----------------------------------------------------------------------
+	// Test 4: unknown version guard — refuses upgrade when version is unknown
+	// -----------------------------------------------------------------------
+
+	it("refuses upgrade when current version is unknown", async () => {
+		// Empty dir: no node_modules/sia, no .git — binary strategy returns "unknown"
+		const tmpDir = makeTmp();
+		tmpDirs.push(tmpDir);
+
+		const db = {} as SiaDb;
+
+		const result = await handleSiaUpgrade(db, { dry_run: false }, { siaRoot: tmpDir });
+		expect(result.error).toBeDefined();
+		expect(result.error).toContain("Cannot determine current version");
+	});
 });

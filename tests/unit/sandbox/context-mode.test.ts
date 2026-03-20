@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
-import { applyContextMode, lineChunker } from "@/sandbox/context-mode";
+import { applyContextMode, contentTypeChunker, lineChunker } from "@/sandbox/context-mode";
 
 function makeMockEmbedder(): Embedder {
 	let callCount = 0;
@@ -35,6 +35,35 @@ describe("lineChunker", () => {
 		const chunks = lineChunker.chunk("Hello world");
 		expect(chunks.length).toBe(1);
 		expect(chunks[0].text).toBe("Hello world");
+	});
+});
+
+describe("contentTypeChunker", () => {
+	it("detects valid JSON and delegates to lineChunker", () => {
+		const json = JSON.stringify({ key: "value", nested: { a: 1 } });
+		const chunks = contentTypeChunker.chunk(json);
+		expect(chunks.length).toBeGreaterThanOrEqual(1);
+		expect(chunks[0].text).toContain("key");
+	});
+
+	it("falls through on invalid JSON to heading/line detection", () => {
+		const content = "{ broken json\n# Heading\nSome text";
+		const chunks = contentTypeChunker.chunk(content);
+		// Should detect the heading and use headingChunker
+		expect(chunks.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("detects markdown headings and delegates to headingChunker", () => {
+		const md = "# Title\nParagraph\n## Section\nMore text";
+		const chunks = contentTypeChunker.chunk(md);
+		expect(chunks.length).toBe(2);
+	});
+
+	it("falls back to lineChunker for plain text", () => {
+		const text = "Just plain text\nwith no headings\nand no JSON";
+		const chunks = contentTypeChunker.chunk(text);
+		expect(chunks.length).toBe(1);
+		expect(chunks[0].text).toContain("plain text");
 	});
 });
 

@@ -44,4 +44,12 @@ describe("buildSandboxEnv", () => {
 		expect(Object.keys(env)).not.toContain("DB_PASSWORD");
 		expect(Object.keys(env)).not.toContain("API_KEY");
 	});
+
+	it("filters overrides through allowlist — rejects LD_PRELOAD", () => {
+		process.env = { PATH: "/usr/bin" };
+		const env = buildSandboxEnv({ PATH: "/custom", LD_PRELOAD: "/evil.so", NODE_OPTIONS: "--inspect" });
+		expect(env.PATH).toBe("/custom");
+		expect(env.LD_PRELOAD).toBeUndefined();
+		expect(env.NODE_OPTIONS).toBeUndefined();
+	});
 });

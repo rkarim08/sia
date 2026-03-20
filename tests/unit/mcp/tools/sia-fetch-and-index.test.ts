@@ -20,6 +20,12 @@ describe("isPrivateIp", () => {
 		expect(isPrivateIp("1.1.1.1")).toBe(false);
 		expect(isPrivateIp("142.250.80.46")).toBe(false);
 	});
+
+	it("blocks IPv4-mapped IPv6 addresses", () => {
+		expect(isPrivateIp("::ffff:127.0.0.1")).toBe(true);
+		expect(isPrivateIp("::ffff:10.0.0.1")).toBe(true);
+		expect(isPrivateIp("::ffff:8.8.8.8")).toBe(false);
+	});
 });
 
 describe("handleSiaFetchAndIndex", () => {
