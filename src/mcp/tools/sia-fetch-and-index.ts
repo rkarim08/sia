@@ -2,8 +2,8 @@
 
 import { randomUUID } from "node:crypto";
 import * as dns from "node:dns/promises";
-import { z } from "zod";
 import TurndownService from "turndown";
+import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { applyContextMode, contentTypeChunker } from "@/sandbox/context-mode";
@@ -48,7 +48,7 @@ export function isPrivateIp(ip: string): boolean {
 		return true;
 	}
 
-	const [a, b, c] = parts.map(Number);
+	const [a, b, _c] = parts.map(Number);
 
 	// 127.0.0.0/8 — loopback
 	if (a === 127) return true;
@@ -117,16 +117,22 @@ export async function handleSiaFetchAndIndex(
 	}
 
 	// 4. Fetch with timeout (30s), User-Agent header
+	// Use the resolved IP directly to prevent DNS rebinding (TOCTOU attack):
+	// the hostname is sent via the Host header so the server responds correctly.
 	const MAX_CONTENT_LENGTH = 5 * 1024 * 1024; // 5 MB cap
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 30_000);
 
+	const resolvedUrl = new URL(url);
+	resolvedUrl.hostname = resolvedIps[0];
+
 	let response: Response;
 	try {
-		response = await fetch(url, {
+		response = await fetch(resolvedUrl.toString(), {
 			signal: controller.signal,
 			headers: {
-				"User-Agent": "Sia-MCP/1.0 (knowledge graph indexer)",
+				Host: hostname,
+				"User-Agent": "Sia/1.0 (knowledge graph indexer)",
 				Accept: "text/html,text/markdown,application/json,text/plain,*/*",
 			},
 		});
@@ -148,18 +154,24 @@ export async function handleSiaFetchAndIndex(
 	// Check content-length header first
 	const contentLengthHeader = response.headers.get("content-length");
 	if (contentLengthHeader && Number(contentLengthHeader) > MAX_CONTENT_LENGTH) {
-		return { error: `Response too large: ${contentLengthHeader} bytes (max ${MAX_CONTENT_LENGTH})` };
+		return {
+			error: `Response too large: ${contentLengthHeader} bytes (max ${MAX_CONTENT_LENGTH})`,
+		};
 	}
 
 	let rawBody: string;
 	try {
 		const buffer = await response.arrayBuffer();
 		if (buffer.byteLength > MAX_CONTENT_LENGTH) {
-			return { error: `Response too large: ${buffer.byteLength} bytes (max ${MAX_CONTENT_LENGTH})` };
+			return {
+				error: `Response too large: ${buffer.byteLength} bytes (max ${MAX_CONTENT_LENGTH})`,
+			};
 		}
 		rawBody = new TextDecoder().decode(buffer);
 	} catch (err) {
-		return { error: `Failed to read response body: ${err instanceof Error ? err.message : String(err)}` };
+		return {
+			error: `Failed to read response body: ${err instanceof Error ? err.message : String(err)}`,
+		};
 	}
 
 	// 6. HTML → markdown via turndown
@@ -176,7 +188,7 @@ export async function handleSiaFetchAndIndex(
 	const now = Date.now();
 	const nowStr = String(now);
 
-	const contextResult = await applyContextMode(
+	const _contextResult = await applyContextMode(
 		processedContent,
 		intent,
 		contentTypeChunker,

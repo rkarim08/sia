@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPrivateIp } from "@/mcp/tools/sia-fetch-and-index";
-import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
+import { handleSiaFetchAndIndex, isPrivateIp } from "@/mcp/tools/sia-fetch-and-index";
 
 describe("isPrivateIp", () => {
 	it("blocks localhost (127.0.0.1)", () => {

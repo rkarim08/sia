@@ -3,8 +3,8 @@ import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { openGraphDb } from "@/graph/semantic-db";
 import type { SiaDb } from "@/graph/db-interface";
+import { openGraphDb } from "@/graph/semantic-db";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-migration-${randomUUID()}`);

@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
-import { headingChunker } from "@/sandbox/context-mode";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
+import { headingChunker } from "@/sandbox/context-mode";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -86,12 +86,7 @@ describe("handleSiaIndex", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("sia-index-empty", tmpDir);
 
-		const result = await handleSiaIndex(
-			db,
-			{ content: "" },
-			mockEmbedder,
-			"session-xyz",
-		);
+		const result = await handleSiaIndex(db, { content: "" }, mockEmbedder, "session-xyz");
 
 		expect(result.indexed).toBe(0);
 		expect(result.references).toBe(0);

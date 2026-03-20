@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	createMcpServer,
+	type McpServerDeps,
 	SiaAtTimeInput,
 	SiaByFileInput,
 	SiaCommunityInput,
@@ -8,7 +9,6 @@ import {
 	SiaFlagInput,
 	SiaSearchInput,
 	TOOL_NAMES,
-	type McpServerDeps,
 } from "@/mcp/server";
 import { DEFAULT_CONFIG } from "@/shared/config";
 

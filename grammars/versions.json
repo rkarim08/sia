@@ -1,28 +1,150 @@
 {
-  "grammars": {
-    "typescript": { "package": "tree-sitter-typescript", "version": "0.0.0", "wasmFile": "tree-sitter-typescript.wasm", "checksum": "", "subParsers": ["typescript", "tsx"] },
-    "javascript": { "package": "tree-sitter-javascript", "version": "0.0.0", "wasmFile": "tree-sitter-javascript.wasm", "checksum": "", "subParsers": ["javascript", "jsx"] },
-    "python": { "package": "tree-sitter-python", "version": "0.0.0", "wasmFile": "tree-sitter-python.wasm", "checksum": "" },
-    "go": { "package": "tree-sitter-go", "version": "0.0.0", "wasmFile": "tree-sitter-go.wasm", "checksum": "" },
-    "rust": { "package": "tree-sitter-rust", "version": "0.0.0", "wasmFile": "tree-sitter-rust.wasm", "checksum": "" },
-    "java": { "package": "tree-sitter-java", "version": "0.0.0", "wasmFile": "tree-sitter-java.wasm", "checksum": "" },
-    "kotlin": { "package": "tree-sitter-kotlin", "version": "0.0.0", "wasmFile": "tree-sitter-kotlin.wasm", "checksum": "" },
-    "swift": { "package": "tree-sitter-swift", "version": "0.0.0", "wasmFile": "tree-sitter-swift.wasm", "checksum": "" },
-    "php": { "package": "tree-sitter-php", "version": "0.0.0", "wasmFile": "tree-sitter-php.wasm", "checksum": "" },
-    "ruby": { "package": "tree-sitter-ruby", "version": "0.0.0", "wasmFile": "tree-sitter-ruby.wasm", "checksum": "" },
-    "scala": { "package": "tree-sitter-scala", "version": "0.0.0", "wasmFile": "tree-sitter-scala.wasm", "checksum": "" },
-    "elixir": { "package": "tree-sitter-elixir", "version": "0.0.0", "wasmFile": "tree-sitter-elixir.wasm", "checksum": "" },
-    "dart": { "package": "tree-sitter-dart", "version": "0.0.0", "wasmFile": "tree-sitter-dart.wasm", "checksum": "" },
-    "c": { "package": "tree-sitter-c", "version": "0.0.0", "wasmFile": "tree-sitter-c.wasm", "checksum": "" },
-    "cpp": { "package": "tree-sitter-cpp", "version": "0.0.0", "wasmFile": "tree-sitter-cpp.wasm", "checksum": "" },
-    "csharp": { "package": "tree-sitter-c-sharp", "version": "0.0.0", "wasmFile": "tree-sitter-c-sharp.wasm", "checksum": "" },
-    "bash": { "package": "tree-sitter-bash", "version": "0.0.0", "wasmFile": "tree-sitter-bash.wasm", "checksum": "" },
-    "lua": { "package": "tree-sitter-lua", "version": "0.0.0", "wasmFile": "tree-sitter-lua.wasm", "checksum": "" },
-    "zig": { "package": "tree-sitter-zig", "version": "0.0.0", "wasmFile": "tree-sitter-zig.wasm", "checksum": "" },
-    "r": { "package": "tree-sitter-r", "version": "0.0.0", "wasmFile": "tree-sitter-r.wasm", "checksum": "" },
-    "ocaml": { "package": "tree-sitter-ocaml", "version": "0.0.0", "wasmFile": "tree-sitter-ocaml.wasm", "checksum": "" },
-    "haskell": { "package": "tree-sitter-haskell", "version": "0.0.0", "wasmFile": "tree-sitter-haskell.wasm", "checksum": "" },
-    "sql": { "package": "tree-sitter-sql", "version": "0.0.0", "wasmFile": "tree-sitter-sql.wasm", "checksum": "" },
-    "toml": { "package": "tree-sitter-toml", "version": "0.0.0", "wasmFile": "tree-sitter-toml.wasm", "checksum": "" }
-  }
+	"grammars": {
+		"typescript": {
+			"package": "tree-sitter-typescript",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-typescript.wasm",
+			"checksum": "",
+			"subParsers": ["typescript", "tsx"]
+		},
+		"javascript": {
+			"package": "tree-sitter-javascript",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-javascript.wasm",
+			"checksum": "",
+			"subParsers": ["javascript", "jsx"]
+		},
+		"python": {
+			"package": "tree-sitter-python",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-python.wasm",
+			"checksum": ""
+		},
+		"go": {
+			"package": "tree-sitter-go",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-go.wasm",
+			"checksum": ""
+		},
+		"rust": {
+			"package": "tree-sitter-rust",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-rust.wasm",
+			"checksum": ""
+		},
+		"java": {
+			"package": "tree-sitter-java",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-java.wasm",
+			"checksum": ""
+		},
+		"kotlin": {
+			"package": "tree-sitter-kotlin",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-kotlin.wasm",
+			"checksum": ""
+		},
+		"swift": {
+			"package": "tree-sitter-swift",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-swift.wasm",
+			"checksum": ""
+		},
+		"php": {
+			"package": "tree-sitter-php",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-php.wasm",
+			"checksum": ""
+		},
+		"ruby": {
+			"package": "tree-sitter-ruby",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-ruby.wasm",
+			"checksum": ""
+		},
+		"scala": {
+			"package": "tree-sitter-scala",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-scala.wasm",
+			"checksum": ""
+		},
+		"elixir": {
+			"package": "tree-sitter-elixir",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-elixir.wasm",
+			"checksum": ""
+		},
+		"dart": {
+			"package": "tree-sitter-dart",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-dart.wasm",
+			"checksum": ""
+		},
+		"c": {
+			"package": "tree-sitter-c",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-c.wasm",
+			"checksum": ""
+		},
+		"cpp": {
+			"package": "tree-sitter-cpp",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-cpp.wasm",
+			"checksum": ""
+		},
+		"csharp": {
+			"package": "tree-sitter-c-sharp",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-c-sharp.wasm",
+			"checksum": ""
+		},
+		"bash": {
+			"package": "tree-sitter-bash",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-bash.wasm",
+			"checksum": ""
+		},
+		"lua": {
+			"package": "tree-sitter-lua",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-lua.wasm",
+			"checksum": ""
+		},
+		"zig": {
+			"package": "tree-sitter-zig",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-zig.wasm",
+			"checksum": ""
+		},
+		"r": {
+			"package": "tree-sitter-r",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-r.wasm",
+			"checksum": ""
+		},
+		"ocaml": {
+			"package": "tree-sitter-ocaml",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-ocaml.wasm",
+			"checksum": ""
+		},
+		"haskell": {
+			"package": "tree-sitter-haskell",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-haskell.wasm",
+			"checksum": ""
+		},
+		"sql": {
+			"package": "tree-sitter-sql",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-sql.wasm",
+			"checksum": ""
+		},
+		"toml": {
+			"package": "tree-sitter-toml",
+			"version": "0.0.0",
+			"wasmFile": "tree-sitter-toml.wasm",
+			"checksum": ""
+		}
+	}
 }

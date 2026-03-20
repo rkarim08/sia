@@ -250,7 +250,18 @@ export async function applyContextMode(
 
 	// 3. Embed the intent
 	const intentEmbRaw = await embedder.embed(intent);
-	const intentEmbedding: number[] = intentEmbRaw ? Array.from(intentEmbRaw) : [];
+	if (!intentEmbRaw) {
+		// Embedder failed — cannot do intent-based retrieval, return all chunks
+		return {
+			applied: true,
+			chunks: storedChunks.map((s) => s.text).slice(0, config.topK),
+			totalIndexed: storedChunks.length,
+			contextSavings:
+				content.length -
+				storedChunks.slice(0, config.topK).reduce((sum, s) => sum + s.text.length, 0),
+		};
+	}
+	const intentEmbedding: number[] = Array.from(intentEmbRaw);
 
 	// 4. Cosine similarity between intent embedding and each stored chunk embedding
 	const scored = storedChunks.map((chunk) => ({

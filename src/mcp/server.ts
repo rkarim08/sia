@@ -199,7 +199,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_search ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -215,7 +221,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_by_file ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -231,7 +243,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_expand ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -247,7 +265,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_community ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -263,7 +287,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_at_time ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -282,7 +312,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -298,7 +334,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_backlinks ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -314,7 +356,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_note ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -326,6 +374,19 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaExecuteInput.shape,
 		async (args) => {
 			if (deps) {
+				if (!deps.embedder) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "Embedder not available. Run sia_doctor to check ONNX status.",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -333,7 +394,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaExecute(
 					deps.graphDb,
 					args,
-					deps.embedder as Embedder,
+					deps.embedder,
 					throttle,
 					deps.sessionId,
 					{
@@ -346,7 +407,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_execute ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -358,6 +425,19 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaExecuteFileInput.shape,
 		async (args) => {
 			if (deps) {
+				if (!deps.embedder) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "Embedder not available. Run sia_doctor to check ONNX status.",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -365,7 +445,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaExecuteFile(
 					deps.graphDb,
 					args,
-					deps.embedder as Embedder,
+					deps.embedder,
 					throttle,
 					deps.sessionId,
 					{
@@ -379,8 +459,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			}
 			return {
 				content: [
-					{ type: "text" as const, text: `stub: sia_execute_file ${JSON.stringify(args)}` },
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
 				],
+				isError: true,
 			};
 		},
 	);
@@ -392,16 +476,30 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaIndexInput.shape,
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaIndex(
-					deps.graphDb,
-					args,
-					deps.embedder as Embedder,
-					deps.sessionId,
-				);
+				if (!deps.embedder) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "Embedder not available. Run sia_doctor to check ONNX status.",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
+				const result = await handleSiaIndex(deps.graphDb, args, deps.embedder, deps.sessionId);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_index ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -413,6 +511,19 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaBatchExecuteInput.shape,
 		async (args) => {
 			if (deps) {
+				if (!deps.embedder) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "Embedder not available. Run sia_doctor to check ONNX status.",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -420,7 +531,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaBatchExecute(
 					deps.graphDb,
 					args as Parameters<typeof handleSiaBatchExecute>[1],
-					deps.embedder as Embedder,
+					deps.embedder,
 					throttle,
 					deps.sessionId,
 					{ timeoutPerOp: deps.config.sandboxTimeoutMs },
@@ -429,8 +540,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			}
 			return {
 				content: [
-					{ type: "text" as const, text: `stub: sia_batch_execute ${JSON.stringify(args)}` },
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
 				],
+				isError: true,
 			};
 		},
 	);
@@ -442,18 +557,35 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaFetchAndIndexInput.shape,
 		async (args) => {
 			if (deps) {
+				if (!deps.embedder) {
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify({
+									error: "Embedder not available. Run sia_doctor to check ONNX status.",
+								}),
+							},
+						],
+						isError: true,
+					};
+				}
 				const result = await handleSiaFetchAndIndex(
 					deps.graphDb,
 					args,
-					deps.embedder as Embedder,
+					deps.embedder,
 					deps.sessionId,
 				);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [
-					{ type: "text" as const, text: `stub: sia_fetch_and_index ${JSON.stringify(args)}` },
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
 				],
+				isError: true,
 			};
 		},
 	);
@@ -469,7 +601,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_stats ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -485,7 +623,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_doctor ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
@@ -503,7 +647,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
-				content: [{ type: "text" as const, text: `stub: sia_upgrade ${JSON.stringify(args)}` }],
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);

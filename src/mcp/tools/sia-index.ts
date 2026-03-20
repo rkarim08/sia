@@ -30,7 +30,7 @@ export interface SiaIndexResult {
 export async function handleSiaIndex(
 	db: SiaDb,
 	input: z.infer<typeof SiaIndexInput>,
-	embedder: Embedder,
+	_embedder: Embedder,
 	sessionId: string,
 ): Promise<SiaIndexResult> {
 	const { content, source, tags } = input;
@@ -53,9 +53,7 @@ export async function handleSiaIndex(
 	for (let i = 0; i < rawChunks.length; i++) {
 		const raw = rawChunks[i];
 		const nodeId = randomUUID();
-		const chunkName = source
-			? `chunk-${source}-${i}`
-			: `chunk-${sessionId}-${i}`;
+		const chunkName = source ? `chunk-${source}-${i}` : `chunk-${sessionId}-${i}`;
 		const summary = raw.text.slice(0, 100);
 
 		await db.execute(
