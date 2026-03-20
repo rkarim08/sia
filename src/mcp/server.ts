@@ -5,6 +5,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import type { SiaDb } from "@/graph/db-interface";
+import type { SiaConfig } from "@/shared/config";
+import { handleSiaSearch } from "@/mcp/tools/sia-search";
+import { handleSiaByFile } from "@/mcp/tools/sia-by-file";
+import { handleSiaExpand } from "@/mcp/tools/sia-expand";
+import { handleSiaCommunity } from "@/mcp/tools/sia-community";
+import { handleSiaAtTime } from "@/mcp/tools/sia-at-time";
+import { handleSiaFlag } from "@/mcp/tools/sia-flag";
 
 // ---------------------------------------------------------------------------
 // Zod input schemas for every tool — exported so tests (and future handler
@@ -69,10 +77,22 @@ export const TOOL_NAMES = [
 export type SiaToolName = (typeof TOOL_NAMES)[number];
 
 // ---------------------------------------------------------------------------
+// McpServerDeps — optional dependencies for wiring real tool handlers
+// ---------------------------------------------------------------------------
+
+export interface McpServerDeps {
+	graphDb: SiaDb;
+	bridgeDb: SiaDb | null;
+	metaDb: SiaDb | null;
+	embedder: unknown | null;
+	config: SiaConfig;
+}
+
+// ---------------------------------------------------------------------------
 // createMcpServer — builds and returns a configured McpServer
 // ---------------------------------------------------------------------------
 
-export function createMcpServer(): McpServer {
+export function createMcpServer(deps?: McpServerDeps): McpServer {
 	const server = new McpServer({ name: "sia", version: "0.1.0" });
 
 	// --- sia_search --------------------------------------------------------
@@ -80,9 +100,13 @@ export function createMcpServer(): McpServer {
 		"sia_search",
 		"Semantic search across the Sia knowledge graph",
 		SiaSearchInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_search ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaSearch(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_search ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	// --- sia_by_file -------------------------------------------------------
@@ -90,9 +114,13 @@ export function createMcpServer(): McpServer {
 		"sia_by_file",
 		"Retrieve knowledge graph nodes associated with a file",
 		SiaByFileInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_by_file ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaByFile(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_by_file ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	// --- sia_expand --------------------------------------------------------
@@ -100,9 +128,13 @@ export function createMcpServer(): McpServer {
 		"sia_expand",
 		"Expand an entity's neighbourhood in the knowledge graph",
 		SiaExpandInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_expand ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaExpand(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_expand ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	// --- sia_community -----------------------------------------------------
@@ -110,9 +142,13 @@ export function createMcpServer(): McpServer {
 		"sia_community",
 		"Retrieve community-level summaries from the knowledge graph",
 		SiaCommunityInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_community ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaCommunity(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_community ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	// --- sia_at_time -------------------------------------------------------
@@ -120,9 +156,13 @@ export function createMcpServer(): McpServer {
 		"sia_at_time",
 		"Query the knowledge graph at a point in time",
 		SiaAtTimeInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_at_time ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaAtTime(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_at_time ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	// --- sia_flag ----------------------------------------------------------
@@ -130,9 +170,18 @@ export function createMcpServer(): McpServer {
 		"sia_flag",
 		"Flag current session for human review (writes to session_flags only)",
 		SiaFlagInput.shape,
-		async (args) => ({
-			content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }],
-		}),
+		async (args) => {
+			if (deps) {
+				const sessionId = process.env.SIA_SESSION_ID ?? "default";
+				const result = await handleSiaFlag(
+					deps.graphDb,
+					args,
+					{ enableFlagging: deps.config.enableFlagging, sessionId },
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return { content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }] };
+		},
 	);
 
 	return server;
@@ -142,9 +191,21 @@ export function createMcpServer(): McpServer {
 // startServer — convenience entry-point for stdio mode
 // ---------------------------------------------------------------------------
 
-export async function startServer(): Promise<McpServer> {
-	const server = createMcpServer();
+export async function startServer(deps?: McpServerDeps): Promise<McpServer> {
+	const server = createMcpServer(deps);
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
+
+	// --- Health-check HTTP server ---
+	const healthPort = Number(process.env.SIA_HEALTH_PORT ?? 52731);
+	Bun.serve({
+		port: healthPort,
+		fetch() {
+			return new Response(JSON.stringify({ status: "ok" }), {
+				headers: { "Content-Type": "application/json" },
+			});
+		},
+	});
+
 	return server;
 }

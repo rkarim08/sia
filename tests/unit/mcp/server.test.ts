@@ -22,6 +22,15 @@ describe("createMcpServer", () => {
 		expect(typeof server.close).toBe("function");
 	});
 
+	it("backward compat: createMcpServer() without deps still works", () => {
+		// Should not throw when called without deps
+		const server = createMcpServer();
+		expect(server).toBeDefined();
+		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
+			._registeredTools;
+		expect(Object.keys(registered)).toHaveLength(6);
+	});
+
 	it("registers all 6 tools", () => {
 		const server = createMcpServer();
 		// The internal _registeredTools is a plain object keyed by tool name.
