@@ -1,3 +1,5 @@
+import type { AiSdkAdapter } from "@/llm/ai-sdk-adapter";
+
 /** Roles an LLM provider can fulfil within the Sia pipeline. */
 export type OperationRole = "extract" | "consolidate" | "summarize" | "validate";
 
@@ -51,5 +53,16 @@ export class ProviderRegistry {
 	/** Get all configured providers for diagnostics. */
 	getAll(): Map<OperationRole, ProviderConfig> {
 		return new Map(this.configs);
+	}
+
+	/**
+	 * Resolve an AiSdkAdapter for the given role, or null if no provider is
+	 * configured for that role or the provider is unsupported by the AI SDK.
+	 */
+	async adapt(role: OperationRole): Promise<AiSdkAdapter | null> {
+		const config = this.getProvider(role);
+		if (!config) return null;
+		const { createAdapter } = await import("@/llm/ai-sdk-adapter");
+		return createAdapter(config);
 	}
 }
