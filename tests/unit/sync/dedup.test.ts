@@ -39,6 +39,8 @@ function makeEntity(overrides: Partial<Entity>): Entity {
 		extraction_model: null,
 		embedding: null,
 		archived_at: null,
+		session_id: null,
+		kind: null,
 		...overrides,
 	};
 }
