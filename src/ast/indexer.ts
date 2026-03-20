@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { dispatchExtraction } from "@/ast/extractors/tier-dispatch";
+import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
 import type { SiaDb } from "@/graph/db-interface";
@@ -96,7 +96,13 @@ export async function indexRepository(
 
 			const content = readFileSync(absPath, "utf-8");
 			const facts = language
-				? dispatchExtraction(content, relPath, language.tier, language.specialHandling)
+				? await dispatchExtractionAsync(
+						content,
+						relPath,
+						language.tier,
+						language.name,
+						language.specialHandling,
+					)
 				: [];
 			const packagePath = detectPackagePath(relPath);
 
