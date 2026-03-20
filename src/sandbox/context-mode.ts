@@ -128,6 +128,37 @@ export const lineChunker: ChunkStrategy = {
 };
 
 // ---------------------------------------------------------------------------
+// contentTypeChunker strategy — detects content type and delegates to the right chunker
+// ---------------------------------------------------------------------------
+
+export const contentTypeChunker: ChunkStrategy = {
+	name: "contentTypeChunker",
+
+	chunk(content: string): RawChunk[] {
+		const trimmed = content.trimStart();
+
+		// Detect JSON (starts with { or [)
+		if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+			try {
+				const parsed = JSON.parse(content);
+				const formatted = JSON.stringify(parsed, null, 2);
+				return lineChunker.chunk(formatted);
+			} catch {
+				// Not valid JSON — fall through to next check
+			}
+		}
+
+		// Check for markdown headings
+		if (/^#{1,6} /m.test(content)) {
+			return headingChunker.chunk(content);
+		}
+
+		// Default: lineChunker
+		return lineChunker.chunk(content);
+	},
+};
+
+// ---------------------------------------------------------------------------
 // Cosine similarity between two number arrays
 // ---------------------------------------------------------------------------
 
