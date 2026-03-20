@@ -14,7 +14,8 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test:tree-sitter-bun": "bun test tests/bun/tree-sitter-smoke.test.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.58",
