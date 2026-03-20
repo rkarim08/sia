@@ -28,7 +28,9 @@ export async function resolveConflict(
 		throw new Error(`Entity '${keepEntityId}' not found in conflict group '${groupId}'`);
 	}
 
-	const rows = await db.execute("SELECT id FROM graph_nodes WHERE conflict_group_id = ?", [groupId]);
+	const rows = await db.execute("SELECT id FROM graph_nodes WHERE conflict_group_id = ?", [
+		groupId,
+	]);
 	for (const row of rows.rows as Array<{ id: string }>) {
 		if (row.id === keepEntityId) continue;
 		await invalidateEntity(db, row.id);

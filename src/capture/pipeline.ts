@@ -212,9 +212,10 @@ async function applySharingRules(
 
 	// Apply rules to newly created entities
 	for (const entityId of entityIds) {
-		const { rows } = await graphDb.execute("SELECT type, visibility FROM graph_nodes WHERE id = ?", [
-			entityId,
-		]);
+		const { rows } = await graphDb.execute(
+			"SELECT type, visibility FROM graph_nodes WHERE id = ?",
+			[entityId],
+		);
 		if (rows.length === 0) continue;
 
 		const entityType = rows[0].type as string;

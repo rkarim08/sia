@@ -1,12 +1,25 @@
 import { existsSync, watch as fsWatch, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
+import { computeEdits } from "@/ast/tree-sitter/edit-computer";
+import { TreeSitterService } from "@/ast/tree-sitter/service";
 import { extractTrackA } from "@/capture/track-a-ast";
 import type { SiaDb } from "@/graph/db-interface";
 import { getActiveEdges, invalidateEdge } from "@/graph/edges";
-import { insertEntity, invalidateEntity, updateEntity } from "@/graph/entities";
+import { insertEntity, invalidateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
+import { getConfig } from "@/shared/config";
+
+let _watcherService: TreeSitterService | null = null;
+function getWatcherService(): TreeSitterService {
+	if (!_watcherService) {
+		const config = getConfig();
+		_watcherService = new TreeSitterService(config.treeSitter!);
+	}
+	return _watcherService;
+}
 
 export interface FileWatcher {
 	start(): void;
@@ -46,7 +59,56 @@ async function handleDeletion(db: SiaDb, relPath: string): Promise<void> {
 }
 
 async function handleChange(db: SiaDb, relPath: string, content: string): Promise<void> {
-	const facts = extractTrackA(content, relPath);
+	// --- Tree-sitter incremental re-parse path ---
+	let treeSitterFacts: import("@/capture/types").CandidateFact[] | null = null;
+	try {
+		const langConfig = getLanguageForFile(relPath);
+		if (langConfig) {
+			const service = getWatcherService();
+			const cache = service.cache;
+			const cachedEntry = cache.get(relPath);
+
+			if (cachedEntry) {
+				// Incremental re-parse: compute edits, apply to old tree, parse
+				const edits = computeEdits(cachedEntry.source, content);
+				const treeAny = cachedEntry.tree as any;
+				for (const edit of edits) {
+					treeAny.edit?.(edit);
+				}
+				const newTree = await service.parse(content, langConfig.name, cachedEntry.tree);
+				if (newTree) {
+					cache.set(relPath, newTree, content);
+					// Use dispatchExtractionAsync for scoped extraction
+					treeSitterFacts = await dispatchExtractionAsync(
+						content,
+						relPath,
+						langConfig.tier,
+						langConfig.name,
+						langConfig.specialHandling,
+					);
+				}
+			} else {
+				// Full parse (populates cache for next time)
+				const tree = await service.parse(content, langConfig.name);
+				if (tree) {
+					cache.set(relPath, tree, content);
+					treeSitterFacts = await dispatchExtractionAsync(
+						content,
+						relPath,
+						langConfig.tier,
+						langConfig.name,
+						langConfig.specialHandling,
+					);
+				}
+			}
+		}
+	} catch {
+		// Tree-sitter failed — fall through to regex below
+		treeSitterFacts = null;
+	}
+
+	// --- Regex fallback (existing logic, used when tree-sitter is unavailable) ---
+	const facts = treeSitterFacts ?? extractTrackA(content, relPath);
 	const existing = await getEntitiesForPath(db, relPath);
 
 	const existingByName = new Map(existing.map((e) => [e.name, e]));
@@ -55,11 +117,22 @@ async function handleChange(db: SiaDb, relPath: string, content: string): Promis
 	for (const fact of facts) {
 		const existingEntity = existingByName.get(fact.name);
 		if (existingEntity) {
-			// Update content if changed
+			// SUPERSEDE pattern: invalidate old, insert new
 			if (existingEntity.content !== fact.content) {
-				await updateEntity(db, existingEntity.id, {
+				const ts = Date.now();
+				await invalidateEntity(db, existingEntity.id, ts);
+				await invalidateEdgesForEntity(db, existingEntity.id, ts);
+				await insertEntity(db, {
+					type: fact.type,
+					name: fact.name,
 					content: fact.content,
 					summary: fact.summary,
+					tags: JSON.stringify(fact.tags ?? []),
+					file_paths: JSON.stringify([relPath]),
+					trust_tier: fact.trust_tier,
+					confidence: fact.confidence,
+					package_path: detectPackagePath(relPath),
+					extraction_method: fact.extraction_method ?? null,
 				});
 			}
 			continue;

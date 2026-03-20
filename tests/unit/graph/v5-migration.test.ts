@@ -256,7 +256,7 @@ describe("v5 schema migration (004_v5_unified_schema)", () => {
 		await db.execute("UPDATE graph_nodes SET name = 'Singleton Updated' WHERE id = 'fts-node-3'");
 
 		// Old term should not match
-		let ftsResult = await db.execute(
+		const ftsResult = await db.execute(
 			"SELECT name FROM graph_nodes_fts WHERE graph_nodes_fts MATCH 'Singleton'",
 		);
 		expect(ftsResult.rows).toHaveLength(1);
@@ -540,10 +540,18 @@ describe("v5 schema migration (004_v5_unified_schema)", () => {
 		);
 
 		// Run all four backfill statements
-		await db.execute("UPDATE graph_nodes SET kind = 'EditEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Edit: %'");
-		await db.execute("UPDATE graph_nodes SET kind = 'ExecutionEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Bash: %'");
-		await db.execute("UPDATE graph_nodes SET kind = 'GitEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Git: %'");
-		await db.execute("UPDATE graph_nodes SET kind = 'ErrorEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Error: %'");
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'EditEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Edit: %'",
+		);
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'ExecutionEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Bash: %'",
+		);
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'GitEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Git: %'",
+		);
+		await db.execute(
+			"UPDATE graph_nodes SET kind = 'ErrorEvent' WHERE kind = 'CodeEntity' AND name LIKE 'Error: %'",
+		);
 
 		const after = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [id]);
 		// Should remain CodeEntity

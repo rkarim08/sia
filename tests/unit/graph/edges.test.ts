@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import * as edgesModule from "@/graph/edges";
-import { getActiveEdges, getEdgesByType, getEdgesAsOf, insertEdge, invalidateEdge } from "@/graph/edges";
+import {
+	getActiveEdges,
+	getEdgesAsOf,
+	getEdgesByType,
+	insertEdge,
+	invalidateEdge,
+} from "@/graph/edges";
 import { openGraphDb } from "@/graph/semantic-db";
 
 describe("edge CRUD layer", () => {

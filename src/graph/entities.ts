@@ -318,10 +318,7 @@ export async function getNodesBySession(
  * Retrieve active nodes of a specific semantic kind.
  * Filters WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL.
  */
-export async function getNodesByKind(
-	db: SiaDb,
-	kind: string,
-): Promise<Record<string, unknown>[]> {
+export async function getNodesByKind(db: SiaDb, kind: string): Promise<Record<string, unknown>[]> {
 	const { rows } = await db.execute(
 		"SELECT * FROM graph_nodes WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL",
 		[kind],

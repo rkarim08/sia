@@ -28,7 +28,7 @@ describe("applyContextMode", () => {
 		// Interleave OOM lines at the end
 		const output = [...noiseLines, ...oomLines].join("\n");
 		// Make sure output exceeds threshold
-		const longOutput = output + "\n" + "padding ".repeat(500);
+		const longOutput = `${output}\n${"padding ".repeat(500)}`;
 
 		const result = applyContextMode(longOutput, "OOM errors", 100);
 		expect(result.contextSaved).toBe(true);

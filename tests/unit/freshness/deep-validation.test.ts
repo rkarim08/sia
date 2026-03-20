@@ -342,10 +342,10 @@ describe("deep-validation", () => {
 			expect(result.nodesScored).toBe(2);
 
 			// After PageRank, NodeA should have higher importance since it's the target
-			const { rows } = await db.execute("SELECT id, importance FROM graph_nodes WHERE id IN (?, ?)", [
-				nodeA.id,
-				nodeB.id,
-			]);
+			const { rows } = await db.execute(
+				"SELECT id, importance FROM graph_nodes WHERE id IN (?, ?)",
+				[nodeA.id, nodeB.id],
+			);
 			const importanceMap = new Map(rows.map((r) => [r.id as string, r.importance as number]));
 			// NodeA (incoming calls) should have higher PageRank than NodeB
 			expect(importanceMap.get(nodeA.id)).toBeGreaterThan(importanceMap.get(nodeB.id) as number);

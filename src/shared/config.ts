@@ -39,6 +39,16 @@ export interface AdditionalLanguage {
 	tier: string;
 }
 
+/** Configuration for the tree-sitter parser integration. */
+export interface TreeSitterConfig {
+	enabled: boolean;
+	preferNative: boolean;
+	parseTimeoutMs: number;
+	maxCachedTrees: number;
+	wasmDir: string;
+	queryDir: string;
+}
+
 /** Full Sia configuration matching ARCHI section 11. */
 export interface SiaConfig {
 	repoDir: string;
@@ -75,6 +85,8 @@ export interface SiaConfig {
 	deepValidationRateMs: number;
 
 	additionalLanguages: AdditionalLanguage[];
+
+	treeSitter?: TreeSitterConfig;
 
 	claudeMdUpdatedAt: string | null;
 
@@ -136,6 +148,15 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	deepValidationRateMs: 5000, // 5 seconds
 
 	additionalLanguages: [],
+
+	treeSitter: {
+		enabled: true,
+		preferNative: true,
+		parseTimeoutMs: 5000,
+		maxCachedTrees: 500,
+		wasmDir: join(__dirname, "../../grammars/wasm"),
+		queryDir: join(__dirname, "../../grammars/queries"),
+	},
 
 	claudeMdUpdatedAt: null,
 
