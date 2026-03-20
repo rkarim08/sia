@@ -39,6 +39,8 @@ export interface Entity {
 	extraction_model: string | null;
 	embedding: Uint8Array | null;
 	archived_at: number | null;
+	session_id: string | null;
+	kind: string | null;
 }
 
 /** Fields the caller must or may provide when inserting an entity. */
@@ -69,6 +71,8 @@ export interface InsertEntityInput {
 	extraction_method?: string | null;
 	extraction_model?: string | null;
 	embedding?: Uint8Array | null;
+	session_id?: string | null;
+	kind?: string | null;
 }
 
 /** Fields that can be partially updated on an existing entity. */
@@ -122,6 +126,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 		extraction_model: input.extraction_model ?? null,
 		embedding: input.embedding ?? null,
 		archived_at: null,
+		session_id: input.session_id ?? null,
+		kind: input.kind ?? input.type,
 	};
 
 	await db.execute(
@@ -137,7 +143,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			hlc_created, hlc_modified, synced_at,
 			conflict_group_id,
 			source_episode, extraction_method, extraction_model,
-			embedding, archived_at
+			embedding, archived_at,
+			session_id, kind
 		) VALUES (
 			?, ?, ?, ?, ?,
 			?, ?, ?,
@@ -150,6 +157,7 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			?, ?, ?,
 			?,
 			?, ?, ?,
+			?, ?,
 			?, ?
 		)`,
 		[
@@ -186,6 +194,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			entity.extraction_model,
 			entity.embedding,
 			entity.archived_at,
+			entity.session_id,
+			entity.kind,
 		],
 	);
 
@@ -287,4 +297,34 @@ export async function getEntitiesByPackage(db: SiaDb, packagePath: string): Prom
 		[packagePath],
 	);
 	return result.rows as unknown as Entity[];
+}
+
+/**
+ * Retrieve active nodes belonging to a specific session.
+ * Filters WHERE session_id = ? AND archived_at IS NULL AND t_valid_until IS NULL.
+ */
+export async function getNodesBySession(
+	db: SiaDb,
+	sessionId: string,
+): Promise<Record<string, unknown>[]> {
+	const { rows } = await db.execute(
+		"SELECT * FROM graph_nodes WHERE session_id = ? AND archived_at IS NULL AND t_valid_until IS NULL",
+		[sessionId],
+	);
+	return rows;
+}
+
+/**
+ * Retrieve active nodes of a specific semantic kind.
+ * Filters WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL.
+ */
+export async function getNodesByKind(
+	db: SiaDb,
+	kind: string,
+): Promise<Record<string, unknown>[]> {
+	const { rows } = await db.execute(
+		"SELECT * FROM graph_nodes WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL",
+		[kind],
+	);
+	return rows;
 }

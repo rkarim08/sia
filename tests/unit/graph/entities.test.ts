@@ -9,6 +9,8 @@ import {
 	getActiveEntities,
 	getEntitiesByPackage,
 	getEntity,
+	getNodesByKind,
+	getNodesBySession,
 	insertEntity,
 	invalidateEntity,
 	touchEntity,
@@ -301,6 +303,130 @@ describe("entity CRUD layer", () => {
 	// ---------------------------------------------------------------
 	// getEntitiesByPackage filters by package_path
 	// ---------------------------------------------------------------
+
+	// ---------------------------------------------------------------
+	// insertEntity with kind uses explicit kind, defaults to type
+	// ---------------------------------------------------------------
+
+	it("insertEntity with explicit kind stores that kind, without kind defaults to type", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ent-kind-default", tmpDir);
+
+		// Without kind: kind should default to type
+		const e1 = await insertEntity(db, {
+			type: "Concept",
+			name: "Entity Without Kind",
+			content: "test",
+			summary: "test",
+		});
+		const row1 = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [e1.id]);
+		expect(row1.rows[0]?.kind).toBe("Concept");
+
+		// With explicit kind: should use the supplied kind
+		const e2 = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Entity With Kind",
+			content: "test",
+			summary: "test",
+			kind: "EditEvent",
+		});
+		const row2 = await db.execute("SELECT kind FROM graph_nodes WHERE id = ?", [e2.id]);
+		expect(row2.rows[0]?.kind).toBe("EditEvent");
+	});
+
+	// ---------------------------------------------------------------
+	// getNodesBySession returns only nodes with matching session_id
+	// ---------------------------------------------------------------
+
+	it("getNodesBySession returns nodes matching session_id, excludes archived/invalidated", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ent-by-session", tmpDir);
+
+		const e1 = await insertEntity(db, {
+			type: "Concept",
+			name: "Session A Node 1",
+			content: "test",
+			summary: "test",
+			session_id: "sess-a",
+		});
+		const e2 = await insertEntity(db, {
+			type: "Concept",
+			name: "Session A Node 2",
+			content: "test",
+			summary: "test",
+			session_id: "sess-a",
+		});
+		await insertEntity(db, {
+			type: "Concept",
+			name: "Session B Node",
+			content: "test",
+			summary: "test",
+			session_id: "sess-b",
+		});
+		// Archived node in sess-a — should be excluded
+		const archived = await insertEntity(db, {
+			type: "Concept",
+			name: "Archived Session A Node",
+			content: "test",
+			summary: "test",
+			session_id: "sess-a",
+		});
+		await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [Date.now(), archived.id]);
+
+		const results = await getNodesBySession(db, "sess-a");
+		expect(results).toHaveLength(2);
+		const ids = results.map((r) => r.id);
+		expect(ids).toContain(e1.id);
+		expect(ids).toContain(e2.id);
+		expect(ids).not.toContain(archived.id);
+	});
+
+	// ---------------------------------------------------------------
+	// getNodesByKind returns only nodes with matching kind
+	// ---------------------------------------------------------------
+
+	it("getNodesByKind returns nodes matching kind, excludes archived/invalidated", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ent-by-kind", tmpDir);
+
+		const e1 = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Edit Event 1",
+			content: "test",
+			summary: "test",
+			kind: "EditEvent",
+		});
+		const e2 = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Edit Event 2",
+			content: "test",
+			summary: "test",
+			kind: "EditEvent",
+		});
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Bash Event",
+			content: "test",
+			summary: "test",
+			kind: "ExecutionEvent",
+		});
+		// Invalidated EditEvent — should be excluded
+		const invalidated = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Old Edit Event",
+			content: "test",
+			summary: "test",
+			kind: "EditEvent",
+		});
+		await db.execute("UPDATE graph_nodes SET t_valid_until = ? WHERE id = ?", [Date.now(), invalidated.id]);
+
+		const results = await getNodesByKind(db, "EditEvent");
+		expect(results).toHaveLength(2);
+		const ids = results.map((r) => r.id);
+		expect(ids).toContain(e1.id);
+		expect(ids).toContain(e2.id);
+		expect(ids).not.toContain(invalidated.id);
+	});
 
 	it("getEntitiesByPackage filters by package_path", async () => {
 		tmpDir = makeTmp();
