@@ -13,7 +13,8 @@ describe("tree-sitter under Bun runtime", () => {
 
 	test("WASM backend loads", async () => {
 		try {
-			const TreeSitter = (await import("web-tree-sitter")).default;
+			const mod = await import("web-tree-sitter");
+			const TreeSitter = mod.default as any;
 			await TreeSitter.init();
 			const parser = new TreeSitter();
 			expect(parser).toBeDefined();
