@@ -51,7 +51,8 @@ export class NpmUpdateStrategy implements UpdateStrategy {
 			try {
 				const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { version?: string };
 				return pkg.version ?? "unknown";
-			} catch {
+			} catch (err) {
+				console.error(`[sia-upgrade] Failed to read version: ${(err as Error).message}`);
 				return "unknown";
 			}
 		}
@@ -95,6 +96,7 @@ export class GitUpdateStrategy implements UpdateStrategy {
 		if (result.status === 0 && result.stdout) {
 			return result.stdout.trim();
 		}
+		console.error(`[sia-upgrade] Failed to read version: ${result.stderr?.trim() ?? "git rev-parse failed"}`);
 		return "unknown";
 	}
 

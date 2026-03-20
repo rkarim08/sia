@@ -108,8 +108,8 @@ export async function handleSiaFetchAndIndex(
 		try {
 			const lookupResult = await dns.lookup(hostname);
 			resolvedIps = [lookupResult.address];
-		} catch {
-			return { error: `DNS resolution failed for host: ${hostname}` };
+		} catch (lookupErr) {
+			return { error: `DNS resolution failed for host: ${hostname} (${(lookupErr as Error).message})` };
 		}
 	}
 

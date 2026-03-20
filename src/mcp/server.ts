@@ -182,6 +182,33 @@ export interface McpServerDeps {
 }
 
 // ---------------------------------------------------------------------------
+// safeToolCall — wrap a handler call with try-catch, returning structured error
+// ---------------------------------------------------------------------------
+
+/** Wrap a handler call with try-catch, returning structured error on failure. */
+async function safeToolCall<T>(
+	toolName: string,
+	fn: () => Promise<T>,
+): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
+	try {
+		const result = await fn();
+		return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+	} catch (err) {
+		return {
+			content: [
+				{
+					type: "text" as const,
+					text: JSON.stringify({
+						error: `${toolName} failed: ${err instanceof Error ? err.message : String(err)}`,
+					}),
+				},
+			],
+			isError: true,
+		};
+	}
+}
+
+// ---------------------------------------------------------------------------
 // createMcpServer — builds and returns a configured McpServer
 // ---------------------------------------------------------------------------
 
@@ -197,8 +224,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_search", () =>
+					handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined),
+				);
 			}
 			return {
 				content: [
@@ -221,8 +249,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaByFile(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_by_file", () => handleSiaByFile(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -245,8 +272,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaExpand(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_expand", () => handleSiaExpand(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -269,8 +295,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaCommunity(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_community", () => handleSiaCommunity(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -293,8 +318,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaAtTime(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_at_time", () => handleSiaAtTime(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -317,11 +341,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaFlag(deps.graphDb, args, {
-					enableFlagging: deps.config.enableFlagging,
-					sessionId: deps.sessionId,
-				});
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_flag", () =>
+					handleSiaFlag(deps.graphDb, args, {
+						enableFlagging: deps.config.enableFlagging,
+						sessionId: deps.sessionId,
+					}),
+				);
 			}
 			return {
 				content: [
@@ -344,8 +369,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaBacklinks(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_backlinks", () => handleSiaBacklinks(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -368,8 +392,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaNote(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_note", () => handleSiaNote(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -405,24 +428,26 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						isError: true,
 					};
 				}
+				const embedder = deps.embedder;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				const result = await handleSiaExecute(
-					deps.graphDb,
-					args,
-					deps.embedder,
-					throttle,
-					deps.sessionId,
-					{
-						sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
-						sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
-						contextModeThreshold: deps.config.contextModeThreshold,
-						contextModeTopK: deps.config.contextModeTopK,
-					},
+				return safeToolCall("sia_execute", () =>
+					handleSiaExecute(
+						deps.graphDb,
+						args,
+						embedder,
+						throttle,
+						deps.sessionId,
+						{
+							sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
+							sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
+							contextModeThreshold: deps.config.contextModeThreshold,
+							contextModeTopK: deps.config.contextModeTopK,
+						},
+					),
 				);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [
@@ -458,24 +483,26 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						isError: true,
 					};
 				}
+				const embedderFile = deps.embedder;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				const result = await handleSiaExecuteFile(
-					deps.graphDb,
-					args,
-					deps.embedder,
-					throttle,
-					deps.sessionId,
-					{
-						sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
-						sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
-						contextModeThreshold: deps.config.contextModeThreshold,
-						contextModeTopK: deps.config.contextModeTopK,
-					},
+				return safeToolCall("sia_execute_file", () =>
+					handleSiaExecuteFile(
+						deps.graphDb,
+						args,
+						embedderFile,
+						throttle,
+						deps.sessionId,
+						{
+							sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
+							sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
+							contextModeThreshold: deps.config.contextModeThreshold,
+							contextModeTopK: deps.config.contextModeTopK,
+						},
+					),
 				);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [
@@ -511,8 +538,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						isError: true,
 					};
 				}
-				const result = await handleSiaIndex(deps.graphDb, args, deps.embedder, deps.sessionId);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				const embedderIndex = deps.embedder;
+				return safeToolCall("sia_index", () =>
+					handleSiaIndex(deps.graphDb, args, embedderIndex, deps.sessionId),
+				);
 			}
 			return {
 				content: [
@@ -548,19 +577,21 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						isError: true,
 					};
 				}
+				const embedderBatch = deps.embedder;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				const result = await handleSiaBatchExecute(
-					deps.graphDb,
-					args as Parameters<typeof handleSiaBatchExecute>[1],
-					deps.embedder,
-					throttle,
-					deps.sessionId,
-					{ timeoutPerOp: deps.config.sandboxTimeoutMs },
+				return safeToolCall("sia_batch_execute", () =>
+					handleSiaBatchExecute(
+						deps.graphDb,
+						args as Parameters<typeof handleSiaBatchExecute>[1],
+						embedderBatch,
+						throttle,
+						deps.sessionId,
+						{ timeoutPerOp: deps.config.sandboxTimeoutMs },
+					),
 				);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [
@@ -596,13 +627,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						isError: true,
 					};
 				}
-				const result = await handleSiaFetchAndIndex(
-					deps.graphDb,
-					args,
-					deps.embedder,
-					deps.sessionId,
+				const embedderFetch = deps.embedder;
+				return safeToolCall("sia_fetch_and_index", () =>
+					handleSiaFetchAndIndex(deps.graphDb, args, embedderFetch, deps.sessionId),
 				);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [
@@ -625,8 +653,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaStats(deps.graphDb, args, deps.sessionId);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_stats", () =>
+					handleSiaStats(deps.graphDb, args, deps.sessionId),
+				);
 			}
 			return {
 				content: [
@@ -649,8 +678,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaDoctor(deps.graphDb, args);
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_doctor", () => handleSiaDoctor(deps.graphDb, args));
 			}
 			return {
 				content: [
@@ -673,10 +701,11 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaUpgrade(deps.graphDb, args, {
-					upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
-				});
-				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+				return safeToolCall("sia_upgrade", () =>
+					handleSiaUpgrade(deps.graphDb, args, {
+						upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
+					}),
+				);
 			}
 			return {
 				content: [

@@ -85,7 +85,9 @@ export async function handleSiaExecuteFile(
 	});
 	try {
 		rmSync(sandboxDir, { recursive: true, force: true });
-	} catch {}
+	} catch (e) {
+		console.error("[sia-execute-file] cleanup failed:", (e as Error).message);
+	}
 
 	// 6. Apply context mode if output large + intent provided
 	if (result.stdout.length > cfg.contextModeThreshold && input.intent !== undefined) {

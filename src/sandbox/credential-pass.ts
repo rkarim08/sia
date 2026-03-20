@@ -45,6 +45,8 @@ export function buildSandboxEnv(overrides?: Record<string, string>): Record<stri
 		for (const [key, value] of Object.entries(overrides)) {
 			if (isAllowlisted(key)) {
 				env[key] = value;
+			} else {
+				console.warn(`[sia-sandbox] env override "${key}" dropped: not in allowlist`);
 			}
 		}
 	}
