@@ -101,6 +101,30 @@ describe("BunSqliteDb", () => {
 		expect(underlying).toHaveProperty("prepare");
 		expect(underlying).toHaveProperty("close");
 	});
+
+	it("execute on outer db during active transaction throws with 'transaction' in message", async () => {
+		setup();
+		await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)");
+		await db.transaction(async (txDb) => {
+			// txProxy execute must still work
+			await txDb.execute("INSERT INTO test (id, name) VALUES (?, ?)", [1, "alice"]);
+			// outer db.execute during active transaction must throw
+			await expect(
+				db.execute("INSERT INTO test (id, name) VALUES (?, ?)", [2, "bob"]),
+			).rejects.toThrow(/transaction/i);
+		});
+	});
+
+	it("executeMany on outer db during active transaction throws with 'transaction' in message", async () => {
+		setup();
+		await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)");
+		await db.transaction(async (txDb) => {
+			await txDb.execute("INSERT INTO test (id, name) VALUES (?, ?)", [1, "alice"]);
+			await expect(
+				db.executeMany([{ sql: "INSERT INTO test (id, name) VALUES (?, ?)", params: [2, "bob"] }]),
+			).rejects.toThrow(/transaction/i);
+		});
+	});
 });
 
 describe("LibSqlDb", () => {

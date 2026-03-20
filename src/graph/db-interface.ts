@@ -35,9 +35,15 @@ export interface SiaDb {
  * Bun:sqlite implementation of SiaDb (used when sync.enabled = false).
  */
 export class BunSqliteDb implements SiaDb {
+	private inTransaction = false;
+
 	constructor(private readonly db: Database) {}
 
-	async execute(sql: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[] }> {
+	/** Internal: executes SQL without the reentrancy guard. Used by txProxy. */
+	private _executeRaw(
+		sql: string,
+		params: unknown[] = [],
+	): { rows: Record<string, unknown>[] } {
 		const stmt = this.db.prepare(sql);
 		if (isReadStatement(sql)) {
 			const rows = stmt.all(...(params as SQLQueryBindings[])) as Record<string, unknown>[];
@@ -47,7 +53,21 @@ export class BunSqliteDb implements SiaDb {
 		return { rows: [] };
 	}
 
+	async execute(sql: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[] }> {
+		if (this.inTransaction) {
+			throw new Error(
+				"Cannot call execute() on outer db during active transaction() — use the transaction proxy",
+			);
+		}
+		return this._executeRaw(sql, params);
+	}
+
 	async executeMany(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+		if (this.inTransaction) {
+			throw new Error(
+				"Cannot call executeMany() on outer db during active transaction() — use the transaction proxy",
+			);
+		}
 		this.db.prepare("BEGIN").run();
 		try {
 			for (const { sql, params = [] } of statements) {
@@ -68,15 +88,21 @@ export class BunSqliteDb implements SiaDb {
 		// Pass a proxy to fn rather than `this` so that any nested call to
 		// txProxy.transaction() throws immediately with a clear error message,
 		// matching LibSqlDb's behaviour.
+		// txProxy calls _executeRaw directly to bypass the reentrancy guard.
 		const txProxy: SiaDb = {
-			execute: (sql, params) => this.execute(sql, params),
-			executeMany: (stmts) => this.executeMany(stmts),
+			execute: (sql, params) => Promise.resolve(this._executeRaw(sql, params)),
+			executeMany: async (stmts) => {
+				for (const { sql, params = [] } of stmts) {
+					this._executeRaw(sql, params);
+				}
+			},
 			transaction: () => {
 				throw new Error("Nested transactions not supported");
 			},
 			close: async () => {},
 			rawSqlite: () => this.db,
 		};
+		this.inTransaction = true;
 		this.db.prepare("BEGIN").run();
 		try {
 			await fn(txProxy);
@@ -84,6 +110,8 @@ export class BunSqliteDb implements SiaDb {
 		} catch (e) {
 			this.db.prepare("ROLLBACK").run();
 			throw e;
+		} finally {
+			this.inTransaction = false;
 		}
 	}
 
