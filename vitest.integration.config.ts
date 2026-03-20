@@ -9,6 +9,7 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
+			"bun:sqlite": resolve(__dirname, "tests/__mocks__/bun-sqlite.ts"),
 			"@/graph": resolve(__dirname, "src/graph"),
 			"@/workspace": resolve(__dirname, "src/workspace"),
 			"@/capture": resolve(__dirname, "src/capture"),
@@ -22,6 +23,7 @@ export default defineConfig({
 			"@/cli": resolve(__dirname, "src/cli"),
 			"@/shared": resolve(__dirname, "src/shared"),
 			"@/agent": resolve(__dirname, "src/agent"),
+			"@/hooks": resolve(__dirname, "src/hooks"),
 		},
 	},
 });
