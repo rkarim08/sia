@@ -334,6 +334,87 @@ describe("pullChanges", () => {
 		await bridgeDb.close();
 	});
 
+	it("updates sync_peers last_seen_at and last_seen_hlc when metaDb is provided", async () => {
+		const testDb = createTestDb();
+		const db = testDb.db;
+		tmpDir = testDb.tmpDir;
+
+		const bridgeResult = createTestDb();
+		const bridgeDb = bridgeResult.db;
+		extraTmpDirs.push(bridgeResult.tmpDir);
+
+		// Create a meta.db manually with the sync_peers table
+		const metaResult = createTestDb();
+		const metaDb = metaResult.db;
+		extraTmpDirs.push(metaResult.tmpDir);
+		await metaDb.execute(
+			`CREATE TABLE IF NOT EXISTS sync_peers (
+				peer_id      TEXT PRIMARY KEY,
+				display_name TEXT,
+				last_seen_hlc INTEGER,
+				last_seen_at  INTEGER
+			)`,
+		);
+		await metaDb.execute(
+			"INSERT INTO sync_peers (peer_id, display_name, last_seen_hlc, last_seen_at) VALUES (?, ?, ?, ?)",
+			["peer-1", "Alice", 0, 0],
+		);
+
+		// Insert a team-visible entity with hlc_modified set so max_hlc > 0
+		await db.execute(ENTITY_INSERT, [
+			"e1",
+			"Concept",
+			"MetaDbTest",
+			"content",
+			"summary",
+			null,
+			"[]",
+			"[]",
+			3,
+			0.7,
+			0.7,
+			0.5,
+			0.5,
+			0,
+			0,
+			now,
+			now,
+			now,
+			null,
+			null,
+			null,
+			"team",
+			"dev",
+			null,
+			null,
+			500,
+			100,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+		]);
+
+		const before = Date.now();
+		await pullChanges(db, bridgeDb, CONFIG, undefined, undefined, metaDb);
+		const after = Date.now();
+
+		const peerRows = await metaDb.execute("SELECT * FROM sync_peers WHERE peer_id = 'peer-1'");
+		const peer = peerRows.rows[0] as {
+			peer_id: string;
+			last_seen_at: number;
+			last_seen_hlc: number;
+		};
+		expect(peer.last_seen_at).toBeGreaterThanOrEqual(before);
+		expect(peer.last_seen_at).toBeLessThanOrEqual(after);
+		expect(peer.last_seen_hlc).toBe(500);
+
+		await bridgeDb.close();
+		await metaDb.close();
+	});
+
 	it("returns zeros when sync is disabled", async () => {
 		const testDb = createTestDb();
 		const db = testDb.db;

@@ -18,6 +18,7 @@ export async function pullChanges(
 	config: SyncConfig,
 	repoHash?: string,
 	siaHome?: string,
+	metaDb?: SiaDb,
 ): Promise<PullResult> {
 	if (!config.enabled) {
 		return { entitiesReceived: 0, edgesReceived: 0, vssRefreshed: 0 };
@@ -108,9 +109,14 @@ export async function pullChanges(
 	}
 
 	// --- sync_peers ---
-	// TODO: sync_peers is in meta.db, not graph.db. Full meta.db integration
-	// requires accepting a metaDb parameter which is a larger change.
-	// For now, write audit entries for received items as tracking.
+	// Update all known peers' last_seen_at and last_seen_hlc (to the max HLC received).
+	if (metaDb) {
+		const maxHlcNumber = Number(maxHlc);
+		await metaDb.execute(
+			`UPDATE sync_peers SET last_seen_at = ?, last_seen_hlc = ?`,
+			[Date.now(), maxHlcNumber],
+		);
+	}
 
 	// Audit the received items.
 	for (const row of receivedEntities) {
