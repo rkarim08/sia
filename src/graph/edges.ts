@@ -98,7 +98,11 @@ export async function insertEdge(db: SiaDb, edge: NewEdge): Promise<EdgeRow> {
 export async function invalidateEdge(db: SiaDb, id: string, tValidUntil?: number): Promise<void> {
 	const ts = tValidUntil ?? Date.now();
 
-	await db.execute("UPDATE graph_edges SET t_valid_until = ?, t_expired = ? WHERE id = ?", [ts, ts, id]);
+	await db.execute("UPDATE graph_edges SET t_valid_until = ?, t_expired = ? WHERE id = ?", [
+		ts,
+		ts,
+		id,
+	]);
 
 	await writeAuditEntry(db, "INVALIDATE", { edge_id: id });
 }

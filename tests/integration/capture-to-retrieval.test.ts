@@ -35,8 +35,7 @@ describe("Capture → Retrieval integration", () => {
 		const payload: HookPayload = {
 			type: "PostToolUse",
 			sessionId: "integ-capture-1",
-			content:
-				"We decided to use Redis for session caching because of its speed and low latency",
+			content: "We decided to use Redis for session caching because of its speed and low latency",
 			cwd: tmpDir,
 			toolName: "Write",
 			filePath: "src/cache/redis.ts",
@@ -118,8 +117,7 @@ describe("Capture → Retrieval integration", () => {
 		const payload: HookPayload = {
 			type: "PostToolUse",
 			sessionId: "integ-capture-airgap-1",
-			content:
-				"export function resolveConfig(path: string): Config { return loadFromDisk(path); }",
+			content: "export function resolveConfig(path: string): Config { return loadFromDisk(path); }",
 			cwd: tmpDir,
 			toolName: "Write",
 			filePath: "src/config.ts",

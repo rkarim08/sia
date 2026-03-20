@@ -157,7 +157,10 @@ describe("graph.db schema (001_initial)", () => {
 		expect(resA.rows[0]?.edge_count).toBe(1);
 
 		// Invalidate the edge (set t_valid_until).
-		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-2"]);
+		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [
+			Date.now(),
+			"edge-2",
+		]);
 
 		// Both endpoints should now have edge_count = 0.
 		resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
@@ -183,7 +186,10 @@ describe("graph.db schema (001_initial)", () => {
 		await insertEdge(db, "edge-3", eA, eB);
 
 		// Invalidate.
-		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-3"]);
+		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [
+			Date.now(),
+			"edge-3",
+		]);
 
 		// Verify both are at 0 after invalidation.
 		let resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);

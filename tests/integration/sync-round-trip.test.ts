@@ -19,8 +19,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import { pushChanges } from "@/sync/push";
 import { DEFAULT_SYNC_CONFIG } from "@/shared/config";
+import { pushChanges } from "@/sync/push";
 
 function makeTmpDir(suffix: string): string {
 	const dir = join(tmpdir(), `sia-integ-sync-${suffix}-${Date.now()}`);
@@ -110,10 +110,9 @@ describe("Sync round-trip", () => {
 
 			// Directly update synced_at on non-private entities to simulate
 			// what pushChanges would do (since we can't call a real remote)
-			await dbA.execute(
-				"UPDATE graph_nodes SET synced_at = ? WHERE visibility != 'private'",
-				[Date.now()],
-			);
+			await dbA.execute("UPDATE graph_nodes SET synced_at = ? WHERE visibility != 'private'", [
+				Date.now(),
+			]);
 
 			// Verify: team entity has synced_at set, private entity does not
 			const { rows: teamRows } = await dbA.execute(

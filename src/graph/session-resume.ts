@@ -37,10 +37,7 @@ export async function saveSubgraph(
  * Load the session resume record for the given session.
  * Returns null if no record exists.
  */
-export async function loadSubgraph(
-	db: SiaDb,
-	sessionId: string,
-): Promise<SessionResumeRow | null> {
+export async function loadSubgraph(db: SiaDb, sessionId: string): Promise<SessionResumeRow | null> {
 	const result = await db.execute(
 		"SELECT subgraph_json, last_prompt, budget_used FROM session_resume WHERE session_id = ?",
 		[sessionId],

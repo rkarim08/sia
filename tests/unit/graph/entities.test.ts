@@ -371,7 +371,10 @@ describe("entity CRUD layer", () => {
 			summary: "test",
 			session_id: "sess-a",
 		});
-		await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [Date.now(), archived.id]);
+		await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [
+			Date.now(),
+			archived.id,
+		]);
 
 		const results = await getNodesBySession(db, "sess-a");
 		expect(results).toHaveLength(2);
@@ -418,7 +421,10 @@ describe("entity CRUD layer", () => {
 			summary: "test",
 			kind: "EditEvent",
 		});
-		await db.execute("UPDATE graph_nodes SET t_valid_until = ? WHERE id = ?", [Date.now(), invalidated.id]);
+		await db.execute("UPDATE graph_nodes SET t_valid_until = ? WHERE id = ?", [
+			Date.now(),
+			invalidated.id,
+		]);
 
 		const results = await getNodesByKind(db, "EditEvent");
 		expect(results).toHaveLength(2);

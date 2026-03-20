@@ -88,7 +88,9 @@ describe("detectConflicts", () => {
 		const count = await detectConflicts(db);
 		expect(count).toBe(1);
 
-		const rows = await db.execute("SELECT conflict_group_id FROM graph_nodes WHERE id IN ('e1','e2')");
+		const rows = await db.execute(
+			"SELECT conflict_group_id FROM graph_nodes WHERE id IN ('e1','e2')",
+		);
 		for (const row of rows.rows as Array<{ conflict_group_id: string | null }>) {
 			expect(row.conflict_group_id).not.toBeNull();
 		}

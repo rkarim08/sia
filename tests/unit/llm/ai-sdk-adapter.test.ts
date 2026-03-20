@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AiSdkAdapter, createAdapter } from "@/llm/ai-sdk-adapter";
 import type { ProviderConfig } from "@/llm/provider-registry";
 import { ProviderRegistry } from "@/llm/provider-registry";
-import { AiSdkAdapter, createAdapter } from "@/llm/ai-sdk-adapter";
 
 // Mock the `ai` module so tests don't make real LLM calls
 vi.mock("ai", () => ({
@@ -81,9 +81,7 @@ describe("AiSdkAdapter.generate", () => {
 		const config: ProviderConfig = { provider: "google", model: "gemini-pro" };
 		const adapter = new AiSdkAdapter(config);
 
-		await expect(adapter.generate("test")).rejects.toThrow(
-			"Unsupported AI SDK provider: google",
-		);
+		await expect(adapter.generate("test")).rejects.toThrow("Unsupported AI SDK provider: google");
 	});
 });
 

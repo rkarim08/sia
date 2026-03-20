@@ -32,11 +32,7 @@ describe("handleUserPromptSubmit", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("ups-empty", tmpDir);
 
-		const result = await handleUserPromptSubmit(
-			db,
-			{ session_id: "s1", prompt: "" },
-			{} as never,
-		);
+		const result = await handleUserPromptSubmit(db, { session_id: "s1", prompt: "" }, {} as never);
 		expect(result.nodesCreated).toBe(0);
 
 		const entities = await getActiveEntities(db);

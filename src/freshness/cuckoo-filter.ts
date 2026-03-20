@@ -55,7 +55,7 @@ export class CuckooFilter {
 		const smiHash = hash >>> 1;
 		if (this.hashes.has(smiHash)) return true;
 
-		const fp = (hash >>> 16) || 1;
+		const fp = hash >>> 16 || 1;
 		const h1 = hash & (this.numBuckets - 1);
 		const h2 = (h1 ^ (((fp * 0x5bd1e995) >>> 0) & (this.numBuckets - 1))) & (this.numBuckets - 1);
 
@@ -100,7 +100,7 @@ export class CuckooFilter {
 		const smiHash = hash >>> 1;
 		if (!this.hashes.has(smiHash)) return false;
 
-		const fp = (hash >>> 16) || 1;
+		const fp = hash >>> 16 || 1;
 		const h1 = hash & (this.numBuckets - 1);
 		const h2 = (h1 ^ (((fp * 0x5bd1e995) >>> 0) & (this.numBuckets - 1))) & (this.numBuckets - 1);
 
@@ -119,7 +119,7 @@ export class CuckooFilter {
 
 	contains(path: string): boolean {
 		const hash = fnv1a(path);
-		const fp = (hash >>> 16) || 1;
+		const fp = hash >>> 16 || 1;
 		const h1 = hash & (this.numBuckets - 1);
 		const h2 = (h1 ^ (((fp * 0x5bd1e995) >>> 0) & (this.numBuckets - 1))) & (this.numBuckets - 1);
 		return this._bucketContains(h1, fp) || this._bucketContains(h2, fp);

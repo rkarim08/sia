@@ -138,10 +138,10 @@ describe("prune", () => {
 		expect(entityBAfter).toBeDefined();
 
 		// Edge should be deleted
-		const { rows: edges } = await db.execute("SELECT * FROM graph_edges WHERE from_id = ? OR to_id = ?", [
-			entityA.id,
-			entityA.id,
-		]);
+		const { rows: edges } = await db.execute(
+			"SELECT * FROM graph_edges WHERE from_id = ? OR to_id = ?",
+			[entityA.id, entityA.id],
+		);
 		expect(edges).toHaveLength(0);
 	});
 

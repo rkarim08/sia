@@ -193,9 +193,10 @@ describe("documentation chunking and graph ingestion", () => {
 		expect(chunkNames).toContain("Usage");
 
 		// Verify child_of edges
-		const edges = await db.execute("SELECT * FROM graph_edges WHERE type = 'child_of' AND to_id = ?", [
-			result.fileNodeId,
-		]);
+		const edges = await db.execute(
+			"SELECT * FROM graph_edges WHERE type = 'child_of' AND to_id = ?",
+			[result.fileNodeId],
+		);
 		expect(edges.rows).toHaveLength(3);
 	});
 
@@ -217,7 +218,9 @@ describe("documentation chunking and graph ingestion", () => {
 		});
 
 		// Verify FileNode has the custom tag and trust tier
-		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [result.fileNodeId]);
+		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [
+			result.fileNodeId,
+		]);
 		expect(fileNode.rows).toHaveLength(1);
 		expect(JSON.parse(fileNode.rows[0].tags as string)).toContain("ai-context");
 		expect(fileNode.rows[0].trust_tier).toBe(1);
@@ -253,7 +256,9 @@ describe("documentation chunking and graph ingestion", () => {
 		const result = await ingestDocument(db, docPath, "docs/ARCHITECTURE.md");
 
 		// FileNode content should use the frontmatter description
-		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [result.fileNodeId]);
+		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [
+			result.fileNodeId,
+		]);
 		expect(fileNode.rows).toHaveLength(1);
 		expect(fileNode.rows[0].content).toBe("High-level system architecture overview");
 		expect(fileNode.rows[0].summary).toBe("Documentation file: docs/ARCHITECTURE.md");
