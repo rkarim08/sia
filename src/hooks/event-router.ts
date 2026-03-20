@@ -19,7 +19,7 @@ const handlers: Record<string, HookHandler> = {};
 /**
  * Register a handler for a hook event name.
  * Event names: "post-tool-use", "stop", "pre-compact", "post-compact",
- *              "session-start", "session-end"
+ *              "session-start", "session-end", "user-prompt-submit"
  */
 export function registerHandler(eventName: string, handler: HookHandler): void {
 	handlers[eventName] = handler;
@@ -166,6 +166,14 @@ export function getHookConfig(port: number = DEFAULT_PORT): Record<string, unkno
 			{
 				type: "http",
 				url: `http://localhost:${port}/hooks/session-end`,
+				timeout: 5000,
+				async: true,
+			},
+		],
+		UserPromptSubmit: [
+			{
+				type: "http",
+				url: `http://localhost:${port}/hooks/user-prompt-submit`,
 				timeout: 5000,
 				async: true,
 			},
