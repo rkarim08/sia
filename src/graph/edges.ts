@@ -119,6 +119,24 @@ export async function getActiveEdges(db: SiaDb, entityId: string): Promise<EdgeR
 }
 
 /**
+ * Get currently active edges from a source node filtered by type(s).
+ *
+ * Returns edges where `from_id = fromId`, `type IN types`, and `t_valid_until IS NULL`.
+ */
+export async function getEdgesByType(
+	db: SiaDb,
+	fromId: string,
+	types: string[],
+): Promise<Record<string, unknown>[]> {
+	const placeholders = types.map(() => "?").join(", ");
+	const { rows } = await db.execute(
+		`SELECT * FROM graph_edges WHERE from_id = ? AND type IN (${placeholders}) AND t_valid_until IS NULL`,
+		[fromId, ...types],
+	);
+	return rows;
+}
+
+/**
  * Get edges for an entity that were valid at a specific point in time.
  *
  * Matches edges where:
