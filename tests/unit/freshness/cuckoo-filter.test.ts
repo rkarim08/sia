@@ -67,6 +67,11 @@ describe("CuckooFilter", () => {
 		expect(filter.contains("src/foo.ts")).toBe(false);
 	});
 
+	it("remove unknown path returns false", () => {
+		const filter = new CuckooFilter();
+		expect(filter.remove("src/nonexistent.ts")).toBe(false);
+	});
+
 	it("clear empties the filter", () => {
 		const filter = new CuckooFilter();
 		filter.add("src/a.ts");
@@ -84,6 +89,30 @@ describe("CuckooFilter", () => {
 		filter.add("src/a.ts");
 		filter.add("src/b.ts");
 		filter.add("src/a.ts"); // duplicate
+		expect(filter.size).toBe(2);
+	});
+
+	it("add returns true on success, dedup returns true without size change", () => {
+		const filter = new CuckooFilter();
+		const first = filter.add("src/x.ts");
+		expect(first).toBe(true);
+		expect(filter.size).toBe(1);
+
+		const second = filter.add("src/x.ts");
+		expect(second).toBe(true);
+		expect(filter.size).toBe(1); // size unchanged
+	});
+
+	it("remove does not break contains for other items", () => {
+		const filter = new CuckooFilter();
+		filter.add("src/a.ts");
+		filter.add("src/b.ts");
+		filter.add("src/c.ts");
+		filter.remove("src/b.ts");
+
+		expect(filter.contains("src/a.ts")).toBe(true);
+		expect(filter.contains("src/b.ts")).toBe(false);
+		expect(filter.contains("src/c.ts")).toBe(true);
 		expect(filter.size).toBe(2);
 	});
 
