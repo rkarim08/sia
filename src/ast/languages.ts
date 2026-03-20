@@ -29,6 +29,30 @@ export interface LanguageConfig {
 	tier: ExtractionTier;
 	extractors: Extractors;
 	specialHandling?: SpecialHandling;
+	nativePackage?: string;
+	wasmFile?: string;
+	queryDir?: string;
+	parserEntrypoint?: string;
+}
+
+/** LanguageConfig with all tree-sitter resolution fields populated */
+export interface ResolvedLanguageConfig extends LanguageConfig {
+	nativePackage: string;
+	wasmFile: string;
+	queryDir: string;
+}
+
+/**
+ * Resolve a LanguageConfig, deriving nativePackage, wasmFile, and queryDir
+ * from treeSitterGrammar if not explicitly provided.
+ */
+export function resolveLanguageConfig(lang: LanguageConfig): ResolvedLanguageConfig {
+	return {
+		...lang,
+		nativePackage: lang.nativePackage ?? lang.treeSitterGrammar,
+		wasmFile: lang.wasmFile ?? `${lang.treeSitterGrammar}.wasm`,
+		queryDir: lang.queryDir ?? lang.name,
+	};
 }
 
 /** The canonical language registry keyed by language name */
