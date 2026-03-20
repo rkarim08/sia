@@ -1,17 +1,29 @@
-// Module: server — MCP server scaffold with 6 tool registrations
+// Module: server — MCP server with 16 tool registrations
 //
-// Read-only against graph.db.  Only writes go to session_flags.
+// All handlers are wired to real implementations via McpServerDeps.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { handleSiaAtTime } from "@/mcp/tools/sia-at-time";
+import { handleSiaBacklinks } from "@/mcp/tools/sia-backlinks";
+import { handleSiaBatchExecute } from "@/mcp/tools/sia-batch-execute";
 import { handleSiaByFile } from "@/mcp/tools/sia-by-file";
 import { handleSiaCommunity } from "@/mcp/tools/sia-community";
+import { handleSiaDoctor } from "@/mcp/tools/sia-doctor";
+import { handleSiaExecute } from "@/mcp/tools/sia-execute";
+import { handleSiaExecuteFile } from "@/mcp/tools/sia-execute-file";
 import { handleSiaExpand } from "@/mcp/tools/sia-expand";
+import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
+import { handleSiaIndex } from "@/mcp/tools/sia-index";
+import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
+import { handleSiaStats } from "@/mcp/tools/sia-stats";
+import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
+import { ProgressiveThrottle } from "@/retrieval/throttle";
 import type { SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
@@ -59,6 +71,20 @@ export const SiaAtTimeInput = z.object({
 
 export const SiaFlagInput = z.object({
 	reason: z.string(),
+});
+
+export const SiaBacklinksInput = z.object({
+	node_id: z.string(),
+	edge_types: z.array(z.string()).optional(),
+});
+
+export const SiaNoteInput = z.object({
+	kind: z.enum(["Decision", "Convention", "Bug", "Solution", "Concept"]),
+	name: z.string(),
+	content: z.string(),
+	tags: z.array(z.string()).optional(),
+	relates_to: z.array(z.string()).optional(),
+	supersedes: z.string().optional(),
 });
 
 export const SiaExecuteInput = z.object({
@@ -143,15 +169,16 @@ export const TOOL_NAMES = [
 export type SiaToolName = (typeof TOOL_NAMES)[number];
 
 // ---------------------------------------------------------------------------
-// McpServerDeps — optional dependencies for wiring real tool handlers
+// McpServerDeps — dependencies for wiring real tool handlers
 // ---------------------------------------------------------------------------
 
 export interface McpServerDeps {
 	graphDb: SiaDb;
 	bridgeDb: SiaDb | null;
 	metaDb: SiaDb | null;
-	embedder: unknown | null;
+	embedder: Embedder | null;
 	config: SiaConfig;
+	sessionId: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,7 +186,7 @@ export interface McpServerDeps {
 // ---------------------------------------------------------------------------
 
 export function createMcpServer(deps?: McpServerDeps): McpServer {
-	const server = new McpServer({ name: "sia", version: "0.1.0" });
+	const server = new McpServer({ name: "sia", version: "0.2.0" });
 
 	// --- sia_search --------------------------------------------------------
 	server.tool(
@@ -168,7 +195,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaSearchInput.shape,
 		async (args) => {
 			if (deps) {
-				const result = await handleSiaSearch(deps.graphDb, args);
+				const result = await handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
@@ -248,15 +275,235 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		SiaFlagInput.shape,
 		async (args) => {
 			if (deps) {
-				const sessionId = process.env.SIA_SESSION_ID ?? "default";
 				const result = await handleSiaFlag(deps.graphDb, args, {
 					enableFlagging: deps.config.enableFlagging,
-					sessionId,
+					sessionId: deps.sessionId,
 				});
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
 			return {
 				content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_backlinks -----------------------------------------------------
+	server.tool(
+		"sia_backlinks",
+		"Find all incoming edges (backlinks) to a knowledge graph node",
+		SiaBacklinksInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaBacklinks(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_backlinks ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_note ----------------------------------------------------------
+	server.tool(
+		"sia_note",
+		"Create a developer-authored knowledge entry in the graph",
+		SiaNoteInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaNote(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_note ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_execute -------------------------------------------------------
+	server.tool(
+		"sia_execute",
+		"Execute code in an isolated sandbox",
+		SiaExecuteInput.shape,
+		async (args) => {
+			if (deps) {
+				const throttle = new ProgressiveThrottle(deps.graphDb, {
+					normalMax: deps.config.throttleNormalMax,
+					reducedMax: deps.config.throttleReducedMax,
+				});
+				const result = await handleSiaExecute(
+					deps.graphDb,
+					args,
+					deps.embedder as Embedder,
+					throttle,
+					deps.sessionId,
+					{
+						sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
+						sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
+						contextModeThreshold: deps.config.contextModeThreshold,
+						contextModeTopK: deps.config.contextModeTopK,
+					},
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_execute ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_execute_file --------------------------------------------------
+	server.tool(
+		"sia_execute_file",
+		"Execute an existing file in a sandbox subprocess",
+		SiaExecuteFileInput.shape,
+		async (args) => {
+			if (deps) {
+				const throttle = new ProgressiveThrottle(deps.graphDb, {
+					normalMax: deps.config.throttleNormalMax,
+					reducedMax: deps.config.throttleReducedMax,
+				});
+				const result = await handleSiaExecuteFile(
+					deps.graphDb,
+					args,
+					deps.embedder as Embedder,
+					throttle,
+					deps.sessionId,
+					{
+						sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
+						sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
+						contextModeThreshold: deps.config.contextModeThreshold,
+						contextModeTopK: deps.config.contextModeTopK,
+					},
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [
+					{ type: "text" as const, text: `stub: sia_execute_file ${JSON.stringify(args)}` },
+				],
+			};
+		},
+	);
+
+	// --- sia_index ---------------------------------------------------------
+	server.tool(
+		"sia_index",
+		"Index markdown/text content by chunking and scanning for entity references",
+		SiaIndexInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaIndex(
+					deps.graphDb,
+					args,
+					deps.embedder as Embedder,
+					deps.sessionId,
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_index ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_batch_execute -------------------------------------------------
+	server.tool(
+		"sia_batch_execute",
+		"Execute multiple operations in one call with precedes edges",
+		SiaBatchExecuteInput.shape,
+		async (args) => {
+			if (deps) {
+				const throttle = new ProgressiveThrottle(deps.graphDb, {
+					normalMax: deps.config.throttleNormalMax,
+					reducedMax: deps.config.throttleReducedMax,
+				});
+				const result = await handleSiaBatchExecute(
+					deps.graphDb,
+					args as Parameters<typeof handleSiaBatchExecute>[1],
+					deps.embedder as Embedder,
+					throttle,
+					deps.sessionId,
+					{ timeoutPerOp: deps.config.sandboxTimeoutMs },
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [
+					{ type: "text" as const, text: `stub: sia_batch_execute ${JSON.stringify(args)}` },
+				],
+			};
+		},
+	);
+
+	// --- sia_fetch_and_index -----------------------------------------------
+	server.tool(
+		"sia_fetch_and_index",
+		"Fetch a URL, convert to markdown, and index via contentTypeChunker",
+		SiaFetchAndIndexInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaFetchAndIndex(
+					deps.graphDb,
+					args,
+					deps.embedder as Embedder,
+					deps.sessionId,
+				);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [
+					{ type: "text" as const, text: `stub: sia_fetch_and_index ${JSON.stringify(args)}` },
+				],
+			};
+		},
+	);
+
+	// --- sia_stats ---------------------------------------------------------
+	server.tool(
+		"sia_stats",
+		"Return graph metrics: node/edge counts by type, optional session stats",
+		SiaStatsInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaStats(deps.graphDb, args, deps.sessionId);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_stats ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_doctor --------------------------------------------------------
+	server.tool(
+		"sia_doctor",
+		"Run diagnostic checks on the Sia installation",
+		SiaDoctorInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaDoctor(deps.graphDb, args);
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_doctor ${JSON.stringify(args)}` }],
+			};
+		},
+	);
+
+	// --- sia_upgrade -------------------------------------------------------
+	server.tool(
+		"sia_upgrade",
+		"Self-update Sia to the latest version",
+		SiaUpgradeInput.shape,
+		async (args) => {
+			if (deps) {
+				const result = await handleSiaUpgrade(deps.graphDb, args, {
+					upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
+				});
+				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			}
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_upgrade ${JSON.stringify(args)}` }],
 			};
 		},
 	);
