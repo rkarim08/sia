@@ -12,3 +12,4 @@ sia-native/*.node
 sia-native/index.js
 sia-native/index.d.ts
 sia-native/node_modules/
+.worktrees/
