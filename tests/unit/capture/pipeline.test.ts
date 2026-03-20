@@ -1,11 +1,14 @@
-import { randomUUID } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resetCircuitBreaker, runPipeline } from "@/capture/pipeline";
+import { detectCrossRepoEdges, resetCircuitBreaker, runPipeline } from "@/capture/pipeline";
+import type { CandidateFact } from "@/capture/types";
 import type { HookPayload } from "@/capture/types";
-import { openEpisodicDb } from "@/graph/semantic-db";
+import { openBridgeDb } from "@/graph/bridge-db";
+import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
+import { openMetaDb } from "@/graph/meta-db";
 import { DEFAULT_CONFIG, type SiaConfig } from "@/shared/config";
 
 function makeTmp(): string {
@@ -228,6 +231,178 @@ describe("runPipeline", () => {
 			expect(episode.file_path).toBe(payload.filePath);
 		} finally {
 			await episodicDb.close();
+		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// detectCrossRepoEdges — writes bridge edges when metaDb has matching contracts
+// ---------------------------------------------------------------------------
+
+describe("detectCrossRepoEdges", () => {
+	let tmpDir: string;
+
+	afterEach(() => {
+		if (tmpDir) {
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("returns 0 when no metaDb is provided", async () => {
+		tmpDir = makeTmp();
+		const graphDb = openGraphDb("test-repo", tmpDir);
+		const bridgeDb = openBridgeDb(tmpDir);
+		const candidates: CandidateFact[] = [
+			{
+				type: "Decision",
+				name: "workspace-dep",
+				content: '{"workspace:*": true}',
+				summary: "workspace dep",
+				tags: [],
+				file_paths: [],
+				trust_tier: 2,
+				confidence: 0.9,
+			},
+		];
+		try {
+			const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, "test-repo");
+			expect(count).toBe(0);
+		} finally {
+			await graphDb.close();
+			await bridgeDb.close();
+		}
+	});
+
+	it("writes depends_on edges to bridge.db for matching candidates and contracts", async () => {
+		tmpDir = makeTmp();
+
+		// Compute real repoHash matching what runPipeline would use
+		const absPath = realpathSync(tmpDir);
+		const repoHash = createHash("sha256").update(absPath).digest("hex");
+
+		// Set up meta.db with a contract where current repo is consumer
+		const metaDb = openMetaDb(tmpDir);
+		const providerRepoId = randomUUID();
+		const contractId = randomUUID();
+		// Insert provider repo (required FK)
+		await metaDb.execute(
+			"INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)",
+			[providerRepoId, "/some/provider/path", Date.now()],
+		);
+		// Insert consumer repo (required FK)
+		await metaDb.execute(
+			"INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)",
+			[repoHash, absPath, Date.now()],
+		);
+		// Insert api_contract with consumer = repoHash
+		await metaDb.execute(
+			"INSERT INTO api_contracts (id, provider_repo_id, consumer_repo_id, contract_type, detected_at) VALUES (?, ?, ?, ?, ?)",
+			[contractId, providerRepoId, repoHash, "npm-package", Date.now()],
+		);
+
+		// Set up graph.db and bridge.db
+		const graphDb = openGraphDb(repoHash, tmpDir);
+		const bridgeDb = openBridgeDb(tmpDir);
+
+		// Create candidates with workspace:* pattern
+		const candidates: CandidateFact[] = [
+			{
+				type: "Decision",
+				name: "workspace-dep-candidate",
+				content: 'uses "workspace:*" packages from provider',
+				summary: "workspace dep",
+				tags: [],
+				file_paths: [],
+				trust_tier: 2,
+				confidence: 0.9,
+			},
+		];
+
+		try {
+			const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, repoHash, metaDb);
+
+			// Should have written 1 edge (1 candidate × 1 contract)
+			expect(count).toBe(1);
+
+			// Verify edge was actually written to bridge.db
+			const { rows } = await bridgeDb.execute(
+				"SELECT * FROM cross_repo_edges WHERE source_repo_id = ? AND target_repo_id = ? AND type = 'depends_on'",
+				[repoHash, providerRepoId],
+			);
+			expect(rows).toHaveLength(1);
+			const edge = rows[0] as Record<string, unknown>;
+			expect(edge.source_entity_id).toBe("workspace-dep-candidate");
+			expect(edge.created_by).toBe("auto-detect");
+			expect(edge.t_valid_until).toBeNull();
+		} finally {
+			await metaDb.close();
+			await graphDb.close();
+			await bridgeDb.close();
+		}
+	});
+
+	it("returns 0 when candidates have no cross-repo patterns", async () => {
+		tmpDir = makeTmp();
+		const absPath = realpathSync(tmpDir);
+		const repoHash = createHash("sha256").update(absPath).digest("hex");
+
+		const metaDb = openMetaDb(tmpDir);
+		const graphDb = openGraphDb(repoHash, tmpDir);
+		const bridgeDb = openBridgeDb(tmpDir);
+
+		const candidates: CandidateFact[] = [
+			{
+				type: "Decision",
+				name: "normal-entity",
+				content: "just a normal decision with no workspace imports",
+				summary: "normal",
+				tags: [],
+				file_paths: [],
+				trust_tier: 2,
+				confidence: 0.9,
+			},
+		];
+
+		try {
+			const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, repoHash, metaDb);
+			expect(count).toBe(0);
+		} finally {
+			await metaDb.close();
+			await graphDb.close();
+			await bridgeDb.close();
+		}
+	});
+
+	it("returns 0 when metaDb has no matching contracts for this repo", async () => {
+		tmpDir = makeTmp();
+		const absPath = realpathSync(tmpDir);
+		const repoHash = createHash("sha256").update(absPath).digest("hex");
+
+		// meta.db with no contracts for this repo
+		const metaDb = openMetaDb(tmpDir);
+		const graphDb = openGraphDb(repoHash, tmpDir);
+		const bridgeDb = openBridgeDb(tmpDir);
+
+		const candidates: CandidateFact[] = [
+			{
+				type: "Decision",
+				name: "workspace-dep-candidate",
+				content: 'uses "workspace:*" packages',
+				summary: "workspace dep",
+				tags: [],
+				file_paths: [],
+				trust_tier: 2,
+				confidence: 0.9,
+			},
+		];
+
+		try {
+			const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, repoHash, metaDb);
+			expect(count).toBe(0);
+		} finally {
+			await metaDb.close();
+			await graphDb.close();
+			await bridgeDb.close();
 		}
 	});
 });
