@@ -10,6 +10,7 @@ export type HLC = bigint;
 
 const COUNTER_BITS = 16n;
 const COUNTER_MASK = (1n << COUNTER_BITS) - 1n;
+const MAX_COUNTER = 0xffff;
 
 /** Pack wall-clock ms and counter into a single bigint. */
 export function pack(wallMs: number, counter: number): bigint {
@@ -33,6 +34,9 @@ export function hlcNow(local: bigint): bigint {
 	if (now > wallMs) {
 		return pack(now, 0);
 	}
+	if (counter >= MAX_COUNTER) {
+		return pack(wallMs + 1, 0);
+	}
 	return pack(wallMs, counter + 1);
 }
 
@@ -47,12 +51,22 @@ export function hlcReceive(local: bigint, remote: bigint): bigint {
 	const maxWall = Math.max(l.wallMs, r.wallMs, now);
 
 	if (maxWall === l.wallMs && maxWall === r.wallMs) {
-		return pack(maxWall, Math.max(l.counter, r.counter) + 1);
+		const newCounter = Math.max(l.counter, r.counter) + 1;
+		if (newCounter > MAX_COUNTER) {
+			return pack(maxWall + 1, 0);
+		}
+		return pack(maxWall, newCounter);
 	}
 	if (maxWall === l.wallMs) {
+		if (l.counter >= MAX_COUNTER) {
+			return pack(maxWall + 1, 0);
+		}
 		return pack(maxWall, l.counter + 1);
 	}
 	if (maxWall === r.wallMs) {
+		if (r.counter >= MAX_COUNTER) {
+			return pack(maxWall + 1, 0);
+		}
 		return pack(maxWall, r.counter + 1);
 	}
 	// now is strictly greater than both
