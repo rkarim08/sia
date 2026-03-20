@@ -1,7 +1,7 @@
 // Module: sia-execute-file — Execute an existing file in a sandbox subprocess with throttle + context mode
 // Raw file content never enters the agent's context window — it is copied to a temp dir and executed from there.
 
-import { copyFileSync, existsSync, mkdtempSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import type { z } from "zod";
@@ -83,6 +83,9 @@ export async function handleSiaExecuteFile(
 		env,
 		outputMaxBytes: cfg.sandboxOutputMaxBytes,
 	});
+	try {
+		rmSync(sandboxDir, { recursive: true, force: true });
+	} catch {}
 
 	// 6. Apply context mode if output large + intent provided
 	if (result.stdout.length > cfg.contextModeThreshold && input.intent !== undefined) {

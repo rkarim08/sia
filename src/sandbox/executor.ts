@@ -133,7 +133,9 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 			const runtimeMs = Date.now() - startMs;
 			try {
 				rmSync(tmpDir, { recursive: true, force: true });
-			} catch {}
+			} catch (e) {
+				console.error("[sia-sandbox] cleanup failed:", (e as Error).message);
+			}
 			return {
 				stdout: "",
 				stderr: compileResult.stderr?.toString() ?? "Compilation failed",
@@ -188,7 +190,10 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 			// Kill entire process group to ensure child processes (e.g. sleep) are also killed
 			try {
 				if (proc.pid !== undefined) process.kill(-proc.pid, "SIGKILL");
-			} catch {
+			} catch (killErr: unknown) {
+				if ((killErr as NodeJS.ErrnoException)?.code !== "ESRCH") {
+					console.error("[sia-sandbox] process group kill failed:", (killErr as Error).message);
+				}
 				proc.kill("SIGKILL");
 			}
 		}, opts.timeout);
@@ -197,7 +202,9 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 			clearTimeout(timer);
 			try {
 				rmSync(tmpDir, { recursive: true, force: true });
-			} catch {}
+			} catch (e) {
+				console.error("[sia-sandbox] cleanup failed:", (e as Error).message);
+			}
 			resolve({
 				stdout,
 				stderr,
@@ -212,7 +219,9 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 			clearTimeout(timer);
 			try {
 				rmSync(tmpDir, { recursive: true, force: true });
-			} catch {}
+			} catch (e) {
+				console.error("[sia-sandbox] cleanup failed:", (e as Error).message);
+			}
 			resolve({
 				stdout,
 				stderr: err.message,

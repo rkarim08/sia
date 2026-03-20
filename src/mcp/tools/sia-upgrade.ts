@@ -201,6 +201,15 @@ export async function handleSiaUpgrade(
 		return { previousVersion, strategy: type, dryRun: true };
 	}
 
+	// Guard: if version is unknown, rollback would be impossible
+	if (previousVersion === "unknown") {
+		return {
+			previousVersion,
+			strategy: type,
+			error: "Cannot determine current version — rollback would be impossible. Aborting upgrade.",
+		};
+	}
+
 	// 4. Try update → on failure, try rollback
 	try {
 		strategy.update(targetVersion);

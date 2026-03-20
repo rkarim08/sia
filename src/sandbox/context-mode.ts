@@ -144,7 +144,7 @@ export const contentTypeChunker: ChunkStrategy = {
 				const formatted = JSON.stringify(parsed, null, 2);
 				return lineChunker.chunk(formatted);
 			} catch {
-				// Not valid JSON — fall through to next check
+				// Not valid JSON (possibly truncated by output cap) — fall through to heading/line detection
 			}
 		}
 

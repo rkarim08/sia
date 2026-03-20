@@ -128,35 +128,37 @@ export async function handleSiaBatchExecute(
 		results.push(opResult);
 
 		// 3. Create an EventNode for this operation
-		const nodeId = randomUUID();
-		await db.execute(
-			`INSERT INTO graph_nodes (id, type, name, summary, content, trust_tier, confidence, base_confidence, importance, base_importance, access_count, edge_count, tags, file_paths, t_created, t_valid_from, created_by, created_at, last_accessed)
+		try {
+			const nodeId = randomUUID();
+			await db.execute(
+				`INSERT INTO graph_nodes (id, type, name, summary, content, trust_tier, confidence, base_confidence, importance, base_importance, access_count, edge_count, tags, file_paths, t_created, t_valid_from, created_by, created_at, last_accessed)
 			 VALUES (?, 'EventNode', ?, ?, ?, 3, 0.8, 0.8, 0.5, 0.5, 0, 0, '[]', '[]', ?, ?, 'sia-batch-execute', ?, ?)`,
-			[
-				nodeId,
-				`batch-op-${sessionId}-${i}`,
-				`Batch operation ${i} (${op.type})`,
-				JSON.stringify(opResult),
-				nowStr,
-				nowStr,
-				nowStr,
-				nowStr,
-			],
-		);
-
-		eventNodeIds.push(nodeId);
-	}
-
-	// 4. Link consecutive event nodes with "precedes" edges
-	for (let i = 0; i < eventNodeIds.length - 1; i++) {
-		await insertEdge(db, {
-			from_id: eventNodeIds[i],
-			to_id: eventNodeIds[i + 1],
-			type: "precedes",
-			weight: 1.0,
-			confidence: 1.0,
-			trust_tier: 3,
-		});
+				[
+					nodeId,
+					`batch-op-${sessionId}-${i}`,
+					`Batch operation ${i} (${op.type})`,
+					JSON.stringify(opResult),
+					nowStr,
+					nowStr,
+					nowStr,
+					nowStr,
+				],
+			);
+			eventNodeIds.push(nodeId);
+			if (i > 0 && eventNodeIds[i - 1]) {
+				await insertEdge(db, {
+					from_id: eventNodeIds[i - 1],
+					to_id: nodeId,
+					type: "precedes",
+					weight: 1.0,
+					confidence: 1.0,
+					trust_tier: 3,
+				});
+			}
+		} catch (dbErr) {
+			// Record failed but execution result is still valid
+			console.error("[sia-batch] EventNode creation failed:", (dbErr as Error).message);
+		}
 	}
 
 	return {

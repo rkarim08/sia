@@ -108,8 +108,17 @@ export async function checkFts5(db: SiaDb): Promise<DiagnosticCheck> {
 				status: "ok",
 				message: `FTS5 index (${table}) is accessible`,
 			};
-		} catch {
-			// try next table
+		} catch (err: unknown) {
+			const msg = (err as Error).message ?? String(err);
+			if (!msg.includes("no such table")) {
+				return {
+					name: "fts5",
+					category: "fts5",
+					status: "error",
+					message: `FTS5 check failed: ${msg}`,
+				};
+			}
+			// Table doesn't exist — try next table
 		}
 	}
 
@@ -126,29 +135,38 @@ export async function checkFts5(db: SiaDb): Promise<DiagnosticCheck> {
 // ---------------------------------------------------------------------------
 
 export async function checkOrphanEdges(db: SiaDb): Promise<DiagnosticCheck> {
-	const { rows } = await db.execute(`
-		SELECT COUNT(*) as count FROM graph_edges
-		WHERE from_id NOT IN (SELECT id FROM graph_nodes)
-		   OR to_id   NOT IN (SELECT id FROM graph_nodes)
-	`);
+	try {
+		const { rows } = await db.execute(`
+			SELECT COUNT(*) as count FROM graph_edges
+			WHERE from_id NOT IN (SELECT id FROM graph_nodes)
+			   OR to_id   NOT IN (SELECT id FROM graph_nodes)
+		`);
 
-	const count = (rows[0]?.count as number) ?? 0;
+		const count = (rows[0]?.count as number) ?? 0;
 
-	if (count > 0) {
+		if (count > 0) {
+			return {
+				name: "orphan_edges",
+				category: "graph_integrity",
+				status: "warn",
+				message: `${count} edge(s) reference nonexistent graph_nodes`,
+			};
+		}
+
 		return {
 			name: "orphan_edges",
 			category: "graph_integrity",
-			status: "warn",
-			message: `${count} edge(s) reference nonexistent graph_nodes`,
+			status: "ok",
+			message: "No orphan edges found",
+		};
+	} catch (err) {
+		return {
+			name: "orphan_edges",
+			category: "graph_integrity",
+			status: "error",
+			message: `Failed to check: ${(err as Error).message}`,
 		};
 	}
-
-	return {
-		name: "orphan_edges",
-		category: "graph_integrity",
-		status: "ok",
-		message: "No orphan edges found",
-	};
 }
 
 // ---------------------------------------------------------------------------
@@ -156,28 +174,37 @@ export async function checkOrphanEdges(db: SiaDb): Promise<DiagnosticCheck> {
 // ---------------------------------------------------------------------------
 
 export async function checkTemporalInvariants(db: SiaDb): Promise<DiagnosticCheck> {
-	const { rows } = await db.execute(`
-		SELECT COUNT(*) as count FROM graph_nodes
-		WHERE t_valid_from IS NOT NULL
-		  AND t_valid_until IS NOT NULL
-		  AND t_valid_from > t_valid_until
-	`);
+	try {
+		const { rows } = await db.execute(`
+			SELECT COUNT(*) as count FROM graph_nodes
+			WHERE t_valid_from IS NOT NULL
+			  AND t_valid_until IS NOT NULL
+			  AND t_valid_from > t_valid_until
+		`);
 
-	const count = (rows[0]?.count as number) ?? 0;
+		const count = (rows[0]?.count as number) ?? 0;
 
-	if (count > 0) {
+		if (count > 0) {
+			return {
+				name: "temporal_invariants",
+				category: "graph_integrity",
+				status: "error",
+				message: `${count} node(s) have t_valid_from > t_valid_until (temporal invariant violated)`,
+			};
+		}
+
+		return {
+			name: "temporal_invariants",
+			category: "graph_integrity",
+			status: "ok",
+			message: "Temporal invariants are valid",
+		};
+	} catch (err) {
 		return {
 			name: "temporal_invariants",
 			category: "graph_integrity",
 			status: "error",
-			message: `${count} node(s) have t_valid_from > t_valid_until (temporal invariant violated)`,
+			message: `Failed to check: ${(err as Error).message}`,
 		};
 	}
-
-	return {
-		name: "temporal_invariants",
-		category: "graph_integrity",
-		status: "ok",
-		message: "Temporal invariants are valid",
-	};
 }

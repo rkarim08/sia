@@ -6,7 +6,7 @@ import TurndownService from "turndown";
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
-import { applyContextMode, contentTypeChunker } from "@/sandbox/context-mode";
+import { contentTypeChunker } from "@/sandbox/context-mode";
 
 // ---------------------------------------------------------------------------
 // Input / Output types
@@ -36,6 +36,11 @@ export interface SiaFetchAndIndexResult {
  * 169.254.0.0/16, and IPv6 loopback ::1.
  */
 export function isPrivateIp(ip: string): boolean {
+	// IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1)
+	if (ip.startsWith("::ffff:")) {
+		return isPrivateIp(ip.slice(7));
+	}
+
 	// IPv6 loopback
 	if (ip === "::1" || ip === "0:0:0:0:0:0:0:1") {
 		return true;
@@ -73,10 +78,10 @@ export function isPrivateIp(ip: string): boolean {
 export async function handleSiaFetchAndIndex(
 	db: SiaDb,
 	input: z.infer<typeof SiaFetchAndIndexInput>,
-	embedder: Embedder,
+	_embedder: Embedder,
 	sessionId: string,
 ): Promise<SiaFetchAndIndexResult> {
-	const { url, intent, tags } = input;
+	const { url, tags } = input;
 
 	// 1. Parse URL — error if invalid
 	let parsed: URL;
@@ -183,25 +188,11 @@ export async function handleSiaFetchAndIndex(
 		processedContent = rawBody;
 	}
 
-	// 7. Apply contentTypeChunker via applyContextMode pipeline
+	// 7. Chunk content with contentTypeChunker and insert with trust_tier 4
 	const tagsJson = JSON.stringify(tags ?? []);
 	const now = Date.now();
 	const nowStr = String(now);
 
-	const _contextResult = await applyContextMode(
-		processedContent,
-		intent,
-		contentTypeChunker,
-		db,
-		embedder,
-		sessionId,
-		{ threshold: 0, topK: 9999 }, // index all chunks
-	);
-
-	// Count total indexed — the applyContextMode stores ContentChunk nodes,
-	// but with threshold 0 it always applies. We need to store chunks ourselves
-	// with trust_tier 4 since applyContextMode uses trust_tier 3.
-	// Re-chunk the content and insert with trust_tier 4:
 	const rawChunks = contentTypeChunker.chunk(processedContent);
 	const chunkIds: string[] = [];
 
