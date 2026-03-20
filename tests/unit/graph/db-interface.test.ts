@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { createMemoryDb, type SiaDb } from "@/graph/db-interface";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createMemoryDb, LibSqlDb, type SiaDb } from "@/graph/db-interface";
 
 describe("BunSqliteDb", () => {
 	let db: SiaDb;
@@ -100,5 +100,25 @@ describe("BunSqliteDb", () => {
 		expect(underlying).not.toBeNull();
 		expect(underlying).toHaveProperty("prepare");
 		expect(underlying).toHaveProperty("close");
+	});
+});
+
+describe("LibSqlDb", () => {
+	it("executeMany passes 'write' as the batch mode", async () => {
+		const batchMock = vi.fn().mockResolvedValue(undefined);
+		const mockClient = {
+			execute: vi.fn().mockResolvedValue({ rows: [] }),
+			batch: batchMock,
+		};
+
+		const libSqlDb = new LibSqlDb(mockClient);
+		await libSqlDb.executeMany([
+			{ sql: "INSERT INTO test VALUES (?)", params: [1] },
+			{ sql: "INSERT INTO test VALUES (?)", params: [2] },
+		]);
+
+		expect(batchMock).toHaveBeenCalledOnce();
+		const [_stmts, mode] = batchMock.mock.calls[0];
+		expect(mode).toBe("write");
 	});
 });

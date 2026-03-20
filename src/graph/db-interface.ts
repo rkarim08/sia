@@ -133,7 +133,7 @@ export class LibSqlDb implements SiaDb {
 		if (typeof this.client.batch === "function") {
 			await this.client.batch(
 				statements.map(({ sql, params = [] }) => ({ sql, args: params as unknown[] })),
-				"deferred",
+				"write",
 			);
 			return;
 		}
