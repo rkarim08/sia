@@ -189,10 +189,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	const server = new McpServer({ name: "sia", version: "0.2.0" });
 
 	// --- sia_search --------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_search",
-		"Semantic search across the Sia knowledge graph",
-		SiaSearchInput.shape,
+		{
+			description: "Semantic search across the Sia knowledge graph",
+			inputSchema: SiaSearchInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined);
@@ -211,10 +213,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_by_file -------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_by_file",
-		"Retrieve knowledge graph nodes associated with a file",
-		SiaByFileInput.shape,
+		{
+			description: "Retrieve knowledge graph nodes associated with a file",
+			inputSchema: SiaByFileInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaByFile(deps.graphDb, args);
@@ -233,10 +237,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_expand --------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_expand",
-		"Expand an entity's neighbourhood in the knowledge graph",
-		SiaExpandInput.shape,
+		{
+			description: "Expand an entity's neighbourhood in the knowledge graph",
+			inputSchema: SiaExpandInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaExpand(deps.graphDb, args);
@@ -255,10 +261,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_community -----------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_community",
-		"Retrieve community-level summaries from the knowledge graph",
-		SiaCommunityInput.shape,
+		{
+			description: "Retrieve community-level summaries from the knowledge graph",
+			inputSchema: SiaCommunityInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaCommunity(deps.graphDb, args);
@@ -277,10 +285,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_at_time -------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_at_time",
-		"Query the knowledge graph at a point in time",
-		SiaAtTimeInput.shape,
+		{
+			description: "Query the knowledge graph at a point in time",
+			inputSchema: SiaAtTimeInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaAtTime(deps.graphDb, args);
@@ -299,10 +309,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_flag ----------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_flag",
-		"Flag current session for human review (writes to session_flags only)",
-		SiaFlagInput.shape,
+		{
+			description: "Flag current session for human review (writes to session_flags only)",
+			inputSchema: SiaFlagInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaFlag(deps.graphDb, args, {
@@ -324,10 +336,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_backlinks -----------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_backlinks",
-		"Find all incoming edges (backlinks) to a knowledge graph node",
-		SiaBacklinksInput.shape,
+		{
+			description: "Find all incoming edges (backlinks) to a knowledge graph node",
+			inputSchema: SiaBacklinksInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaBacklinks(deps.graphDb, args);
@@ -346,10 +360,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_note ----------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_note",
-		"Create a developer-authored knowledge entry in the graph",
-		SiaNoteInput.shape,
+		{
+			description: "Create a developer-authored knowledge entry in the graph",
+			inputSchema: SiaNoteInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaNote(deps.graphDb, args);
@@ -368,10 +384,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_execute -------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_execute",
-		"Execute code in an isolated sandbox",
-		SiaExecuteInput.shape,
+		{
+			description: "Execute code in an isolated sandbox",
+			inputSchema: SiaExecuteInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				if (!deps.embedder) {
@@ -419,10 +437,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_execute_file --------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_execute_file",
-		"Execute an existing file in a sandbox subprocess",
-		SiaExecuteFileInput.shape,
+		{
+			description: "Execute an existing file in a sandbox subprocess",
+			inputSchema: SiaExecuteFileInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				if (!deps.embedder) {
@@ -470,10 +490,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_index ---------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_index",
-		"Index markdown/text content by chunking and scanning for entity references",
-		SiaIndexInput.shape,
+		{
+			description: "Index markdown/text content by chunking and scanning for entity references",
+			inputSchema: SiaIndexInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				if (!deps.embedder) {
@@ -505,10 +527,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_batch_execute -------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_batch_execute",
-		"Execute multiple operations in one call with precedes edges",
-		SiaBatchExecuteInput.shape,
+		{
+			description: "Execute multiple operations in one call with precedes edges",
+			inputSchema: SiaBatchExecuteInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				if (!deps.embedder) {
@@ -551,10 +575,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_fetch_and_index -----------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_fetch_and_index",
-		"Fetch a URL, convert to markdown, and index via contentTypeChunker",
-		SiaFetchAndIndexInput.shape,
+		{
+			description: "Fetch a URL, convert to markdown, and index via contentTypeChunker",
+			inputSchema: SiaFetchAndIndexInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				if (!deps.embedder) {
@@ -591,10 +617,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_stats ---------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_stats",
-		"Return graph metrics: node/edge counts by type, optional session stats",
-		SiaStatsInput.shape,
+		{
+			description: "Return graph metrics: node/edge counts by type, optional session stats",
+			inputSchema: SiaStatsInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaStats(deps.graphDb, args, deps.sessionId);
@@ -613,10 +641,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_doctor --------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_doctor",
-		"Run diagnostic checks on the Sia installation",
-		SiaDoctorInput.shape,
+		{
+			description: "Run diagnostic checks on the Sia installation",
+			inputSchema: SiaDoctorInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaDoctor(deps.graphDb, args);
@@ -635,10 +665,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	);
 
 	// --- sia_upgrade -------------------------------------------------------
-	server.tool(
+	server.registerTool(
 		"sia_upgrade",
-		"Self-update Sia to the latest version",
-		SiaUpgradeInput.shape,
+		{
+			description: "Self-update Sia to the latest version",
+			inputSchema: SiaUpgradeInput.shape,
+		},
 		async (args) => {
 			if (deps) {
 				const result = await handleSiaUpgrade(deps.graphDb, args, {
