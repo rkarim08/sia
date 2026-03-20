@@ -1,66 +1,55 @@
-// Module: credential-pass — Build a sanitized environment for sandbox subprocesses
+// Module: credential-pass — Build allowlisted env for sandbox subprocesses
+
+/** Exact env var names that always pass through. */
+const EXACT_ALLOWLIST = [
+	"PATH",
+	"HOME",
+	"USER",
+	"SHELL",
+	"LANG",
+	"TERM",
+	"KUBECONFIG",
+	"GH_TOKEN",
+	"GITHUB_TOKEN",
+	"NODE_PATH",
+	"BUN_INSTALL",
+] as const;
+
+/** Glob prefixes — any env var starting with these passes through. */
+const PREFIX_ALLOWLIST = ["AWS_", "GOOGLE_", "GCLOUD_", "CLOUDSDK_", "DOCKER_", "GITHUB_"] as const;
+
+/** Exported for test assertions. */
+export const ENV_ALLOWLIST = { exact: EXACT_ALLOWLIST, prefixes: PREFIX_ALLOWLIST };
+
+function isAllowlisted(key: string): boolean {
+	if ((EXACT_ALLOWLIST as readonly string[]).includes(key)) return true;
+	return PREFIX_ALLOWLIST.some((prefix) => key.startsWith(prefix));
+}
 
 /**
- * Base environment variable names that are always inherited if present.
+ * Build a filtered env object for sandbox subprocess execution.
+ * Only allowlisted env vars from process.env pass through.
+ * `overrides` are merged last — user-provided values win.
+ * Never logs or persists any env values.
  */
-const BASE_VARS = ["PATH", "HOME", "SHELL", "USER", "LANG", "TERM"];
+export function buildSandboxEnv(overrides?: Record<string, string>): Record<string, string> {
+	const env: Record<string, string> = {};
 
-/**
- * Exact variable names (non-pattern) that are always inherited if present.
- */
-const EXACT_VARS = ["KUBECONFIG", "GH_TOKEN", "GITHUB_TOKEN", "NPM_TOKEN", "NODE_AUTH_TOKEN"];
-
-/**
- * Prefix patterns for inherited environment variables.
- * Variables matching any of these prefixes (and not matching SIA_) are included.
- */
-const PREFIX_PATTERNS = ["AWS_", "GOOGLE_", "GCLOUD_", "DOCKER_"];
-
-/**
- * Build a sanitized environment record for sandbox subprocesses.
- *
- * Inherits:
- * - Base vars: PATH, HOME, SHELL, USER, LANG, TERM
- * - Exact vars: KUBECONFIG, GH_TOKEN, GITHUB_TOKEN, NPM_TOKEN, NODE_AUTH_TOKEN
- * - Pattern vars: AWS_*, GOOGLE_*, GCLOUD_*, DOCKER_*
- *
- * Excludes:
- * - SIA_* vars (never forwarded)
- * - Any undefined values
- */
-export function buildSandboxEnv(): Record<string, string> {
-	const result: Record<string, string> = {};
-	const env = process.env;
-
-	// Inherit base vars
-	for (const key of BASE_VARS) {
-		const value = env[key];
-		if (typeof value === "string") {
-			result[key] = value;
+	for (const [key, value] of Object.entries(process.env)) {
+		if (value !== undefined && isAllowlisted(key)) {
+			env[key] = value;
 		}
 	}
 
-	// Inherit exact vars
-	for (const key of EXACT_VARS) {
-		const value = env[key];
-		if (typeof value === "string") {
-			result[key] = value;
-		}
-	}
-
-	// Inherit pattern-matched vars
-	for (const [key, value] of Object.entries(env)) {
-		if (typeof value !== "string") continue;
-		// Never forward SIA_ vars
-		if (key.startsWith("SIA_")) continue;
-		// Check prefix patterns
-		for (const prefix of PREFIX_PATTERNS) {
-			if (key.startsWith(prefix)) {
-				result[key] = value;
-				break;
+	if (overrides) {
+		for (const [key, value] of Object.entries(overrides)) {
+			if (isAllowlisted(key)) {
+				env[key] = value;
+			} else {
+				console.warn(`[sia-sandbox] env override "${key}" dropped: not in allowlist`);
 			}
 		}
 	}
 
-	return result;
+	return env;
 }

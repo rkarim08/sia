@@ -82,11 +82,12 @@ describe("config", () => {
 
 	it("getConfig with no config file returns default sandbox/throttle values", () => {
 		const config = getConfig(tempHome);
-		expect(config.sandboxTimeout).toBe(30000);
-		expect(config.contextModeThreshold).toBe(10000);
-		expect(config.maxChunkSize).toBe(5000);
+		expect(config.sandboxTimeoutMs).toBe(30_000);
+		expect(config.sandboxOutputMaxBytes).toBe(1_048_576);
+		expect(config.contextModeThreshold).toBe(10_240);
+		expect(config.contextModeTopK).toBe(5);
 		expect(config.throttleNormalMax).toBe(3);
 		expect(config.throttleReducedMax).toBe(8);
-		expect(config.throttleBlockedMax).toBe(9);
+		expect(config.upgradeReleaseUrl).toBe(null);
 	});
 });

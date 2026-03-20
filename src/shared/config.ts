@@ -92,12 +92,16 @@ export interface SiaConfig {
 
 	sync: SyncConfig;
 
-	sandboxTimeout: number;
+	// Sandbox execution
+	sandboxTimeoutMs: number;
+	sandboxOutputMaxBytes: number;
 	contextModeThreshold: number;
-	maxChunkSize: number;
+	contextModeTopK: number;
+	// Throttle
 	throttleNormalMax: number;
 	throttleReducedMax: number;
-	throttleBlockedMax: number;
+	// Upgrade
+	upgradeReleaseUrl: string | null;
 }
 
 /** Valid keys for the decayHalfLife object. */
@@ -162,12 +166,13 @@ export const DEFAULT_CONFIG: SiaConfig = {
 
 	sync: { ...DEFAULT_SYNC_CONFIG },
 
-	sandboxTimeout: 30000,
-	contextModeThreshold: 10000,
-	maxChunkSize: 5000,
+	sandboxTimeoutMs: 30_000,
+	sandboxOutputMaxBytes: 1_048_576,
+	contextModeThreshold: 10_240,
+	contextModeTopK: 5,
 	throttleNormalMax: 3,
 	throttleReducedMax: 8,
-	throttleBlockedMax: 9,
+	upgradeReleaseUrl: null,
 };
 
 /**

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	createMcpServer,
+	type McpServerDeps,
 	SiaAtTimeInput,
 	SiaByFileInput,
 	SiaCommunityInput,
@@ -9,6 +10,20 @@ import {
 	SiaSearchInput,
 	TOOL_NAMES,
 } from "@/mcp/server";
+import { DEFAULT_CONFIG } from "@/shared/config";
+
+// ---------------------------------------------------------------------------
+// Minimal mock deps — enough for createMcpServer to accept, no real DB needed
+// ---------------------------------------------------------------------------
+
+const mockDeps: McpServerDeps = {
+	graphDb: null as unknown as McpServerDeps["graphDb"],
+	bridgeDb: null,
+	metaDb: null,
+	embedder: null,
+	config: DEFAULT_CONFIG,
+	sessionId: "test-session",
+};
 
 // ---------------------------------------------------------------------------
 // createMcpServer
@@ -28,17 +43,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(6);
+		expect(Object.keys(registered)).toHaveLength(16);
 	});
 
-	it("registers all 6 tools", () => {
-		const server = createMcpServer();
+	it("registers all 16 tools", () => {
+		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(6);
+		expect(registeredNames).toHaveLength(16);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -52,6 +67,16 @@ describe("createMcpServer", () => {
 			"sia_community",
 			"sia_at_time",
 			"sia_flag",
+			"sia_backlinks",
+			"sia_note",
+			"sia_execute",
+			"sia_execute_file",
+			"sia_index",
+			"sia_batch_execute",
+			"sia_fetch_and_index",
+			"sia_stats",
+			"sia_doctor",
+			"sia_upgrade",
 		]);
 	});
 });
