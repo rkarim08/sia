@@ -62,7 +62,7 @@ export async function handleFileChange(
 			if (otherDeps.length === 0) {
 				// Node derived solely from the deleted file — invalidate it
 				await db.execute(
-					"UPDATE entities SET t_valid_until = ?, t_expired = ? WHERE id = ? AND t_valid_until IS NULL",
+					"UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ? AND t_valid_until IS NULL",
 					[now, now, dep.node_id],
 				);
 			}

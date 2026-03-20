@@ -75,12 +75,12 @@ async function mergeImport(db: SiaDb, data: ExportData): Promise<ImportResult> {
 		const toId = edge.to_id as string;
 		if (!fromId || !toId) continue;
 
-		const fromExists = await db.execute("SELECT 1 FROM entities WHERE id = ?", [fromId]);
-		const toExists = await db.execute("SELECT 1 FROM entities WHERE id = ?", [toId]);
+		const fromExists = await db.execute("SELECT 1 FROM graph_nodes WHERE id = ?", [fromId]);
+		const toExists = await db.execute("SELECT 1 FROM graph_nodes WHERE id = ?", [toId]);
 
 		if (fromExists.rows.length > 0 && toExists.rows.length > 0) {
 			await db.execute(
-				`INSERT INTO edges (id, from_id, to_id, type, weight, confidence, trust_tier,
+				`INSERT INTO graph_edges (id, from_id, to_id, type, weight, confidence, trust_tier,
 					t_created, t_expired, t_valid_from, t_valid_until,
 					source_episode, extraction_method)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -148,14 +148,14 @@ async function replaceImport(db: SiaDb, data: ExportData): Promise<ImportResult>
 	await db.transaction(async (tx) => {
 		// 1. Archive all currently active entities
 		await tx.execute(
-			"UPDATE entities SET archived_at = ? WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"UPDATE graph_nodes SET archived_at = ? WHERE t_valid_until IS NULL AND archived_at IS NULL",
 			[now],
 		);
 
 		// 2. Insert all entities from export data
 		for (const e of data.entities) {
 			await tx.execute(
-				`INSERT INTO entities (
+				`INSERT INTO graph_nodes (
 					id, type, name, content, summary,
 					package_path, tags, file_paths,
 					trust_tier, confidence, base_confidence,
@@ -224,7 +224,7 @@ async function replaceImport(db: SiaDb, data: ExportData): Promise<ImportResult>
 		// 3. Insert all edges from export data
 		for (const edge of data.edges) {
 			await tx.execute(
-				`INSERT INTO edges (id, from_id, to_id, type, weight, confidence, trust_tier,
+				`INSERT INTO graph_edges (id, from_id, to_id, type, weight, confidence, trust_tier,
 					t_created, t_expired, t_valid_from, t_valid_until,
 					source_episode, extraction_method)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

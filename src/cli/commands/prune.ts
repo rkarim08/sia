@@ -16,7 +16,7 @@ export interface PruneCandidate {
  */
 export async function pruneDryRun(db: SiaDb): Promise<PruneCandidate[]> {
 	const { rows } = await db.execute(
-		"SELECT id, name, type, importance, last_accessed FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
+		"SELECT id, name, type, importance, last_accessed FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
 	);
 
 	const now = Date.now();
@@ -51,23 +51,23 @@ export async function pruneConfirm(db: SiaDb): Promise<number> {
 	await db.transaction(async (tx) => {
 		// 1. Remove community memberships for archived entities
 		await tx.execute(
-			"DELETE FROM community_members WHERE entity_id IN (SELECT id FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL)",
+			"DELETE FROM community_members WHERE entity_id IN (SELECT id FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL)",
 		);
 
 		// 2. Remove edges referencing archived entities
 		await tx.execute(
-			"DELETE FROM edges WHERE from_id IN (SELECT id FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL) OR to_id IN (SELECT id FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL)",
+			"DELETE FROM graph_edges WHERE from_id IN (SELECT id FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL) OR to_id IN (SELECT id FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL)",
 		);
 
 		// 3. Count entities about to be deleted
 		const { rows } = await tx.execute(
-			"SELECT COUNT(*) AS cnt FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
+			"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
 		);
 		deletedCount = (rows[0]?.cnt as number) ?? 0;
 
 		// 4. Delete the archived entities themselves
 		await tx.execute(
-			"DELETE FROM entities WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
+			"DELETE FROM graph_nodes WHERE archived_at IS NOT NULL AND t_valid_until IS NULL",
 		);
 	});
 

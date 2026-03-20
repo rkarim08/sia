@@ -36,7 +36,7 @@ function rangesOverlap(
 
 export async function detectConflicts(db: SiaDb, llmClient?: LlmClient): Promise<number> {
 	const result = await db.execute(
-		"SELECT * FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL",
+		"SELECT * FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL",
 	);
 	const entities = result.rows as unknown as Entity[];
 
@@ -86,13 +86,13 @@ export async function detectConflicts(db: SiaDb, llmClient?: LlmClient): Promise
 			if (contradictory) {
 				const groupId = a.conflict_group_id ?? b.conflict_group_id ?? uuid();
 				if (a.conflict_group_id !== groupId) {
-					await db.execute("UPDATE entities SET conflict_group_id = ? WHERE id = ?", [
+					await db.execute("UPDATE graph_nodes SET conflict_group_id = ? WHERE id = ?", [
 						groupId,
 						a.id,
 					]);
 				}
 				if (b.conflict_group_id !== groupId) {
-					await db.execute("UPDATE entities SET conflict_group_id = ? WHERE id = ?", [
+					await db.execute("UPDATE graph_nodes SET conflict_group_id = ? WHERE id = ?", [
 						groupId,
 						b.id,
 					]);

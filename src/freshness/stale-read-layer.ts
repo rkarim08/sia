@@ -106,7 +106,7 @@ export async function checkFreshness(
 	}
 
 	// Step 5: get node's t_created from the database
-	const { rows } = await db.execute("SELECT t_created FROM entities WHERE id = ?", [nodeId]);
+	const { rows } = await db.execute("SELECT t_created FROM graph_nodes WHERE id = ?", [nodeId]);
 	if (rows.length === 0) {
 		// Node not found — treat as rotten
 		return { state: "rotten", sourcePath, sourceMtime };
@@ -185,7 +185,7 @@ export async function readRepair(
 	const sourceHash = sha256(sourceContent);
 
 	// Fetch the stored node content and hash it
-	const { rows } = await db.execute("SELECT content FROM entities WHERE id = ?", [nodeId]);
+	const { rows } = await db.execute("SELECT content FROM graph_nodes WHERE id = ?", [nodeId]);
 
 	if (rows.length === 0) {
 		tracker.markClean(nodeId);
@@ -203,7 +203,7 @@ export async function readRepair(
 
 	// Step 5: content changed — update the node and propagate
 	const now = Date.now();
-	await db.execute("UPDATE entities SET content = ?, t_created = ? WHERE id = ?", [
+	await db.execute("UPDATE graph_nodes SET content = ?, t_created = ? WHERE id = ?", [
 		sourceContent,
 		now,
 		nodeId,

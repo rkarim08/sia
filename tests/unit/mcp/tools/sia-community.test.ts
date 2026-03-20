@@ -66,7 +66,7 @@ describe("handleSiaCommunity", () => {
 		const eid = id ?? randomUUID();
 		const now = Date.now();
 		await database.execute(
-			`INSERT INTO entities (id, type, name, content, summary, tags, file_paths,
+			`INSERT INTO graph_nodes (id, type, name, content, summary, tags, file_paths,
 				trust_tier, confidence, base_confidence, importance, base_importance,
 				access_count, edge_count, last_accessed, created_at,
 				t_created, visibility, created_by)

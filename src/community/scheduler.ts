@@ -10,7 +10,7 @@ import type { LlmClient } from "@/shared/llm-client";
 async function countActiveEntities(db: SiaDb): Promise<number> {
 	const result = await db.execute(
 		`SELECT COUNT(*) as count
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE t_valid_until IS NULL AND archived_at IS NULL`,
 	);
 	return Number((result.rows[0] as { count: number }).count ?? 0);
@@ -25,7 +25,7 @@ async function lastRunAt(db: SiaDb): Promise<number> {
 async function newEntitiesSince(db: SiaDb, since: number): Promise<number> {
 	const result = await db.execute(
 		`SELECT COUNT(*) as count
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE t_valid_until IS NULL
 		   AND archived_at IS NULL
 		   AND (created_at > ? OR t_created > ?)`,

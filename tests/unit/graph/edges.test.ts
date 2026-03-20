@@ -22,7 +22,7 @@ describe("edge CRUD layer", () => {
 	async function insertEntity(siaDb: SiaDb, id: string, name: string): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths, trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -84,7 +84,7 @@ describe("edge CRUD layer", () => {
 		expect(edge.t_valid_until).toBeNull();
 
 		// Verify in DB
-		const result = await db.execute("SELECT * FROM edges WHERE id = ?", [edge.id]);
+		const result = await db.execute("SELECT * FROM graph_edges WHERE id = ?", [edge.id]);
 		expect(result.rows).toHaveLength(1);
 		expect(result.rows[0]?.from_id).toBe(eA);
 		expect(result.rows[0]?.to_id).toBe(eB);
@@ -119,7 +119,7 @@ describe("edge CRUD layer", () => {
 		const invalidationTs = Date.now() + 1000;
 		await invalidateEdge(db, edge.id, invalidationTs);
 
-		const result = await db.execute("SELECT * FROM edges WHERE id = ?", [edge.id]);
+		const result = await db.execute("SELECT * FROM graph_edges WHERE id = ?", [edge.id]);
 		expect(result.rows).toHaveLength(1);
 
 		const row = result.rows[0] as Record<string, unknown>;
@@ -194,7 +194,7 @@ describe("edge CRUD layer", () => {
 		// Insert edge directly with controlled timestamps for deterministic testing
 		const edgeId = randomUUID();
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, 'relates_to', 1.0, 0.7, 3, ?, NULL, ?, ?)`,
@@ -231,7 +231,7 @@ describe("edge CRUD layer", () => {
 
 		const edgeId = randomUUID();
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, 'relates_to', 1.0, 0.7, 3, ?, NULL, ?, ?)`,

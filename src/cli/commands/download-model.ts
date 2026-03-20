@@ -1,6 +1,14 @@
 // Module: download-model — downloads the all-MiniLM-L6-v2 ONNX model and tokenizer
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	renameSync,
+	statSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { SIA_HOME } from "@/shared/config";
 

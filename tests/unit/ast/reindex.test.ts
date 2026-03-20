@@ -44,7 +44,7 @@ describe("siaReindex", () => {
 		expect(result.dryRun).toBe(true);
 		expect(result.repoHash).toBe(repoHash);
 		const db = openGraphDb(repoHash, siaHome);
-		const rows = await db.execute("SELECT COUNT(*) as count FROM entities");
+		const rows = await db.execute("SELECT COUNT(*) as count FROM graph_nodes");
 		await db.close();
 		expect(rows.rows[0]?.count).toBe(0);
 	});
@@ -69,7 +69,7 @@ describe("siaReindex", () => {
 		expect(result.entitiesCreated).toBeGreaterThan(0);
 
 		const db = openGraphDb(repoHash, siaHome);
-		const rows = await db.execute("SELECT COUNT(*) as count FROM entities");
+		const rows = await db.execute("SELECT COUNT(*) as count FROM graph_nodes");
 		await db.close();
 		expect(rows.rows[0]?.count).toBeGreaterThan(0);
 

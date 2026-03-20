@@ -88,7 +88,7 @@ export async function teamLeave(opts: { siaHome?: string; db?: SiaDb } = {}): Pr
 
 	if (opts.db) {
 		await opts.db.execute(
-			"UPDATE entities SET visibility = 'private', workspace_scope = NULL, synced_at = NULL",
+			"UPDATE graph_nodes SET visibility = 'private', workspace_scope = NULL, synced_at = NULL",
 		);
 	}
 }
@@ -101,7 +101,7 @@ export async function teamStatus(opts: { siaHome?: string; db?: SiaDb } = {}): P
 
 	if (opts.db) {
 		const conflicts = await opts.db.execute(
-			"SELECT COUNT(DISTINCT conflict_group_id) as cnt FROM entities WHERE conflict_group_id IS NOT NULL AND t_valid_until IS NULL",
+			"SELECT COUNT(DISTINCT conflict_group_id) as cnt FROM graph_nodes WHERE conflict_group_id IS NOT NULL AND t_valid_until IS NULL",
 		);
 		pendingConflicts = (conflicts.rows[0]?.cnt as number) ?? 0;
 	}

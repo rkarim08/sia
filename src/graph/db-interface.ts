@@ -40,10 +40,7 @@ export class BunSqliteDb implements SiaDb {
 	constructor(private readonly db: Database) {}
 
 	/** Internal: executes SQL without the reentrancy guard. Used by txProxy. */
-	private _executeRaw(
-		sql: string,
-		params: unknown[] = [],
-	): { rows: Record<string, unknown>[] } {
+	private _executeRaw(sql: string, params: unknown[] = []): { rows: Record<string, unknown>[] } {
 		const stmt = this.db.prepare(sql);
 		if (isReadStatement(sql)) {
 			const rows = stmt.all(...(params as SQLQueryBindings[])) as Record<string, unknown>[];

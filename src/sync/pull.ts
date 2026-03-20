@@ -29,7 +29,7 @@ export async function pullChanges(
 
 	// Get received entities: non-private with hlc_modified > synced_at (or synced_at IS NULL)
 	const entityRows = await db.execute(
-		`SELECT * FROM entities
+		`SELECT * FROM graph_nodes
 		 WHERE visibility != 'private'
 		   AND hlc_modified IS NOT NULL
 		   AND (synced_at IS NULL OR synced_at < hlc_modified)`,
@@ -38,7 +38,7 @@ export async function pullChanges(
 		`SELECT id, from_id, to_id, type, weight, confidence, trust_tier,
 		        t_created, t_expired, t_valid_from, t_valid_until,
 		        hlc_created, hlc_modified, source_episode, extraction_method
-		 FROM edges
+		 FROM graph_edges
 		 WHERE hlc_modified IS NOT NULL
 		   AND (t_valid_until IS NULL)`,
 	);
@@ -93,7 +93,7 @@ export async function pullChanges(
 
 	// --- Update local HLC high-water ---
 	const maxHlcRow = await db.execute(
-		"SELECT MAX(hlc_modified) as max_hlc FROM entities WHERE hlc_modified IS NOT NULL",
+		"SELECT MAX(hlc_modified) as max_hlc FROM graph_nodes WHERE hlc_modified IS NOT NULL",
 	);
 	const maxHlc = hlcFromDb((maxHlcRow.rows[0] as { max_hlc?: unknown })?.max_hlc ?? 0n);
 
@@ -112,10 +112,10 @@ export async function pullChanges(
 	// Update all known peers' last_seen_at and last_seen_hlc (to the max HLC received).
 	if (metaDb) {
 		const maxHlcNumber = Number(maxHlc);
-		await metaDb.execute(
-			`UPDATE sync_peers SET last_seen_at = ?, last_seen_hlc = ?`,
-			[Date.now(), maxHlcNumber],
-		);
+		await metaDb.execute(`UPDATE sync_peers SET last_seen_at = ?, last_seen_hlc = ?`, [
+			Date.now(),
+			maxHlcNumber,
+		]);
 	}
 
 	// Audit the received items.
@@ -126,11 +126,11 @@ export async function pullChanges(
 	// --- Apply received edges to local graph ---
 	// For each edge row fetched, INSERT if new or UPDATE if it already exists locally.
 	for (const edge of receivedEdges) {
-		const existingRow = await db.execute("SELECT id FROM edges WHERE id = ?", [edge.id]);
+		const existingRow = await db.execute("SELECT id FROM graph_edges WHERE id = ?", [edge.id]);
 		if ((existingRow.rows as Array<unknown>).length > 0) {
 			// UPDATE existing edge
 			await db.execute(
-				`UPDATE edges SET
+				`UPDATE graph_edges SET
 					from_id = ?, to_id = ?, type = ?, weight = ?, confidence = ?, trust_tier = ?,
 					t_created = ?, t_expired = ?, t_valid_from = ?, t_valid_until = ?,
 					hlc_created = ?, hlc_modified = ?, source_episode = ?, extraction_method = ?
@@ -156,7 +156,7 @@ export async function pullChanges(
 		} else {
 			// INSERT new edge
 			await db.execute(
-				`INSERT INTO edges (
+				`INSERT INTO graph_edges (
 					id, from_id, to_id, type, weight, confidence, trust_tier,
 					t_created, t_expired, t_valid_from, t_valid_until,
 					hlc_created, hlc_modified, source_episode, extraction_method
@@ -192,7 +192,7 @@ export async function pullChanges(
 			// Build scoped query for just the received entity IDs
 			const placeholders = processedEntityIds.map(() => "?").join(", ");
 			const embedRows = await db.execute(
-				`SELECT rowid, embedding FROM entities
+				`SELECT rowid, embedding FROM graph_nodes
 				 WHERE id IN (${placeholders}) AND embedding IS NOT NULL AND archived_at IS NULL`,
 				processedEntityIds,
 			);
@@ -201,7 +201,7 @@ export async function pullChanges(
 			for (const row of embedRows.rows as Array<{ rowid: number; embedding: Uint8Array }>) {
 				try {
 					sqlite
-						.prepare("INSERT OR REPLACE INTO entities_vss(rowid, embedding) VALUES (?, ?)")
+						.prepare("INSERT OR REPLACE INTO graph_nodes_vss(rowid, embedding) VALUES (?, ?)")
 						.run(row.rowid, row.embedding);
 					vssRefreshed++;
 				} catch {

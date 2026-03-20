@@ -137,7 +137,7 @@ describe("export and import", () => {
 
 		// Verify entity exists in the new db
 		const { rows } = await db2.execute(
-			"SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(rows.length).toBeGreaterThanOrEqual(1);
 		expect(rows.some((r) => r.name === "Merge Entity")).toBe(true);

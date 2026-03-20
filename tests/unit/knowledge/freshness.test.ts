@@ -296,7 +296,7 @@ describe("documentation freshness tracking", () => {
 		// If divergence is positive (code newer than doc), penalty should be applied
 		if (result.isStale) {
 			// Verify entity was updated with penalty
-			const updated = await db.execute("SELECT importance, tags FROM entities WHERE id = ?", [
+			const updated = await db.execute("SELECT importance, tags FROM graph_nodes WHERE id = ?", [
 				docEntity.id,
 			]);
 			const row = updated.rows[0] as (typeof updated.rows)[0];
@@ -358,7 +358,7 @@ describe("documentation freshness tracking", () => {
 			tags: JSON.stringify(["project-docs"]),
 			file_paths: JSON.stringify(["old-doc.md"]),
 		});
-		await db.execute("UPDATE entities SET archived_at = ? WHERE id = ?", [
+		await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [
 			Date.now(),
 			archivedEntity.id,
 		]);
@@ -372,7 +372,7 @@ describe("documentation freshness tracking", () => {
 			tags: JSON.stringify(["project-docs"]),
 			file_paths: JSON.stringify(["old-doc.md"]),
 		});
-		await db.execute("UPDATE entities SET t_valid_until = ? WHERE id = ?", [
+		await db.execute("UPDATE graph_nodes SET t_valid_until = ? WHERE id = ?", [
 			Date.now(),
 			invalidatedEntity.id,
 		]);

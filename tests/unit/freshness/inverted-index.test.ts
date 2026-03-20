@@ -19,7 +19,7 @@ import { openGraphDb } from "@/graph/semantic-db";
 async function seedEntity(db: SiaDb, id: string): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO entities (
+		`INSERT INTO graph_nodes (
 			id, type, name, content, summary, tags, file_paths,
 			trust_tier, confidence, base_confidence,
 			importance, base_importance, access_count, edge_count,
@@ -266,7 +266,7 @@ describe("inverted dependency index (source_deps)", () => {
 
 		// Insert an entity with file_paths
 		await db.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary, tags, file_paths,
 				trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -298,7 +298,7 @@ describe("inverted dependency index (source_deps)", () => {
 
 		// Insert another entity without file_paths (should be skipped)
 		await db.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary, tags, file_paths,
 				trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -354,7 +354,7 @@ describe("inverted dependency index (source_deps)", () => {
 
 		// Target entity with file_paths (e.g. a CodeEntity)
 		await db.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary, tags, file_paths,
 				trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -386,7 +386,7 @@ describe("inverted dependency index (source_deps)", () => {
 
 		// Source entity (e.g. a Decision that pertains_to the CodeEntity)
 		await db.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary, tags, file_paths,
 				trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -418,7 +418,7 @@ describe("inverted dependency index (source_deps)", () => {
 
 		// pertains_to edge: decision-1 -> code-1
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -4,11 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { detectCrossRepoEdges, resetCircuitBreaker, runPipeline } from "@/capture/pipeline";
-import type { CandidateFact } from "@/capture/types";
-import type { HookPayload } from "@/capture/types";
+import type { CandidateFact, HookPayload } from "@/capture/types";
 import { openBridgeDb } from "@/graph/bridge-db";
-import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { openMetaDb } from "@/graph/meta-db";
+import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { DEFAULT_CONFIG, type SiaConfig } from "@/shared/config";
 
 function makeTmp(): string {
@@ -285,15 +284,17 @@ describe("detectCrossRepoEdges", () => {
 		const providerRepoId = randomUUID();
 		const contractId = randomUUID();
 		// Insert provider repo (required FK)
-		await metaDb.execute(
-			"INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)",
-			[providerRepoId, "/some/provider/path", Date.now()],
-		);
+		await metaDb.execute("INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)", [
+			providerRepoId,
+			"/some/provider/path",
+			Date.now(),
+		]);
 		// Insert consumer repo (required FK)
-		await metaDb.execute(
-			"INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)",
-			[repoHash, absPath, Date.now()],
-		);
+		await metaDb.execute("INSERT INTO repos (id, path, created_at) VALUES (?, ?, ?)", [
+			repoHash,
+			absPath,
+			Date.now(),
+		]);
 		// Insert api_contract with consumer = repoHash
 		await metaDb.execute(
 			"INSERT INTO api_contracts (id, provider_repo_id, consumer_repo_id, contract_type, detected_at) VALUES (?, ?, ?, ?, ?)",

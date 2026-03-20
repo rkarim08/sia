@@ -25,7 +25,7 @@ export async function isFirewallNode(
 ): Promise<boolean> {
 	const limit = threshold ?? DEFAULT_FIREWALL_THRESHOLD;
 
-	const { rows } = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [nodeId]);
+	const { rows } = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [nodeId]);
 
 	if (rows.length === 0) return false;
 
@@ -50,8 +50,8 @@ export async function getOutgoingNeighbors(
 		`SELECT
 			CASE WHEN e.from_id = ? THEN e.to_id ELSE e.from_id END AS neighbor_id,
 			ent.edge_count
-		 FROM edges e
-		 JOIN entities ent ON ent.id = CASE WHEN e.from_id = ? THEN e.to_id ELSE e.from_id END
+		 FROM graph_edges e
+		 JOIN graph_nodes ent ON ent.id = CASE WHEN e.from_id = ? THEN e.to_id ELSE e.from_id END
 		 WHERE (e.from_id = ? OR e.to_id = ?)
 		   AND e.t_valid_until IS NULL`,
 		[nodeId, nodeId, nodeId, nodeId],

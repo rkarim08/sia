@@ -24,25 +24,25 @@ const ROTTEN_THRESHOLD = 0.3;
  */
 export async function generateFreshnessReport(db: SiaDb): Promise<FreshnessReport> {
 	// 1. Total node count
-	const { rows: totalRows } = await db.execute("SELECT COUNT(*) AS cnt FROM entities");
+	const { rows: totalRows } = await db.execute("SELECT COUNT(*) AS cnt FROM graph_nodes");
 	const totalNodes = (totalRows[0]?.cnt as number) ?? 0;
 
 	// 2. Active node count (not archived, not invalidated)
 	const { rows: activeRows } = await db.execute(
-		"SELECT COUNT(*) AS cnt FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL",
+		"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL",
 	);
 	const activeNodes = (activeRows[0]?.cnt as number) ?? 0;
 
 	// 3. Fresh nodes: confidence > FRESH_THRESHOLD (active only)
 	const { rows: freshRows } = await db.execute(
-		"SELECT COUNT(*) AS cnt FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL AND confidence > ?",
+		"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL AND confidence > ?",
 		[FRESH_THRESHOLD],
 	);
 	const freshNodes = (freshRows[0]?.cnt as number) ?? 0;
 
 	// 4. Rotten nodes: confidence < ROTTEN_THRESHOLD (active only)
 	const { rows: rottenRows } = await db.execute(
-		"SELECT COUNT(*) AS cnt FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL AND confidence < ?",
+		"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL AND confidence < ?",
 		[ROTTEN_THRESHOLD],
 	);
 	const rottenNodes = (rottenRows[0]?.cnt as number) ?? 0;
@@ -52,13 +52,13 @@ export async function generateFreshnessReport(db: SiaDb): Promise<FreshnessRepor
 
 	// 6. Pending revalidation: invalidated but not yet replaced
 	const { rows: pendingRows } = await db.execute(
-		"SELECT COUNT(*) AS cnt FROM entities WHERE t_valid_until IS NOT NULL AND archived_at IS NULL",
+		"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE t_valid_until IS NOT NULL AND archived_at IS NULL",
 	);
 	const pendingRevalidation = (pendingRows[0]?.cnt as number) ?? 0;
 
 	// 7. Average confidence by trust tier
 	const { rows: tierRows } = await db.execute(
-		"SELECT trust_tier, AVG(confidence) AS avg_conf FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL GROUP BY trust_tier",
+		"SELECT trust_tier, AVG(confidence) AS avg_conf FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL GROUP BY trust_tier",
 	);
 	const avgConfidenceByTier: Record<string, number> = {};
 	for (const row of tierRows) {

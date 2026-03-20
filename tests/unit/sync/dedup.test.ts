@@ -54,7 +54,7 @@ afterEach(() => {
 
 const now = Date.now();
 
-const ENTITY_INSERT = `INSERT INTO entities (
+const ENTITY_INSERT = `INSERT INTO graph_nodes (
 	id, type, name, content, summary, package_path,
 	tags, file_paths, trust_tier, confidence, base_confidence,
 	importance, base_importance, access_count, edge_count,
@@ -226,7 +226,7 @@ describe("deduplicateEntities", () => {
 		expect(dedupResult.merged).toBe(1);
 
 		// After merge, the surviving entity should have unioned tags
-		const rows = await db.execute("SELECT tags, file_paths FROM entities WHERE id = 'local-x'");
+		const rows = await db.execute("SELECT tags, file_paths FROM graph_nodes WHERE id = 'local-x'");
 		const row = rows.rows[0] as { tags: string; file_paths: string };
 		const tags = JSON.parse(row.tags);
 		const filePaths = JSON.parse(row.file_paths);

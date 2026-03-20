@@ -46,8 +46,8 @@ export async function handleSiaBacklinks(
 		SELECT
 			e.type AS edge_type,
 			ent.id, ent.type, ent.name, ent.summary, ent.importance
-		FROM edges e
-		JOIN entities ent ON ent.id = e.from_id
+		FROM graph_edges e
+		JOIN graph_nodes ent ON ent.id = e.from_id
 		WHERE e.to_id = ?
 			AND e.t_valid_until IS NULL
 			AND ent.t_valid_until IS NULL

@@ -173,7 +173,7 @@ describe("documentation chunking and graph ingestion", () => {
 
 		// Verify the FileNode entity
 		const fileNodes = await db.execute(
-			"SELECT * FROM entities WHERE type = 'FileNode' AND id = ?",
+			"SELECT * FROM graph_nodes WHERE type = 'FileNode' AND id = ?",
 			[result.fileNodeId],
 		);
 		expect(fileNodes.rows).toHaveLength(1);
@@ -183,7 +183,7 @@ describe("documentation chunking and graph ingestion", () => {
 
 		// Verify ContentChunk entities
 		const chunks = await db.execute(
-			"SELECT * FROM entities WHERE type = 'ContentChunk' ORDER BY name",
+			"SELECT * FROM graph_nodes WHERE type = 'ContentChunk' ORDER BY name",
 			[],
 		);
 		expect(chunks.rows).toHaveLength(3);
@@ -193,7 +193,7 @@ describe("documentation chunking and graph ingestion", () => {
 		expect(chunkNames).toContain("Usage");
 
 		// Verify child_of edges
-		const edges = await db.execute("SELECT * FROM edges WHERE type = 'child_of' AND to_id = ?", [
+		const edges = await db.execute("SELECT * FROM graph_edges WHERE type = 'child_of' AND to_id = ?", [
 			result.fileNodeId,
 		]);
 		expect(edges.rows).toHaveLength(3);
@@ -217,13 +217,13 @@ describe("documentation chunking and graph ingestion", () => {
 		});
 
 		// Verify FileNode has the custom tag and trust tier
-		const fileNode = await db.execute("SELECT * FROM entities WHERE id = ?", [result.fileNodeId]);
+		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [result.fileNodeId]);
 		expect(fileNode.rows).toHaveLength(1);
 		expect(JSON.parse(fileNode.rows[0].tags as string)).toContain("ai-context");
 		expect(fileNode.rows[0].trust_tier).toBe(1);
 
 		// Verify ContentChunk also has the custom tag
-		const chunks = await db.execute("SELECT * FROM entities WHERE type = 'ContentChunk'", []);
+		const chunks = await db.execute("SELECT * FROM graph_nodes WHERE type = 'ContentChunk'", []);
 		expect(chunks.rows).toHaveLength(1);
 		const chunkTags = JSON.parse(chunks.rows[0].tags as string) as string[];
 		expect(chunkTags).toContain("ai-context");
@@ -253,13 +253,13 @@ describe("documentation chunking and graph ingestion", () => {
 		const result = await ingestDocument(db, docPath, "docs/ARCHITECTURE.md");
 
 		// FileNode content should use the frontmatter description
-		const fileNode = await db.execute("SELECT * FROM entities WHERE id = ?", [result.fileNodeId]);
+		const fileNode = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [result.fileNodeId]);
 		expect(fileNode.rows).toHaveLength(1);
 		expect(fileNode.rows[0].content).toBe("High-level system architecture overview");
 		expect(fileNode.rows[0].summary).toBe("Documentation file: docs/ARCHITECTURE.md");
 
 		// The body chunk should not contain frontmatter
-		const chunks = await db.execute("SELECT * FROM entities WHERE type = 'ContentChunk'", []);
+		const chunks = await db.execute("SELECT * FROM graph_nodes WHERE type = 'ContentChunk'", []);
 		expect(chunks.rows).toHaveLength(1);
 		expect(chunks.rows[0].name).toBe("Architecture");
 		expect(chunks.rows[0].content as string).not.toContain("---");

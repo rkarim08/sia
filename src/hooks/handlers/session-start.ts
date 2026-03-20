@@ -36,8 +36,8 @@ export interface SessionContext {
  */
 async function queryByType(db: SiaDb, type: string, limit?: number): Promise<Array<ContextItem>> {
 	const sql = limit
-		? "SELECT name, summary FROM entities WHERE type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY created_at DESC LIMIT ?"
-		: "SELECT name, summary FROM entities WHERE type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY created_at DESC";
+		? "SELECT name, summary FROM graph_nodes WHERE type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY created_at DESC LIMIT ?"
+		: "SELECT name, summary FROM graph_nodes WHERE type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY created_at DESC";
 
 	const params: unknown[] = limit ? [type, limit] : [type];
 	const result = await db.execute(sql, params);

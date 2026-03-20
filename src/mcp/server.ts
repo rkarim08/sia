@@ -6,13 +6,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
-import type { SiaConfig } from "@/shared/config";
-import { handleSiaSearch } from "@/mcp/tools/sia-search";
-import { handleSiaByFile } from "@/mcp/tools/sia-by-file";
-import { handleSiaExpand } from "@/mcp/tools/sia-expand";
-import { handleSiaCommunity } from "@/mcp/tools/sia-community";
 import { handleSiaAtTime } from "@/mcp/tools/sia-at-time";
+import { handleSiaByFile } from "@/mcp/tools/sia-by-file";
+import { handleSiaCommunity } from "@/mcp/tools/sia-community";
+import { handleSiaExpand } from "@/mcp/tools/sia-expand";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
+import { handleSiaSearch } from "@/mcp/tools/sia-search";
+import type { SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
 // Zod input schemas for every tool — exported so tests (and future handler
@@ -105,7 +105,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaSearch(deps.graphDb, args);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_search ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_search ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 
@@ -119,7 +121,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaByFile(deps.graphDb, args);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_by_file ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_by_file ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 
@@ -133,7 +137,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaExpand(deps.graphDb, args);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_expand ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_expand ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 
@@ -147,7 +153,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaCommunity(deps.graphDb, args);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_community ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_community ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 
@@ -161,7 +169,9 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				const result = await handleSiaAtTime(deps.graphDb, args);
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_at_time ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_at_time ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 
@@ -173,14 +183,15 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		async (args) => {
 			if (deps) {
 				const sessionId = process.env.SIA_SESSION_ID ?? "default";
-				const result = await handleSiaFlag(
-					deps.graphDb,
-					args,
-					{ enableFlagging: deps.config.enableFlagging, sessionId },
-				);
+				const result = await handleSiaFlag(deps.graphDb, args, {
+					enableFlagging: deps.config.enableFlagging,
+					sessionId,
+				});
 				return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 			}
-			return { content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }] };
+			return {
+				content: [{ type: "text" as const, text: `stub: sia_flag ${JSON.stringify(args)}` }],
+			};
 		},
 	);
 

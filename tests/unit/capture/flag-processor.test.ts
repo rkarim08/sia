@@ -156,7 +156,7 @@ describe("processFlags", () => {
 
 		// Verify an entity was created
 		const entities = await db.execute(
-			"SELECT * FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(entities.rows.length).toBeGreaterThanOrEqual(1);
 
@@ -191,7 +191,7 @@ describe("processFlags", () => {
 		await processFlags(db, "sess-1", config);
 
 		const entities = await db.execute(
-			"SELECT confidence FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT confidence FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(entities.rows).toHaveLength(1);
 		expect((entities.rows[0] as unknown as Entity).confidence).toBe(0.4);
@@ -219,7 +219,7 @@ describe("processFlags", () => {
 		await processFlags(db, "sess-1", config);
 
 		const entities = await db.execute(
-			"SELECT base_importance, importance FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT base_importance, importance FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(entities.rows).toHaveLength(1);
 		const entity = entities.rows[0] as unknown as Entity;

@@ -74,7 +74,7 @@ describe("buildSummaryTree", () => {
 		expect(lvl1Row.rows.length).toBe(1);
 
 		// Invalidated entity: Level 1 should have expires_at set
-		await db.execute("UPDATE entities SET t_valid_until = ? WHERE id = ?", [Date.now(), ids[1]]);
+		await db.execute("UPDATE graph_nodes SET t_valid_until = ? WHERE id = ?", [Date.now(), ids[1]]);
 		const expiredSummary = await getOrCreateLevel1Summary(db, ids[1]);
 		expect(expiredSummary).not.toBeNull();
 		const expired = await db.execute("SELECT expires_at FROM summary_tree WHERE id = ?", [

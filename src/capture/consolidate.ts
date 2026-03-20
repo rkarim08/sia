@@ -56,7 +56,7 @@ export async function consolidate(
 		for (const candidate of candidates) {
 			// 1. Query active entities with same name and type
 			const existing = await tx.execute(
-				"SELECT * FROM entities WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+				"SELECT * FROM graph_nodes WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 				[candidate.name, candidate.type],
 			);
 

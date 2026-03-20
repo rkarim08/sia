@@ -42,7 +42,7 @@ export async function handleSiaExpand(
 
 	// --- Fetch root entity ---
 	const rootResult = await db.execute(
-		"SELECT * FROM entities WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+		"SELECT * FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 		[input.entity_id],
 	);
 
@@ -78,13 +78,13 @@ export async function handleSiaExpand(
 
 			if (edgeTypes && edgeTypes.length > 0) {
 				const placeholders = edgeTypes.map(() => "?").join(", ");
-				edgeSql = `SELECT * FROM edges
+				edgeSql = `SELECT * FROM graph_edges
 					WHERE (from_id = ? OR to_id = ?)
 					  AND t_valid_until IS NULL
 					  AND type IN (${placeholders})`;
 				edgeParams = [entityId, entityId, ...edgeTypes];
 			} else {
-				edgeSql = `SELECT * FROM edges
+				edgeSql = `SELECT * FROM graph_edges
 					WHERE (from_id = ? OR to_id = ?)
 					  AND t_valid_until IS NULL`;
 				edgeParams = [entityId, entityId];
@@ -123,7 +123,7 @@ export async function handleSiaExpand(
 
 	for (const nid of neighborIds) {
 		const nResult = await db.execute(
-			"SELECT * FROM entities WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 			[nid],
 		);
 		if (nResult.rows.length > 0) {

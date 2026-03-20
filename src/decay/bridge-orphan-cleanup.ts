@@ -49,7 +49,7 @@ function checkEntityLivenessViaAttach(
 
 		const row = rawSqlite
 			.prepare(
-				`SELECT 1 FROM ${alias}.entities
+				`SELECT 1 FROM ${alias}.graph_nodes
 				 WHERE id = ?
 				   AND archived_at IS NULL
 				   AND t_valid_until IS NULL`,

@@ -126,7 +126,7 @@ describe("runMigrations", () => {
 		);
 		writeFileSync(
 			join(migrationsDir, "002-create-edges.sql"),
-			"CREATE TABLE edges (id INTEGER PRIMARY KEY);",
+			"CREATE TABLE graph_edges (id INTEGER PRIMARY KEY);",
 		);
 
 		db = runMigrations(dbPath, migrationsDir);

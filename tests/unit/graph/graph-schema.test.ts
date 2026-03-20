@@ -20,7 +20,7 @@ describe("graph.db schema (001_initial)", () => {
 	async function insertEntity(siaDb: SiaDb, id: string, name: string): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths, trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -49,7 +49,7 @@ describe("graph.db schema (001_initial)", () => {
 	): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, 'relates_to', 1.0, 0.7, 3, ?, NULL, NULL, ?)`,
@@ -86,7 +86,7 @@ describe("graph.db schema (001_initial)", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("bitemporal-test", tmpDir);
 
-		const result = await db.execute("PRAGMA table_info(entities)");
+		const result = await db.execute("PRAGMA table_info(graph_nodes)");
 		const columns = result.rows.map((r) => r.name as string);
 
 		expect(columns).toContain("t_created");
@@ -96,10 +96,10 @@ describe("graph.db schema (001_initial)", () => {
 	});
 
 	// ---------------------------------------------------------------
-	// FTS5 triggers keep entities_fts in sync
+	// FTS5 triggers keep graph_nodes_fts in sync
 	// ---------------------------------------------------------------
 
-	it("FTS5 triggers keep entities_fts in sync on insert", async () => {
+	it("FTS5 triggers keep graph_nodes_fts in sync on insert", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("fts-test", tmpDir);
 
@@ -107,7 +107,7 @@ describe("graph.db schema (001_initial)", () => {
 
 		// Query the FTS5 index — the trigger should have populated it.
 		const ftsResult = await db.execute(
-			"SELECT name FROM entities_fts WHERE entities_fts MATCH 'Singleton'",
+			"SELECT name FROM graph_nodes_fts WHERE graph_nodes_fts MATCH 'Singleton'",
 		);
 		expect(ftsResult.rows).toHaveLength(1);
 		expect(ftsResult.rows[0]?.name).toBe("Singleton Pattern");
@@ -130,8 +130,8 @@ describe("graph.db schema (001_initial)", () => {
 		await insertEdge(db, "edge-1", eA, eB);
 
 		// Both endpoints should have edge_count = 1.
-		const resA = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eA]);
-		const resB = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eB]);
+		const resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
+		const resB = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eB]);
 		expect(resA.rows[0]?.edge_count).toBe(1);
 		expect(resB.rows[0]?.edge_count).toBe(1);
 	});
@@ -153,15 +153,15 @@ describe("graph.db schema (001_initial)", () => {
 		await insertEdge(db, "edge-2", eA, eB);
 
 		// Verify both are at 1.
-		let resA = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eA]);
+		let resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
 		expect(resA.rows[0]?.edge_count).toBe(1);
 
 		// Invalidate the edge (set t_valid_until).
-		await db.execute("UPDATE edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-2"]);
+		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-2"]);
 
 		// Both endpoints should now have edge_count = 0.
-		resA = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eA]);
-		const resB = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eB]);
+		resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
+		const resB = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eB]);
 		expect(resA.rows[0]?.edge_count).toBe(0);
 		expect(resB.rows[0]?.edge_count).toBe(0);
 	});
@@ -183,18 +183,18 @@ describe("graph.db schema (001_initial)", () => {
 		await insertEdge(db, "edge-3", eA, eB);
 
 		// Invalidate.
-		await db.execute("UPDATE edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-3"]);
+		await db.execute("UPDATE graph_edges SET t_valid_until = ? WHERE id = ?", [Date.now(), "edge-3"]);
 
 		// Verify both are at 0 after invalidation.
-		let resA = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eA]);
+		let resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
 		expect(resA.rows[0]?.edge_count).toBe(0);
 
 		// Reactivate (set t_valid_until back to NULL).
-		await db.execute("UPDATE edges SET t_valid_until = NULL WHERE id = ?", ["edge-3"]);
+		await db.execute("UPDATE graph_edges SET t_valid_until = NULL WHERE id = ?", ["edge-3"]);
 
 		// Both endpoints should be back to 1.
-		resA = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eA]);
-		const resB = await db.execute("SELECT edge_count FROM entities WHERE id = ?", [eB]);
+		resA = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eA]);
+		const resB = await db.execute("SELECT edge_count FROM graph_nodes WHERE id = ?", [eB]);
 		expect(resA.rows[0]?.edge_count).toBe(1);
 		expect(resB.rows[0]?.edge_count).toBe(1);
 	});

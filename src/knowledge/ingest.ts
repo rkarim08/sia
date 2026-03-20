@@ -261,7 +261,7 @@ export async function ingestDocument(
 	let fileNodeId: string;
 
 	const existing = await db.execute(
-		"SELECT id FROM entities WHERE type = 'FileNode' AND file_paths LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL",
+		"SELECT id FROM graph_nodes WHERE type = 'FileNode' AND file_paths LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL",
 		[`%"${relativePath}"%`],
 	);
 

@@ -46,7 +46,7 @@ export async function processFlags(
 		// Apply the importance boost to the entity just created/updated
 		const boostedImportance = DEFAULT_BASE_IMPORTANCE + config.flaggedImportanceBoost;
 		const result = await db.execute(
-			"SELECT id FROM entities WHERE name = ? AND type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT id FROM graph_nodes WHERE name = ? AND type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 			[candidate.name],
 		);
 		const row = result.rows[0] as { id: string } | undefined;

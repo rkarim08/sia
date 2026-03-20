@@ -92,7 +92,7 @@ export async function rebuildFromGraph(db: SiaDb): Promise<number> {
 
 	// 1. Entities with file_paths -> 'defines' deps
 	const { rows: entities } = await db.execute(
-		`SELECT id, file_paths FROM entities
+		`SELECT id, file_paths FROM graph_nodes
 		 WHERE archived_at IS NULL AND t_valid_until IS NULL
 		   AND file_paths IS NOT NULL AND file_paths != '[]'`,
 	);
@@ -123,8 +123,8 @@ export async function rebuildFromGraph(db: SiaDb): Promise<number> {
 	// 2. pertains_to edges: source entity depends on target's file_paths
 	const { rows: edges } = await db.execute(
 		`SELECT e.from_id, t.file_paths
-		 FROM edges e
-		 JOIN entities t ON t.id = e.to_id
+		 FROM graph_edges e
+		 JOIN graph_nodes t ON t.id = e.to_id
 		 WHERE e.type = 'pertains_to'
 		   AND e.t_valid_until IS NULL
 		   AND t.archived_at IS NULL AND t.t_valid_until IS NULL

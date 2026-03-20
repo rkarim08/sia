@@ -212,7 +212,7 @@ async function applySharingRules(
 
 	// Apply rules to newly created entities
 	for (const entityId of entityIds) {
-		const { rows } = await graphDb.execute("SELECT type, visibility FROM entities WHERE id = ?", [
+		const { rows } = await graphDb.execute("SELECT type, visibility FROM graph_nodes WHERE id = ?", [
 			entityId,
 		]);
 		if (rows.length === 0) continue;
@@ -347,7 +347,7 @@ export async function runPipeline(
 					// Gather IDs of newly added entities for edge inference
 					for (const candidate of nonTier4Candidates) {
 						const result = await graphDb.execute(
-							"SELECT id FROM entities WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY t_created DESC LIMIT 1",
+							"SELECT id FROM graph_nodes WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY t_created DESC LIMIT 1",
 							[candidate.name, candidate.type],
 						);
 						const row = result.rows[0] as { id: string } | undefined;

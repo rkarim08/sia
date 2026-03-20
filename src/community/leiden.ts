@@ -291,7 +291,7 @@ export async function detectCommunities(
 
 	const entityResult = await db.execute(
 		`SELECT id, package_path, importance
-                 FROM entities
+                 FROM graph_nodes
                  WHERE t_valid_until IS NULL AND archived_at IS NULL`,
 	);
 	const entities = entityResult.rows as unknown as EntityRow[];
@@ -307,7 +307,7 @@ export async function detectCommunities(
 
 	const edgeResult = await db.execute(
 		`SELECT from_id as fromId, to_id as toId, type, weight
-                 FROM edges
+                 FROM graph_edges
                  WHERE t_valid_until IS NULL`,
 	);
 	const edges = edgeResult.rows as unknown as EdgeRow[];

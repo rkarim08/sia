@@ -59,7 +59,7 @@ describe("bm25Search", () => {
 
 		// The AuthModule entity should be the top result
 		// Verify by checking that the returned entityId corresponds to AuthModule
-		const topEntityResult = await db.execute("SELECT name FROM entities WHERE id = ?", [
+		const topEntityResult = await db.execute("SELECT name FROM graph_nodes WHERE id = ?", [
 			results[0].entityId,
 		]);
 		expect(topEntityResult.rows[0]?.name).toBe("AuthModule");
@@ -103,7 +103,7 @@ describe("bm25Search", () => {
 		expect(results.length).toBeGreaterThanOrEqual(1);
 
 		// The entity with both terms ("UserAuth") should rank highest
-		const topEntity = await db.execute("SELECT name FROM entities WHERE id = ?", [
+		const topEntity = await db.execute("SELECT name FROM graph_nodes WHERE id = ?", [
 			results[0].entityId,
 		]);
 		expect(topEntity.rows[0]?.name).toBe("UserAuth");
@@ -139,7 +139,7 @@ describe("bm25Search", () => {
 		});
 
 		expect(results).toHaveLength(1);
-		const entity = await db.execute("SELECT name FROM entities WHERE id = ?", [
+		const entity = await db.execute("SELECT name FROM graph_nodes WHERE id = ?", [
 			results[0].entityId,
 		]);
 		expect(entity.rows[0]?.name).toBe("FrontendRouter");
@@ -194,7 +194,7 @@ describe("bm25Search", () => {
 		const results = await bm25Search(db, "module", { paranoid: true });
 		expect(results).toHaveLength(1);
 
-		const entity = await db.execute("SELECT name FROM entities WHERE id = ?", [
+		const entity = await db.execute("SELECT name FROM graph_nodes WHERE id = ?", [
 			results[0].entityId,
 		]);
 		expect(entity.rows[0]?.name).toBe("TrustedModule");
@@ -247,7 +247,7 @@ describe("bm25Search", () => {
 		expect(results.length).toBeGreaterThanOrEqual(1);
 
 		// The entity with the exact phrase "auth token" should be the top result
-		const topEntity = await db.execute("SELECT name FROM entities WHERE id = ?", [
+		const topEntity = await db.execute("SELECT name FROM graph_nodes WHERE id = ?", [
 			results[0].entityId,
 		]);
 		expect(topEntity.rows[0]?.name).toBe("AuthTokenService");

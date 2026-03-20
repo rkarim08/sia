@@ -55,7 +55,7 @@ async function topEntities(db: SiaDb, communityId: string): Promise<CliEntity[]>
 	const result = await db.execute(
 		`SELECT e.name, e.importance
                  FROM community_members cm
-                 JOIN entities e ON cm.entity_id = e.id
+                 JOIN graph_nodes e ON cm.entity_id = e.id
                  WHERE cm.community_id = ?
                  ORDER BY e.importance DESC
                  LIMIT 5`,

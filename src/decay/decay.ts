@@ -54,7 +54,7 @@ export async function decayBatch(
 	offset: number,
 ): Promise<BatchResult> {
 	const result = await db.execute(
-		`SELECT * FROM entities
+		`SELECT * FROM graph_nodes
 		 WHERE archived_at IS NULL AND t_valid_until IS NULL
 		 ORDER BY last_accessed ASC
 		 LIMIT ? OFFSET ?`,

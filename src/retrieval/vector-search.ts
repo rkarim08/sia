@@ -48,7 +48,7 @@ function cosineSim(a: Float32Array, b: Float32Array): number {
  * Search entities by vector similarity.
  *
  * 1. Embed query via the provided embedder.
- * 2. Try sqlite-vss (`vss_search`) on the `entities_vss` virtual table.
+ * 2. Try sqlite-vss (`vss_search`) on the `graph_nodes_vss` virtual table.
  * 3. If VSS is unavailable, fall back to brute-force cosine scan over
  *    entities that have a non-NULL embedding column (capped at 1000).
  *
@@ -96,7 +96,7 @@ function tryVssSearch(
 		const vssRows = raw
 			.prepare(
 				`SELECT rowid, distance
-				 FROM vss_search(entities_vss, ?, ?)`,
+				 FROM vss_search(graph_nodes_vss, ?, ?)`,
 			)
 			.all(embeddingJson, limit * 2) as Array<{ rowid: number; distance: number }>;
 
@@ -113,7 +113,7 @@ function tryVssSearch(
 			const entity = raw
 				.prepare(
 					`SELECT id, trust_tier, package_path
-					 FROM entities
+					 FROM graph_nodes
 					 WHERE rowid = ?
 					   AND t_valid_until IS NULL
 					   AND archived_at IS NULL`,
@@ -168,7 +168,7 @@ async function bruteForceCosineSearch(
 
 	params.push(BRUTE_FORCE_LIMIT);
 
-	const sql = `SELECT id, embedding FROM entities WHERE ${clauses.join(" AND ")} LIMIT ?`;
+	const sql = `SELECT id, embedding FROM graph_nodes WHERE ${clauses.join(" AND ")} LIMIT ?`;
 	const { rows } = await db.execute(sql, params);
 
 	const results: VectorResult[] = [];

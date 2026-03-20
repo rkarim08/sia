@@ -16,7 +16,7 @@ import type { HookEvent, HookResponse } from "@/hooks/types";
  */
 async function countSessionEntities(db: SiaDb, sessionId: string): Promise<number> {
 	const result = await db.execute(
-		"SELECT COUNT(*) as count FROM entities WHERE source_episode = ?",
+		"SELECT COUNT(*) as count FROM graph_nodes WHERE source_episode = ?",
 		[sessionId],
 	);
 

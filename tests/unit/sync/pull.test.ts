@@ -23,7 +23,7 @@ afterEach(() => {
 const now = Date.now();
 const embedding = new Uint8Array(new Float32Array([1, 0, 0, 0]).buffer);
 
-const ENTITY_INSERT = `INSERT INTO entities (
+const ENTITY_INSERT = `INSERT INTO graph_nodes (
 	id, type, name, content, summary, package_path,
 	tags, file_paths, trust_tier, confidence, base_confidence,
 	importance, base_importance, access_count, edge_count,
@@ -42,9 +42,9 @@ describe("pullChanges", () => {
 		const bridgeDb = bridgeResult.db;
 		extraTmpDirs.push(bridgeResult.tmpDir);
 
-		// Create entities_vss table (normally created at runtime when VSS extension loads)
+		// Create graph_nodes_vss table (normally created at runtime when VSS extension loads)
 		await db.execute(
-			"CREATE TABLE IF NOT EXISTS entities_vss (rowid INTEGER PRIMARY KEY, embedding BLOB)",
+			"CREATE TABLE IF NOT EXISTS graph_nodes_vss (rowid INTEGER PRIMARY KEY, embedding BLOB)",
 		);
 
 		await db.execute(ENTITY_INSERT, [
@@ -87,7 +87,7 @@ describe("pullChanges", () => {
 		expect(result.entitiesReceived).toBe(1);
 		expect(result.vssRefreshed).toBe(1);
 
-		const vss = await db.execute("SELECT COUNT(*) as count FROM entities_vss");
+		const vss = await db.execute("SELECT COUNT(*) as count FROM graph_nodes_vss");
 		expect((vss.rows[0] as { count: number }).count).toBe(1);
 
 		await bridgeDb.close();
@@ -293,7 +293,7 @@ describe("pullChanges", () => {
 
 		// Insert an edge with hlc_modified set (simulates a remote edge to sync)
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until,
 				hlc_created, hlc_modified, source_episode, extraction_method
@@ -308,7 +308,7 @@ describe("pullChanges", () => {
 
 		// The edge should exist in the local graph with correct data
 		const edgeRows = await db.execute(
-			"SELECT id, from_id, to_id, type, weight, confidence FROM edges WHERE id = 'edge-1'",
+			"SELECT id, from_id, to_id, type, weight, confidence FROM graph_edges WHERE id = 'edge-1'",
 		);
 		expect(edgeRows.rows.length).toBe(1);
 		const edge = edgeRows.rows[0] as {

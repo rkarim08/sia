@@ -11,7 +11,7 @@ import { openGraphDb } from "@/graph/semantic-db";
 async function seedEntity(db: SiaDb, id: string, edgeCount = 0): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO entities (
+		`INSERT INTO graph_nodes (
 			id, type, name, content, summary, tags, file_paths,
 			trust_tier, confidence, base_confidence,
 			importance, base_importance, access_count, edge_count,
@@ -51,7 +51,7 @@ async function seedEdge(
 ): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO edges (
+		`INSERT INTO graph_edges (
 			id, from_id, to_id, type, weight, confidence, trust_tier,
 			t_created
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -63,7 +63,7 @@ async function seedEdge(
 async function seedExpiredEdge(db: SiaDb, fromId: string, toId: string): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO edges (
+		`INSERT INTO graph_edges (
 			id, from_id, to_id, type, weight, confidence, trust_tier,
 			t_created, t_valid_until, t_expired
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

@@ -94,8 +94,8 @@ export async function runDoctor(
 	// 5. Graph integrity (if DB available)
 	if (db) {
 		try {
-			const { rows: entityCount } = await db.execute("SELECT COUNT(*) as cnt FROM entities", []);
-			const { rows: edgeCount } = await db.execute("SELECT COUNT(*) as cnt FROM edges", []);
+			const { rows: entityCount } = await db.execute("SELECT COUNT(*) as cnt FROM graph_nodes", []);
+			const { rows: edgeCount } = await db.execute("SELECT COUNT(*) as cnt FROM graph_edges", []);
 			const entities = (entityCount[0] as { cnt: number }).cnt;
 			const edges = (edgeCount[0] as { cnt: number }).cnt;
 			checks.push({
@@ -106,9 +106,9 @@ export async function runDoctor(
 
 			// Check for orphan edges
 			const { rows: orphans } = await db.execute(
-				`SELECT COUNT(*) as cnt FROM edges e
-				 WHERE NOT EXISTS (SELECT 1 FROM entities WHERE id = e.from_id)
-				    OR NOT EXISTS (SELECT 1 FROM entities WHERE id = e.to_id)`,
+				`SELECT COUNT(*) as cnt FROM graph_edges e
+				 WHERE NOT EXISTS (SELECT 1 FROM graph_nodes WHERE id = e.from_id)
+				    OR NOT EXISTS (SELECT 1 FROM graph_nodes WHERE id = e.to_id)`,
 				[],
 			);
 			const orphanCount = (orphans[0] as { cnt: number }).cnt;
@@ -122,7 +122,7 @@ export async function runDoctor(
 
 			// Check FTS5
 			try {
-				await db.execute("SELECT COUNT(*) FROM entities_fts", []);
+				await db.execute("SELECT COUNT(*) FROM graph_nodes_fts", []);
 				checks.push({ name: "FTS5 index", status: "ok", message: "Operational" });
 			} catch {
 				checks.push({ name: "FTS5 index", status: "error", message: "Not available" });

@@ -16,7 +16,7 @@ import type { SiaDb } from "@/graph/db-interface";
  */
 export async function sweepSession(db: SiaDb, sessionId: string): Promise<number> {
 	const { rows: sessionEntities } = await db.execute(
-		`SELECT id, type, content FROM entities
+		`SELECT id, type, content FROM graph_nodes
 		 WHERE source_episode = ?
 		   AND t_valid_until IS NULL
 		   AND archived_at IS NULL`,
@@ -35,7 +35,7 @@ export async function sweepSession(db: SiaDb, sessionId: string): Promise<number
 
 		// Find same-type active entities (excluding self)
 		const { rows: candidates } = await db.execute(
-			`SELECT id, content FROM entities
+			`SELECT id, content FROM graph_nodes
 			 WHERE type = ?
 			   AND id != ?
 			   AND t_valid_until IS NULL

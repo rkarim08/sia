@@ -30,7 +30,7 @@ function canonicalPair(idA: string, idB: string): [string, string] {
 export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Promise<BatchResult> {
 	// 1. Fetch all active entities grouped by type, name
 	const { rows } = await db.execute(
-		`SELECT id, type, name, content FROM entities
+		`SELECT id, type, name, content FROM graph_nodes
 		 WHERE t_valid_until IS NULL AND archived_at IS NULL
 		 ORDER BY type, name`,
 	);

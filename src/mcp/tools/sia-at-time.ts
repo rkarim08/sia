@@ -91,7 +91,7 @@ export async function handleSiaAtTime(
 
 	// --- Active entities at as_of ---
 	const activeQuery = `
-		SELECT * FROM entities
+		SELECT * FROM graph_nodes
 		WHERE (t_valid_from IS NULL OR t_valid_from <= ?)
 		  AND (t_valid_until IS NULL OR t_valid_until > ?)
 		  AND archived_at IS NULL
@@ -104,7 +104,7 @@ export async function handleSiaAtTime(
 
 	// --- Invalidated entities: those whose t_valid_until <= as_of ---
 	const invalidatedCountQuery = `
-		SELECT COUNT(*) AS cnt FROM entities
+		SELECT COUNT(*) AS cnt FROM graph_nodes
 		WHERE t_valid_until IS NOT NULL AND t_valid_until <= ?
 		  ${extraWhere}
 	`;
@@ -113,7 +113,7 @@ export async function handleSiaAtTime(
 	const invalidatedCount = (countResult.rows[0] as { cnt: number }).cnt;
 
 	const invalidatedQuery = `
-		SELECT * FROM entities
+		SELECT * FROM graph_nodes
 		WHERE t_valid_until IS NOT NULL AND t_valid_until <= ?
 		  ${extraWhere}
 		ORDER BY t_valid_until DESC
@@ -125,7 +125,7 @@ export async function handleSiaAtTime(
 
 	// --- Edges active at as_of (global, not per-entity), capped at 50 ---
 	const edgesCountQuery = `
-		SELECT COUNT(*) AS cnt FROM edges
+		SELECT COUNT(*) AS cnt FROM graph_edges
 		WHERE (t_valid_from IS NULL OR t_valid_from <= ?)
 		  AND (t_valid_until IS NULL OR t_valid_until > ?)
 	`;
@@ -133,7 +133,7 @@ export async function handleSiaAtTime(
 	const edgeCount = (edgesCountResult.rows[0] as { cnt: number }).cnt;
 
 	const edgesQuery = `
-		SELECT * FROM edges
+		SELECT * FROM graph_edges
 		WHERE (t_valid_from IS NULL OR t_valid_from <= ?)
 		  AND (t_valid_until IS NULL OR t_valid_until > ?)
 		LIMIT 50

@@ -130,7 +130,7 @@ describe("bridgeOrphanBatch — ATTACH-based entity liveness verification", () =
 		const liveEntityId = randomUUID();
 		const now = Date.now();
 		await graphDbA.execute(
-			`INSERT INTO entities
+			`INSERT INTO graph_nodes
 			 (id, type, name, content, summary, importance, base_importance, last_accessed, created_at, t_created, created_by)
 			 VALUES (?, 'Concept', 'Live Entity', 'content', 'summary', 0.5, 0.5, ?, ?, ?, 'test')`,
 			[liveEntityId, now, now, now],
@@ -168,7 +168,7 @@ describe("bridgeOrphanBatch — ATTACH-based entity liveness verification", () =
 		// Insert a live entity in repo B for the valid edge
 		const liveEntityIdB = randomUUID();
 		await graphDbB.execute(
-			`INSERT INTO entities
+			`INSERT INTO graph_nodes
 			 (id, type, name, content, summary, importance, base_importance, last_accessed, created_at, t_created, created_by)
 			 VALUES (?, 'Concept', 'Live Entity B', 'content', 'summary', 0.5, 0.5, ?, ?, ?, 'test')`,
 			[liveEntityIdB, now, now, now],
@@ -234,7 +234,7 @@ describe("bridgeOrphanBatch — ATTACH-based entity liveness verification", () =
 		// Insert an archived entity
 		const archivedEntityId = randomUUID();
 		await graphDbA.execute(
-			`INSERT INTO entities
+			`INSERT INTO graph_nodes
 			 (id, type, name, content, summary, importance, base_importance, last_accessed, created_at, t_created, created_by, archived_at)
 			 VALUES (?, 'Concept', 'Archived Entity', 'content', 'summary', 0.5, 0.5, ?, ?, ?, 'test', ?)`,
 			[archivedEntityId, now, now, now, now],

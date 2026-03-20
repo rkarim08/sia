@@ -84,7 +84,7 @@ export async function rerank(
 	for (let i = 0; i < entityIds.length; i += ENTITY_BATCH_SIZE) {
 		const batch = entityIds.slice(i, i + ENTITY_BATCH_SIZE);
 		const placeholders = batch.map(() => "?").join(", ");
-		const sql = `SELECT * FROM entities WHERE id IN (${placeholders}) AND t_valid_until IS NULL AND archived_at IS NULL`;
+		const sql = `SELECT * FROM graph_nodes WHERE id IN (${placeholders}) AND t_valid_until IS NULL AND archived_at IS NULL`;
 		const result = await db.execute(sql, batch);
 		for (const row of result.rows) {
 			entities.set(row.id as string, row as unknown as Entity);

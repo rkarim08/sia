@@ -76,7 +76,7 @@ describe("episodic promoter", () => {
 
 		// Check entities table in graphDb -> should have entities from the episode content
 		const { rows: entityRows } = await graphDb.execute(
-			"SELECT * FROM entities WHERE extraction_method = 'episodic-promoter'",
+			"SELECT * FROM graph_nodes WHERE extraction_method = 'episodic-promoter'",
 		);
 		expect(entityRows.length).toBeGreaterThanOrEqual(1);
 	});

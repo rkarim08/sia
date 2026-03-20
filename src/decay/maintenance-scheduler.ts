@@ -198,7 +198,7 @@ export function createMaintenanceScheduler(opts: MaintenanceSchedulerOpts): Main
 
 		// FTS5 optimization after full sweep
 		try {
-			await graphDb.execute("INSERT INTO entities_fts(entities_fts) VALUES('optimize')");
+			await graphDb.execute("INSERT INTO graph_nodes_fts(graph_nodes_fts) VALUES('optimize')");
 		} catch {
 			// FTS5 table may not exist in all configurations
 		}
@@ -319,7 +319,7 @@ export async function runMaintenanceJobs(
 
 	// FTS5 optimization
 	try {
-		await graphDb.execute("INSERT INTO entities_fts(entities_fts) VALUES('optimize')");
+		await graphDb.execute("INSERT INTO graph_nodes_fts(graph_nodes_fts) VALUES('optimize')");
 	} catch {
 		// FTS5 may not exist
 	}

@@ -60,7 +60,7 @@ describe("inferEdges", () => {
 
 		// Verify a 'solves' edge was created from solution to bug
 		const edges = await db.execute(
-			"SELECT * FROM edges WHERE from_id = ? AND to_id = ? AND type = 'solves' AND t_valid_until IS NULL",
+			"SELECT * FROM graph_edges WHERE from_id = ? AND to_id = ? AND type = 'solves' AND t_valid_until IS NULL",
 			[solution.id, bug.id],
 		);
 		expect(edges.rows).toHaveLength(1);
@@ -102,7 +102,7 @@ describe("inferEdges", () => {
 
 		// Verify exactly 5 edges in the database for this entity
 		const edges = await db.execute(
-			"SELECT * FROM edges WHERE from_id = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_edges WHERE from_id = ? AND t_valid_until IS NULL",
 			[solution.id],
 		);
 		expect(edges.rows).toHaveLength(5);
@@ -140,7 +140,7 @@ describe("inferEdges", () => {
 		expect(count).toBe(0);
 
 		const edges = await db.execute(
-			"SELECT * FROM edges WHERE from_id = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_edges WHERE from_id = ? AND t_valid_until IS NULL",
 			[entityA.id],
 		);
 		expect(edges.rows).toHaveLength(0);
@@ -218,13 +218,13 @@ describe("inferEdges", () => {
 
 		// Verify edges exist from both solutions
 		const edges1 = await db.execute(
-			"SELECT * FROM edges WHERE from_id = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_edges WHERE from_id = ? AND t_valid_until IS NULL",
 			[sol1.id],
 		);
 		expect(edges1.rows.length).toBeGreaterThanOrEqual(1);
 
 		const edges2 = await db.execute(
-			"SELECT * FROM edges WHERE from_id = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_edges WHERE from_id = ? AND t_valid_until IS NULL",
 			[sol2.id],
 		);
 		expect(edges2.rows.length).toBeGreaterThanOrEqual(1);

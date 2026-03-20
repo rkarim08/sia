@@ -60,7 +60,7 @@ describe("staging promotion pipeline", () => {
 
 		// Verify entity appears in entities table
 		const entities = await db.execute(
-			"SELECT * FROM entities WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 			["Authentication module"],
 		);
 		expect(entities.rows.length).toBeGreaterThanOrEqual(1);

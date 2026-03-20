@@ -23,7 +23,7 @@ interface TrackedEntity {
 async function getEntitiesForPath(db: SiaDb, relPath: string): Promise<TrackedEntity[]> {
 	const pattern = `%"${relPath}"%`;
 	const result = await db.execute(
-		"SELECT id, name, content FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL AND file_paths LIKE ?",
+		"SELECT id, name, content FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL AND file_paths LIKE ?",
 		[pattern],
 	);
 	return result.rows as unknown as TrackedEntity[];

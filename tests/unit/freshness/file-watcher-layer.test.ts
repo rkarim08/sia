@@ -15,7 +15,7 @@ import { openGraphDb } from "@/graph/semantic-db";
 async function seedEntity(db: SiaDb, id: string, edgeCount = 0, filePaths = "[]"): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO entities (
+		`INSERT INTO graph_nodes (
 			id, type, name, content, summary, tags, file_paths,
 			trust_tier, confidence, base_confidence,
 			importance, base_importance, access_count, edge_count,
@@ -55,7 +55,7 @@ async function _seedEdge(
 ): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO edges (
+		`INSERT INTO graph_edges (
 			id, from_id, to_id, type, weight, confidence, trust_tier,
 			t_created
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -166,7 +166,7 @@ describe("file-watcher-layer (Layer 1)", () => {
 			expect(dirtied).toContain("only-from-deleted");
 
 			// Verify the entity was invalidated (t_valid_until set)
-			const { rows } = await db.execute("SELECT t_valid_until FROM entities WHERE id = ?", [
+			const { rows } = await db.execute("SELECT t_valid_until FROM graph_nodes WHERE id = ?", [
 				"only-from-deleted",
 			]);
 			expect(rows[0].t_valid_until).not.toBeNull();

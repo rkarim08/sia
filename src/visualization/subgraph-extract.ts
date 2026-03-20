@@ -71,7 +71,7 @@ async function edgesBetween(db: SiaDb, ids: string[]): Promise<VisEdge[]> {
 	if (ids.length === 0) return [];
 	const list = inClause(ids);
 	const { rows } = await db.execute(
-		`SELECT id, from_id, to_id, type, weight FROM edges
+		`SELECT id, from_id, to_id, type, weight FROM graph_edges
 		 WHERE from_id IN (${list}) AND to_id IN (${list})
 		   AND t_valid_until IS NULL`,
 	);
@@ -85,10 +85,10 @@ async function neighborIds(db: SiaDb, seedIds: string[]): Promise<string[]> {
 	if (seedIds.length === 0) return [];
 	const list = inClause(seedIds);
 	const { rows } = await db.execute(
-		`SELECT DISTINCT from_id AS nid FROM edges
+		`SELECT DISTINCT from_id AS nid FROM graph_edges
 		 WHERE to_id IN (${list}) AND t_valid_until IS NULL
 		 UNION
-		 SELECT DISTINCT to_id AS nid FROM edges
+		 SELECT DISTINCT to_id AS nid FROM graph_edges
 		 WHERE from_id IN (${list}) AND t_valid_until IS NULL`,
 	);
 	return rows.map((r) => r.nid as string);
@@ -101,7 +101,7 @@ async function fetchEntitiesById(db: SiaDb, ids: string[]): Promise<VisNode[]> {
 	if (ids.length === 0) return [];
 	const list = inClause(ids);
 	const { rows } = await db.execute(
-		`SELECT id, type, name, summary, importance, trust_tier FROM entities
+		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE id IN (${list})
 		   AND t_valid_until IS NULL AND archived_at IS NULL`,
 	);
@@ -113,7 +113,7 @@ async function fetchEntitiesById(db: SiaDb, ids: string[]): Promise<VisNode[]> {
  */
 async function extractDefault(db: SiaDb, maxNodes: number): Promise<SubgraphData> {
 	const { rows } = await db.execute(
-		`SELECT id, type, name, summary, importance, trust_tier FROM entities
+		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE t_valid_until IS NULL AND archived_at IS NULL
 		 ORDER BY importance DESC LIMIT ?`,
 		[maxNodes],
@@ -130,7 +130,7 @@ async function extractDefault(db: SiaDb, maxNodes: number): Promise<SubgraphData
 async function extractScoped(db: SiaDb, scope: string, maxNodes: number): Promise<SubgraphData> {
 	// Find seed entities whose file_paths contain the scope prefix
 	const { rows: seedRows } = await db.execute(
-		`SELECT id, type, name, summary, importance, trust_tier FROM entities
+		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE (type = 'FileNode' OR type = 'CodeEntity')
 		   AND file_paths LIKE ?
 		   AND t_valid_until IS NULL AND archived_at IS NULL`,
@@ -164,7 +164,7 @@ async function extractScoped(db: SiaDb, scope: string, maxNodes: number): Promis
  */
 async function extractByType(db: SiaDb, nodeType: string, maxNodes: number): Promise<SubgraphData> {
 	const { rows: typeRows } = await db.execute(
-		`SELECT id, type, name, summary, importance, trust_tier FROM entities
+		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE type = ?
 		   AND t_valid_until IS NULL AND archived_at IS NULL`,
 		[nodeType],

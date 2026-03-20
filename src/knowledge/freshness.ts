@@ -126,7 +126,7 @@ export async function checkAllDocFreshness(
 	const tagConditions = DOC_TAGS.map((tag) => `tags LIKE '%${tag}%'`).join(" OR ");
 
 	const docRows = await db.execute(
-		`SELECT id, file_paths, tags, importance FROM entities
+		`SELECT id, file_paths, tags, importance FROM graph_nodes
 		 WHERE type = 'FileNode'
 		   AND (${tagConditions})
 		   AND t_valid_until IS NULL AND archived_at IS NULL`,
@@ -174,8 +174,8 @@ export async function checkAllDocFreshness(
 async function getReferencedCodePaths(db: SiaDb, docEntityId: string): Promise<string[]> {
 	// Direct edges from the doc entity to code entities
 	const directResult = await db.execute(
-		`SELECT DISTINCT e2.file_paths FROM edges ed
-		 JOIN entities e2 ON e2.id = ed.to_id
+		`SELECT DISTINCT e2.file_paths FROM graph_edges ed
+		 JOIN graph_nodes e2 ON e2.id = ed.to_id
 		 WHERE ed.from_id = ? AND ed.t_valid_until IS NULL
 		   AND e2.type IN ('CodeEntity', 'FileNode')
 		   AND e2.t_valid_until IS NULL AND e2.archived_at IS NULL`,
@@ -184,10 +184,10 @@ async function getReferencedCodePaths(db: SiaDb, docEntityId: string): Promise<s
 
 	// Edges from ContentChunk children of this doc entity
 	const chunkResult = await db.execute(
-		`SELECT DISTINCT e3.file_paths FROM edges parent_edge
-		 JOIN entities chunk ON chunk.id = parent_edge.to_id
-		 JOIN edges child_edge ON child_edge.from_id = chunk.id
-		 JOIN entities e3 ON e3.id = child_edge.to_id
+		`SELECT DISTINCT e3.file_paths FROM graph_edges parent_edge
+		 JOIN graph_nodes chunk ON chunk.id = parent_edge.to_id
+		 JOIN graph_edges child_edge ON child_edge.from_id = chunk.id
+		 JOIN graph_nodes e3 ON e3.id = child_edge.to_id
 		 WHERE parent_edge.from_id = ? AND parent_edge.t_valid_until IS NULL
 		   AND chunk.type = 'ContentChunk'
 		   AND chunk.t_valid_until IS NULL AND chunk.archived_at IS NULL

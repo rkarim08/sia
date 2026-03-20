@@ -89,7 +89,7 @@ export async function deduplicateEntities(
 	llmClient?: LlmClient,
 ): Promise<DedupeResult> {
 	const localRows = await db.execute(
-		"SELECT * FROM entities WHERE archived_at IS NULL AND t_valid_until IS NULL",
+		"SELECT * FROM graph_nodes WHERE archived_at IS NULL AND t_valid_until IS NULL",
 	);
 	const locals = localRows.rows as unknown as Entity[];
 	const now = Date.now();
