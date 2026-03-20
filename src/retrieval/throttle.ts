@@ -1,4 +1,4 @@
-// Module: throttle — Progressive throttling for MCP tool calls
+// Module: throttle — Progressive rate limiting for MCP tool calls
 
 import type { SiaDb } from "@/graph/db-interface";
 
@@ -13,8 +13,23 @@ export interface ThrottleResult {
 export interface ThrottleConfig {
 	normalMax: number;
 	reducedMax: number;
-	blockedMax: number;
 }
+
+const DEFAULT_THROTTLE_CONFIG: ThrottleConfig = {
+	normalMax: 3,
+	reducedMax: 8,
+};
+
+export const THROTTLED_TOOLS = new Set([
+	"sia_search",
+	"sia_execute",
+	"sia_execute_file",
+	"sia_fetch_and_index",
+	"sia_by_file",
+	"sia_expand",
+	"sia_at_time",
+	"sia_backlinks",
+]);
 
 /**
  * Progressive throttle backed by the search_throttle table in graph.db.
@@ -22,13 +37,17 @@ export interface ThrottleConfig {
  * Thresholds (inclusive):
  *  - count <= normalMax  → "normal"
  *  - count <= reducedMax → "reduced" (with warning)
- *  - count >  reducedMax → "blocked" (with warning)
+ *  - count >  reducedMax → "blocked" (with warning mentioning sia_batch_execute)
  */
 export class ProgressiveThrottle {
+	private config: ThrottleConfig;
+
 	constructor(
 		private db: SiaDb,
-		private config: ThrottleConfig,
-	) {}
+		config?: Partial<ThrottleConfig>,
+	) {
+		this.config = { ...DEFAULT_THROTTLE_CONFIG, ...config };
+	}
 
 	/**
 	 * Record a tool call for the given session/tool pair and return the throttle mode.
@@ -40,8 +59,7 @@ export class ProgressiveThrottle {
 		await this.db.execute(
 			`INSERT INTO search_throttle (session_id, tool_name, call_count, last_called_at)
        VALUES (?, ?, 1, ?)
-       ON CONFLICT (session_id, tool_name)
-       DO UPDATE SET
+       ON CONFLICT(session_id, tool_name) DO UPDATE SET
          call_count = call_count + 1,
          last_called_at = ?`,
 			[sessionId, toolName, now, now],
@@ -49,7 +67,7 @@ export class ProgressiveThrottle {
 
 		// Read back the updated count
 		const { rows } = await this.db.execute(
-			`SELECT call_count FROM search_throttle WHERE session_id = ? AND tool_name = ?`,
+			"SELECT call_count FROM search_throttle WHERE session_id = ? AND tool_name = ?",
 			[sessionId, toolName],
 		);
 
@@ -64,14 +82,14 @@ export class ProgressiveThrottle {
 			return {
 				mode: "reduced",
 				callCount,
-				warning: `Tool '${toolName}' has been called ${callCount} times this session. Consider reducing search frequency.`,
+				warning: `Reducing results (${callCount} calls). Consider sia_batch_execute for batch operations.`,
 			};
 		}
 
 		return {
 			mode: "blocked",
 			callCount,
-			warning: `Tool '${toolName}' has been called ${callCount} times this session and is now blocked. Reset the session to continue.`,
+			warning: `Tool blocked for this session (${callCount} calls). Use sia_batch_execute instead.`,
 		};
 	}
 
@@ -79,6 +97,6 @@ export class ProgressiveThrottle {
 	 * Clear all throttle entries for the given session.
 	 */
 	async reset(sessionId: string): Promise<void> {
-		await this.db.execute(`DELETE FROM search_throttle WHERE session_id = ?`, [sessionId]);
+		await this.db.execute("DELETE FROM search_throttle WHERE session_id = ?", [sessionId]);
 	}
 }
