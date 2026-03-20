@@ -1,5 +1,6 @@
 // Module: download-model — downloads the all-MiniLM-L6-v2 ONNX model and tokenizer
-import { existsSync, mkdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SIA_HOME } from "@/shared/config";
 
@@ -62,6 +63,26 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
 }
 
 /**
+ * Verify the SHA-256 checksum of a file against an expected hash.
+ *
+ * If the hashes match, returns without error.
+ * If the hashes do not match, deletes the file and throws an error.
+ *
+ * @param filePath     Path to the file to verify.
+ * @param expectedHash Hex-encoded SHA-256 digest to compare against.
+ */
+export function verifyModelChecksum(filePath: string, expectedHash: string): void {
+	const fileBuffer = readFileSync(filePath);
+	const actualHash = createHash("sha256").update(fileBuffer).digest("hex");
+	if (actualHash !== expectedHash) {
+		unlinkSync(filePath);
+		throw new Error(
+			`Checksum mismatch for ${filePath}: expected ${expectedHash}, got ${actualHash}`,
+		);
+	}
+}
+
+/**
  * Check whether a file exists and has size > 0.
  */
 function fileExistsWithContent(filePath: string): boolean {
@@ -98,12 +119,34 @@ export async function downloadModel(siaHome: string = SIA_HOME): Promise<string>
 	if (!fileExistsWithContent(modelPath)) {
 		console.log("Downloading ONNX model...");
 		await downloadFile(MODEL_URL, modelPath);
+		// TODO: Replace placeholder with the real SHA-256 hash from the HuggingFace model card:
+		// https://huggingface.co/Xenova/all-MiniLM-L6-v2/blob/main/onnx/model_quantized.onnx
+		const MODEL_EXPECTED_HASH = "CHECKSUM_NOT_YET_KNOWN";
+		if (MODEL_EXPECTED_HASH !== "CHECKSUM_NOT_YET_KNOWN") {
+			verifyModelChecksum(modelPath, MODEL_EXPECTED_HASH);
+		} else {
+			console.warn(
+				"[warn] Model checksum not configured — skipping integrity verification. " +
+					"Set the real SHA-256 hash in download-model.ts to enable verification.",
+			);
+		}
 	}
 
 	// Download tokenizer if needed
 	if (!fileExistsWithContent(tokenizerPath)) {
 		console.log("Downloading tokenizer...");
 		await downloadFile(TOKENIZER_URL, tokenizerPath);
+		// TODO: Replace placeholder with the real SHA-256 hash from the HuggingFace model card:
+		// https://huggingface.co/Xenova/all-MiniLM-L6-v2/blob/main/tokenizer.json
+		const TOKENIZER_EXPECTED_HASH = "CHECKSUM_NOT_YET_KNOWN";
+		if (TOKENIZER_EXPECTED_HASH !== "CHECKSUM_NOT_YET_KNOWN") {
+			verifyModelChecksum(tokenizerPath, TOKENIZER_EXPECTED_HASH);
+		} else {
+			console.warn(
+				"[warn] Tokenizer checksum not configured — skipping integrity verification. " +
+					"Set the real SHA-256 hash in download-model.ts to enable verification.",
+			);
+		}
 	}
 
 	return modelPath;
