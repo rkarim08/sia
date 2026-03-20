@@ -79,6 +79,13 @@ export interface SiaConfig {
 	claudeMdUpdatedAt: string | null;
 
 	sync: SyncConfig;
+
+	sandboxTimeout: number;
+	contextModeThreshold: number;
+	maxChunkSize: number;
+	throttleNormalMax: number;
+	throttleReducedMax: number;
+	throttleBlockedMax: number;
 }
 
 /** Valid keys for the decayHalfLife object. */
@@ -133,6 +140,13 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	claudeMdUpdatedAt: null,
 
 	sync: { ...DEFAULT_SYNC_CONFIG },
+
+	sandboxTimeout: 30000,
+	contextModeThreshold: 10000,
+	maxChunkSize: 5000,
+	throttleNormalMax: 3,
+	throttleReducedMax: 8,
+	throttleBlockedMax: 9,
 };
 
 /**
