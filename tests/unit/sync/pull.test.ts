@@ -209,6 +209,131 @@ describe("pullChanges", () => {
 		await bridgeDb.close();
 	});
 
+	it("applies edge rows to local graph after pull", async () => {
+		const testDb = createTestDb();
+		const db = testDb.db;
+		tmpDir = testDb.tmpDir;
+
+		const bridgeResult = createTestDb();
+		const bridgeDb = bridgeResult.db;
+		extraTmpDirs.push(bridgeResult.tmpDir);
+
+		// Insert two entities first (edges require valid from_id/to_id references)
+		await db.execute(ENTITY_INSERT, [
+			"ent-a",
+			"Concept",
+			"EntityA",
+			"content a",
+			"summary a",
+			null,
+			"[]",
+			"[]",
+			3,
+			0.7,
+			0.7,
+			0.5,
+			0.5,
+			0,
+			0,
+			now,
+			now,
+			now,
+			null,
+			null,
+			null,
+			"team",
+			"dev",
+			null,
+			null,
+			200,
+			100,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+		]);
+
+		await db.execute(ENTITY_INSERT, [
+			"ent-b",
+			"Concept",
+			"EntityB",
+			"content b",
+			"summary b",
+			null,
+			"[]",
+			"[]",
+			3,
+			0.7,
+			0.7,
+			0.5,
+			0.5,
+			0,
+			0,
+			now,
+			now,
+			now,
+			null,
+			null,
+			null,
+			"team",
+			"dev",
+			null,
+			null,
+			200,
+			100,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+		]);
+
+		// Insert an edge with hlc_modified set (simulates a remote edge to sync)
+		await db.execute(
+			`INSERT INTO edges (
+				id, from_id, to_id, type, weight, confidence, trust_tier,
+				t_created, t_expired, t_valid_from, t_valid_until,
+				hlc_created, hlc_modified, source_episode, extraction_method
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, NULL, NULL)`,
+			["edge-1", "ent-a", "ent-b", "relates_to", 0.9, 0.8, 3, now, 100, 200],
+		);
+
+		const result = await pullChanges(db, bridgeDb, CONFIG);
+
+		// The edge should be counted
+		expect(result.edgesReceived).toBe(1);
+
+		// The edge should exist in the local graph with correct data
+		const edgeRows = await db.execute(
+			"SELECT id, from_id, to_id, type, weight, confidence FROM edges WHERE id = 'edge-1'",
+		);
+		expect(edgeRows.rows.length).toBe(1);
+		const edge = edgeRows.rows[0] as {
+			id: string;
+			from_id: string;
+			to_id: string;
+			type: string;
+			weight: number;
+			confidence: number;
+		};
+		expect(edge.from_id).toBe("ent-a");
+		expect(edge.to_id).toBe("ent-b");
+		expect(edge.type).toBe("relates_to");
+		expect(edge.weight).toBeCloseTo(0.9);
+		expect(edge.confidence).toBeCloseTo(0.8);
+
+		// Verify SYNC_RECV audit entry was written for the edge
+		const auditRows = await db.execute(
+			"SELECT operation, edge_id FROM audit_log WHERE operation = 'SYNC_RECV' AND edge_id = 'edge-1'",
+		);
+		expect(auditRows.rows.length).toBeGreaterThanOrEqual(1);
+
+		await bridgeDb.close();
+	});
+
 	it("returns zeros when sync is disabled", async () => {
 		const testDb = createTestDb();
 		const db = testDb.db;

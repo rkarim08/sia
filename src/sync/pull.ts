@@ -33,11 +33,15 @@ export async function pullChanges(
 		   AND hlc_modified IS NOT NULL
 		   AND (synced_at IS NULL OR synced_at < hlc_modified)`,
 	);
-	const edgeRows = await db.execute(
-		`SELECT id FROM edges
+	const edgeRowsResult = await db.execute(
+		`SELECT id, from_id, to_id, type, weight, confidence, trust_tier,
+		        t_created, t_expired, t_valid_from, t_valid_until,
+		        hlc_created, hlc_modified, source_episode, extraction_method
+		 FROM edges
 		 WHERE hlc_modified IS NOT NULL
 		   AND (t_valid_until IS NULL)`,
 	);
+	const receivedEdges = edgeRowsResult.rows as Array<Record<string, unknown>>;
 
 	const receivedEntities = entityRows.rows as Array<Record<string, unknown>>;
 
@@ -113,6 +117,66 @@ export async function pullChanges(
 		await writeAuditEntry(db, "SYNC_RECV", { entity_id: row.id as string });
 	}
 
+	// --- Apply received edges to local graph ---
+	// For each edge row fetched, INSERT if new or UPDATE if it already exists locally.
+	for (const edge of receivedEdges) {
+		const existingRow = await db.execute("SELECT id FROM edges WHERE id = ?", [edge.id]);
+		if ((existingRow.rows as Array<unknown>).length > 0) {
+			// UPDATE existing edge
+			await db.execute(
+				`UPDATE edges SET
+					from_id = ?, to_id = ?, type = ?, weight = ?, confidence = ?, trust_tier = ?,
+					t_created = ?, t_expired = ?, t_valid_from = ?, t_valid_until = ?,
+					hlc_created = ?, hlc_modified = ?, source_episode = ?, extraction_method = ?
+				 WHERE id = ?`,
+				[
+					edge.from_id,
+					edge.to_id,
+					edge.type,
+					edge.weight,
+					edge.confidence,
+					edge.trust_tier,
+					edge.t_created,
+					edge.t_expired ?? null,
+					edge.t_valid_from ?? null,
+					edge.t_valid_until ?? null,
+					edge.hlc_created ?? null,
+					edge.hlc_modified ?? null,
+					edge.source_episode ?? null,
+					edge.extraction_method ?? null,
+					edge.id,
+				],
+			);
+		} else {
+			// INSERT new edge
+			await db.execute(
+				`INSERT INTO edges (
+					id, from_id, to_id, type, weight, confidence, trust_tier,
+					t_created, t_expired, t_valid_from, t_valid_until,
+					hlc_created, hlc_modified, source_episode, extraction_method
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				[
+					edge.id,
+					edge.from_id,
+					edge.to_id,
+					edge.type,
+					edge.weight,
+					edge.confidence,
+					edge.trust_tier,
+					edge.t_created,
+					edge.t_expired ?? null,
+					edge.t_valid_from ?? null,
+					edge.t_valid_until ?? null,
+					edge.hlc_created ?? null,
+					edge.hlc_modified ?? null,
+					edge.source_episode ?? null,
+					edge.extraction_method ?? null,
+				],
+			);
+		}
+		await writeAuditEntry(db, "SYNC_RECV", { edge_id: edge.id as string });
+	}
+
 	// --- Scoped VSS refresh ---
 	// Only refresh entities that were actually received (use their IDs, not full table).
 	let vssRefreshed = 0;
@@ -156,7 +220,7 @@ export async function pullChanges(
 
 	return {
 		entitiesReceived: receivedEntities.length,
-		edgesReceived: (edgeRows.rows as Array<unknown>).length,
+		edgesReceived: receivedEdges.length,
 		vssRefreshed,
 	};
 }
