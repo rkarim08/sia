@@ -61,6 +61,62 @@ export const SiaFlagInput = z.object({
 	reason: z.string(),
 });
 
+export const SiaExecuteInput = z.object({
+	code: z.string(),
+	language: z.string().optional(),
+	intent: z.string().optional(),
+	timeout: z.number().optional(),
+	env: z.record(z.string(), z.string()).optional(),
+});
+
+export const SiaExecuteFileInput = z.object({
+	file_path: z.string(),
+	language: z.string().optional(),
+	command: z.string().optional(),
+	intent: z.string().optional(),
+	timeout: z.number().optional(),
+});
+
+export const SiaIndexInput = z.object({
+	content: z.string(),
+	source: z.string().optional(),
+	tags: z.array(z.string()).optional(),
+});
+
+export const SiaBatchExecuteInput = z.object({
+	operations: z.array(
+		z.object({
+			type: z.enum(["execute", "search"]),
+			code: z.string().optional(),
+			language: z.string().optional(),
+			query: z.string().optional(),
+			intent: z.string().optional(),
+		}),
+	),
+	timeout_per_op: z.number().optional(),
+});
+
+export const SiaFetchAndIndexInput = z.object({
+	url: z.string().url(),
+	intent: z.string().optional(),
+	tags: z.array(z.string()).optional(),
+});
+
+export const SiaStatsInput = z.object({
+	include_session: z.boolean().optional(),
+});
+
+export const SiaDoctorInput = z.object({
+	checks: z
+		.array(z.enum(["runtimes", "hooks", "fts5", "vss", "onnx", "graph_integrity", "all"]))
+		.optional(),
+});
+
+export const SiaUpgradeInput = z.object({
+	target_version: z.string().optional(),
+	dry_run: z.boolean().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -72,6 +128,16 @@ export const TOOL_NAMES = [
 	"sia_community",
 	"sia_at_time",
 	"sia_flag",
+	"sia_backlinks",
+	"sia_note",
+	"sia_execute",
+	"sia_execute_file",
+	"sia_index",
+	"sia_batch_execute",
+	"sia_fetch_and_index",
+	"sia_stats",
+	"sia_doctor",
+	"sia_upgrade",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];

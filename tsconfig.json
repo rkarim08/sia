@@ -34,7 +34,8 @@
 			"@/freshness/*": ["./src/freshness/*"],
 			"@/native/*": ["./src/native/*"],
 			"@/hooks/*": ["./src/hooks/*"],
-			"@/llm/*": ["./src/llm/*"]
+			"@/llm/*": ["./src/llm/*"],
+			"@/sandbox/*": ["./src/sandbox/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],

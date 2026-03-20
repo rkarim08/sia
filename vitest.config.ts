@@ -29,6 +29,7 @@ export default defineConfig({
 			"@/native": resolve(__dirname, "src/native"),
 			"@/hooks": resolve(__dirname, "src/hooks"),
 			"@/llm": resolve(__dirname, "src/llm"),
+			"@/sandbox": resolve(__dirname, "src/sandbox"),
 		},
 	},
 });
