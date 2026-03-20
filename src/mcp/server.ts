@@ -731,16 +731,23 @@ export async function startServer(deps?: McpServerDeps): Promise<McpServer> {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
 
-	// --- Health-check HTTP server ---
+	// --- Health-check HTTP server (non-essential — failure should not crash MCP) ---
 	const healthPort = Number(process.env.SIA_HEALTH_PORT ?? 52731);
-	Bun.serve({
-		port: healthPort,
-		fetch() {
-			return new Response(JSON.stringify({ status: "ok" }), {
-				headers: { "Content-Type": "application/json" },
-			});
-		},
-	});
+	try {
+		Bun.serve({
+			port: healthPort,
+			fetch() {
+				return new Response(JSON.stringify({ status: "ok" }), {
+					headers: { "Content-Type": "application/json" },
+				});
+			},
+		});
+	} catch (err) {
+		console.error(
+			`[sia] Health server failed to bind on port ${healthPort}: ${(err as Error).message}. ` +
+				"MCP server will continue without health endpoint. Set SIA_HEALTH_PORT to an available port.",
+		);
+	}
 
 	return server;
 }
