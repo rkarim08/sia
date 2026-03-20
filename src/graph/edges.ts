@@ -47,7 +47,7 @@ export async function insertEdge(db: SiaDb, edge: NewEdge): Promise<EdgeRow> {
 	const now = Date.now();
 
 	await db.execute(
-		`INSERT INTO edges (
+		`INSERT INTO graph_edges (
 			id, from_id, to_id, type, weight, confidence, trust_tier,
 			t_created, t_expired, t_valid_from, t_valid_until,
 			source_episode, extraction_method
@@ -98,7 +98,7 @@ export async function insertEdge(db: SiaDb, edge: NewEdge): Promise<EdgeRow> {
 export async function invalidateEdge(db: SiaDb, id: string, tValidUntil?: number): Promise<void> {
 	const ts = tValidUntil ?? Date.now();
 
-	await db.execute("UPDATE edges SET t_valid_until = ?, t_expired = ? WHERE id = ?", [ts, ts, id]);
+	await db.execute("UPDATE graph_edges SET t_valid_until = ?, t_expired = ? WHERE id = ?", [ts, ts, id]);
 
 	await writeAuditEntry(db, "INVALIDATE", { edge_id: id });
 }
@@ -110,12 +110,30 @@ export async function invalidateEdge(db: SiaDb, id: string, tValidUntil?: number
  */
 export async function getActiveEdges(db: SiaDb, entityId: string): Promise<EdgeRow[]> {
 	const result = await db.execute(
-		`SELECT * FROM edges
+		`SELECT * FROM graph_edges
 		 WHERE (from_id = ? OR to_id = ?)
 		   AND t_valid_until IS NULL`,
 		[entityId, entityId],
 	);
 	return result.rows as unknown as EdgeRow[];
+}
+
+/**
+ * Get currently active edges from a source node filtered by type(s).
+ *
+ * Returns edges where `from_id = fromId`, `type IN types`, and `t_valid_until IS NULL`.
+ */
+export async function getEdgesByType(
+	db: SiaDb,
+	fromId: string,
+	types: string[],
+): Promise<Record<string, unknown>[]> {
+	const placeholders = types.map(() => "?").join(", ");
+	const { rows } = await db.execute(
+		`SELECT * FROM graph_edges WHERE from_id = ? AND type IN (${placeholders}) AND t_valid_until IS NULL`,
+		[fromId, ...types],
+	);
+	return rows;
 }
 
 /**
@@ -131,7 +149,7 @@ export async function getEdgesAsOf(
 	asOfMs: number,
 ): Promise<EdgeRow[]> {
 	const result = await db.execute(
-		`SELECT * FROM edges
+		`SELECT * FROM graph_edges
 		 WHERE (from_id = ? OR to_id = ?)
 		   AND (t_valid_from IS NULL OR t_valid_from <= ?)
 		   AND (t_valid_until IS NULL OR t_valid_until > ?)`,

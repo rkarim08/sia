@@ -66,7 +66,7 @@ export async function buildSummaryTree(db: SiaDb, llmClient?: LlmClient): Promis
 
 	const entityResult = await db.execute(
 		`SELECT id, content, summary, t_valid_until
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE t_valid_until IS NULL AND archived_at IS NULL`,
 	);
 	const communityResult = await db.execute(`SELECT id, summary FROM communities`);
@@ -170,7 +170,7 @@ export async function getOrCreateLevel1Summary(
 
 	// Fetch entity
 	const entityResult = await db.execute(
-		"SELECT id, content, summary, t_valid_until FROM entities WHERE id = ?",
+		"SELECT id, content, summary, t_valid_until FROM graph_nodes WHERE id = ?",
 		[entityId],
 	);
 	if (entityResult.rows.length === 0) return null;

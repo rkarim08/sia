@@ -18,6 +18,7 @@ import type {
 	PipelineResult,
 } from "@/capture/types";
 import { writeAuditEntry } from "@/graph/audit";
+import { insertCrossRepoEdge, openBridgeDb } from "@/graph/bridge-db";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
@@ -63,26 +64,62 @@ function isCircuitBreakerActive(): boolean {
 
 /**
  * Scan candidates for workspace:* npm imports or TypeScript project references.
- * Returns the number of cross-repo edges detected (0 for now if no bridge api_contracts to match).
+ * When metaDb is provided, looks up api_contracts where the current repo is the consumer
+ * and writes depends_on edges to bridge.db for matching patterns.
+ * Returns the number of cross-repo edges written (0 if no metaDb provided).
  */
-export function detectCrossRepoEdges(
+export async function detectCrossRepoEdges(
 	_graphDb: SiaDb,
-	_bridgeDb: SiaDb,
+	bridgeDb: SiaDb,
 	candidates: CandidateFact[],
-	_repoHash: string,
-): number {
-	let detected = 0;
+	repoHash: string,
+	metaDb?: SiaDb,
+): Promise<number> {
+	if (!metaDb) {
+		return 0;
+	}
+
+	// Find candidates that match cross-repo patterns
+	const matchingCandidates: CandidateFact[] = [];
 	for (const candidate of candidates) {
-		if (/"workspace:\*"/.test(candidate.content)) {
-			detected++;
-		}
-		if (/"references":/.test(candidate.content)) {
-			detected++;
+		if (/"workspace:\*"/.test(candidate.content) || /"references":/.test(candidate.content)) {
+			matchingCandidates.push(candidate);
 		}
 	}
-	// For now we just return the count of patterns found; actual bridge edge
-	// creation will come when meta.db api_contracts table exists.
-	return detected;
+
+	if (matchingCandidates.length === 0) {
+		return 0;
+	}
+
+	// Look up api_contracts where this repo is the consumer
+	const { rows: contracts } = await metaDb.execute(
+		"SELECT id, provider_repo_id, consumer_repo_id, contract_type FROM api_contracts WHERE consumer_repo_id = ?",
+		[repoHash],
+	);
+
+	if (contracts.length === 0) {
+		return 0;
+	}
+
+	// Write a depends_on edge for each (matching candidate, contract) pair
+	let edgesWritten = 0;
+	for (const candidate of matchingCandidates) {
+		for (const contract of contracts) {
+			const providerRepoId = contract.provider_repo_id as string;
+			await insertCrossRepoEdge(bridgeDb, {
+				source_repo_id: repoHash,
+				source_entity_id: candidate.name,
+				target_repo_id: providerRepoId,
+				target_entity_id: providerRepoId,
+				type: "depends_on",
+				trust_tier: 2,
+				created_by: "auto-detect",
+			});
+			edgesWritten++;
+		}
+	}
+
+	return edgesWritten;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +212,7 @@ async function applySharingRules(
 
 	// Apply rules to newly created entities
 	for (const entityId of entityIds) {
-		const { rows } = await graphDb.execute("SELECT type, visibility FROM entities WHERE id = ?", [
+		const { rows } = await graphDb.execute("SELECT type, visibility FROM graph_nodes WHERE id = ?", [
 			entityId,
 		]);
 		if (rows.length === 0) continue;
@@ -310,7 +347,7 @@ export async function runPipeline(
 					// Gather IDs of newly added entities for edge inference
 					for (const candidate of nonTier4Candidates) {
 						const result = await graphDb.execute(
-							"SELECT id FROM entities WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY t_created DESC LIMIT 1",
+							"SELECT id FROM graph_nodes WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL ORDER BY t_created DESC LIMIT 1",
 							[candidate.name, candidate.type],
 						);
 						const row = result.rows[0] as { id: string } | undefined;
@@ -332,6 +369,20 @@ export async function runPipeline(
 
 			// Step 10: Edge inference
 			const edgesCreated = newEntityIds.length > 0 ? await inferEdges(graphDb, newEntityIds) : 0;
+
+			// Step 10.6: Cross-repo edge detection — writes depends_on edges to bridge.db
+			if (opts?.metaDb && allCandidates.length > 0) {
+				try {
+					const bridgeDb = openBridgeDb(siaHome);
+					try {
+						await detectCrossRepoEdges(graphDb, bridgeDb, allCandidates, repoHash, opts.metaDb);
+					} finally {
+						await bridgeDb.close();
+					}
+				} catch {
+					// Best effort — bridge edge detection failure should not break pipeline
+				}
+			}
 
 			// Step 10.5: Sharing rules enforcement (Task 11.6)
 			if (opts?.metaDb && newEntityIds.length > 0) {

@@ -26,7 +26,7 @@ describe("workspace-search", () => {
 		const id = randomUUID();
 		const now = Date.now();
 		await db.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				package_path, tags, file_paths,
 				trust_tier, confidence, base_confidence,

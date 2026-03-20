@@ -34,7 +34,7 @@ describe("sia_expand tool", () => {
 	): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths, trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -66,7 +66,7 @@ describe("sia_expand tool", () => {
 		const edgeId = randomUUID();
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, ?, 1.0, 0.7, 3, ?, NULL, NULL, ?)`,

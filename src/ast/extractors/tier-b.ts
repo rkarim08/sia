@@ -277,7 +277,7 @@ export function extractTierB(content: string, filePath: string): CandidateFact[]
 					file_paths: [filePath],
 					trust_tier: 2,
 					confidence: 0.92,
-					extraction_method: "tree-sitter",
+					extraction_method: "regex-ast",
 				});
 
 				m = regex.exec(content);

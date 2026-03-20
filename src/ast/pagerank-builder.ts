@@ -30,7 +30,7 @@ export async function computePageRank(
 	activeFileIds: string[] = [],
 ): Promise<PageRankResult> {
 	const { rows } = await db.execute(
-		"SELECT from_id, to_id FROM edges WHERE t_valid_until IS NULL AND type IN ('calls','imports','inherits_from')",
+		"SELECT from_id, to_id FROM graph_edges WHERE t_valid_until IS NULL AND type IN ('calls','imports','inherits_from')",
 	);
 	const edges = rows as unknown as EdgeRow[];
 
@@ -110,7 +110,7 @@ export async function computePageRank(
 	for (let i = 0; i < nodeList.length; i += BATCH_SIZE) {
 		const batch = nodeList.slice(i, i + BATCH_SIZE);
 		const statements = batch.map((id) => ({
-			sql: "UPDATE entities SET importance = ? WHERE id = ?",
+			sql: "UPDATE graph_nodes SET importance = ? WHERE id = ?",
 			params: [scores.get(id) ?? 0, id],
 		}));
 		await db.executeMany(statements);

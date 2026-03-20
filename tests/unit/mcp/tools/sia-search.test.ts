@@ -42,7 +42,7 @@ describe("sia_search tool", () => {
 		const now = Date.now();
 		const id = overrides.id ?? randomUUID();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				package_path, tags, file_paths,
 				trust_tier, confidence, base_confidence,

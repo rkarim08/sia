@@ -74,7 +74,7 @@ export async function workspaceSearch(opts: WorkspaceSearchOpts): Promise<Worksp
 
 	// Query primary
 	const allEntities: SiaSearchResult[] = [];
-	const primarySql = `SELECT * FROM entities WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
+	const primarySql = `SELECT * FROM graph_nodes WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
 	const primaryResult = await opts.primaryDb.execute(primarySql, [...filterParams, limit]);
 
 	for (const row of primaryResult.rows) {
@@ -86,7 +86,7 @@ export async function workspaceSearch(opts: WorkspaceSearchOpts): Promise<Worksp
 		try {
 			await opts.primaryDb.execute("ATTACH DATABASE ? AS peer_db", [peer.graphDbPath]);
 
-			const peerSql = `SELECT * FROM peer_db.entities WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
+			const peerSql = `SELECT * FROM peer_db.graph_nodes WHERE ${whereClause} ORDER BY importance DESC LIMIT ?`;
 			const peerResult = await opts.primaryDb.execute(peerSql, [...filterParams, limit]);
 
 			for (const row of peerResult.rows) {

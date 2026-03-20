@@ -69,7 +69,7 @@ describe("markdown import", () => {
 
 		// Verify entity in database
 		const { rows } = await db.execute(
-			"SELECT * FROM entities WHERE extraction_method = 'markdown-import'",
+			"SELECT * FROM graph_nodes WHERE extraction_method = 'markdown-import'",
 		);
 		expect(rows).toHaveLength(1);
 
@@ -113,7 +113,7 @@ describe("markdown import", () => {
 		expect(result.errors).toHaveLength(0);
 
 		const { rows } = await db.execute(
-			"SELECT * FROM entities WHERE extraction_method = 'markdown-import'",
+			"SELECT * FROM graph_nodes WHERE extraction_method = 'markdown-import'",
 		);
 		const entity = rows[0] as Record<string, unknown>;
 		expect(entity.type).toBe("Convention");
@@ -181,7 +181,7 @@ describe("markdown import", () => {
 
 		// Verify edge exists
 		const { rows: edges } = await db.execute(
-			"SELECT * FROM edges WHERE extraction_method = 'markdown-import'",
+			"SELECT * FROM graph_edges WHERE extraction_method = 'markdown-import'",
 		);
 		expect(edges).toHaveLength(1);
 
@@ -215,7 +215,7 @@ describe("markdown import", () => {
 		expect(result.errors).toHaveLength(0);
 
 		const { rows } = await db.execute(
-			"SELECT * FROM entities WHERE extraction_method = 'markdown-import'",
+			"SELECT * FROM graph_nodes WHERE extraction_method = 'markdown-import'",
 		);
 		const entity = rows[0] as Record<string, unknown>;
 		// Type inferred from parent directory "concepts"
@@ -278,7 +278,7 @@ describe("markdown import", () => {
 		expect(result.entitiesImported).toBe(2);
 
 		// Verify the good file imported correctly
-		const { rows } = await db.execute("SELECT * FROM entities WHERE name = 'Good Decision'");
+		const { rows } = await db.execute("SELECT * FROM graph_nodes WHERE name = 'Good Decision'");
 		expect(rows).toHaveLength(1);
 	});
 });

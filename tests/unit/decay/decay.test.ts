@@ -54,7 +54,7 @@ describe("importance decay", () => {
 
 		await decayImportance(db, config);
 
-		const result = await db.execute("SELECT * FROM entities WHERE name = ?", ["Test Convention"]);
+		const result = await db.execute("SELECT * FROM graph_nodes WHERE name = ?", ["Test Convention"]);
 		const entity = result.rows[0] as { importance: number };
 		// 0.8 * 0.5^(60/60) + 0 edgeBoost = 0.4
 		expect(entity.importance).toBeCloseTo(0.4, 1);
@@ -86,7 +86,7 @@ describe("importance decay", () => {
 
 		const entity = await getEntity(
 			db,
-			(await db.execute("SELECT id FROM entities WHERE name = ?", ["Boosted Entity"])).rows[0]
+			(await db.execute("SELECT id FROM graph_nodes WHERE name = ?", ["Boosted Entity"])).rows[0]
 				?.id as string,
 		);
 		expect(entity).toBeDefined();
@@ -122,7 +122,7 @@ describe("importance decay", () => {
 
 		const entity = await getEntity(
 			db,
-			(await db.execute("SELECT id FROM entities WHERE name = ?", ["Hub Entity"])).rows[0]
+			(await db.execute("SELECT id FROM graph_nodes WHERE name = ?", ["Hub Entity"])).rows[0]
 				?.id as string,
 		);
 		expect(entity).toBeDefined();
@@ -153,7 +153,7 @@ describe("importance decay", () => {
 
 		const entity = await getEntity(
 			db,
-			(await db.execute("SELECT id FROM entities WHERE name = ?", ["Tiny Entity"])).rows[0]
+			(await db.execute("SELECT id FROM graph_nodes WHERE name = ?", ["Tiny Entity"])).rows[0]
 				?.id as string,
 		);
 		expect(entity).toBeDefined();

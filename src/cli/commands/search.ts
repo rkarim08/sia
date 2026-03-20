@@ -68,14 +68,14 @@ export async function searchGraph(
 	try {
 		const ftsQuery = sanitizeFtsQuery(query);
 		const result = await db.execute(
-			`SELECT entities.id, entities.name, entities.type, entities.content,
-				entities.summary, entities.importance, entities.confidence,
-				entities.trust_tier, entities_fts.rank
-			FROM entities_fts
-			JOIN entities ON entities.rowid = entities_fts.rowid
-			WHERE entities_fts MATCH ?
-				AND entities.t_valid_until IS NULL
-				AND entities.archived_at IS NULL
+			`SELECT graph_nodes.id, graph_nodes.name, graph_nodes.type, graph_nodes.content,
+				graph_nodes.summary, graph_nodes.importance, graph_nodes.confidence,
+				graph_nodes.trust_tier, graph_nodes_fts.rank
+			FROM graph_nodes_fts
+			JOIN graph_nodes ON graph_nodes.rowid = graph_nodes_fts.rowid
+			WHERE graph_nodes_fts MATCH ?
+				AND graph_nodes.t_valid_until IS NULL
+				AND graph_nodes.archived_at IS NULL
 			ORDER BY rank
 			LIMIT ?`,
 			[ftsQuery, limit],
@@ -90,7 +90,7 @@ export async function searchGraph(
 	const likePattern = `%${query}%`;
 	const result = await db.execute(
 		`SELECT id, name, type, content, summary, importance, confidence, trust_tier
-		FROM entities
+		FROM graph_nodes
 		WHERE (name LIKE ? OR content LIKE ?)
 			AND t_valid_until IS NULL
 			AND archived_at IS NULL

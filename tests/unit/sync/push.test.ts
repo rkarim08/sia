@@ -59,7 +59,7 @@ function entityRow(
 	];
 }
 
-const ENTITY_INSERT = `INSERT INTO entities (
+const ENTITY_INSERT = `INSERT INTO graph_nodes (
 	id, type, name, content, summary, package_path,
 	tags, file_paths, trust_tier, confidence, base_confidence,
 	importance, base_importance, access_count, edge_count,
@@ -68,7 +68,7 @@ const ENTITY_INSERT = `INSERT INTO entities (
 	conflict_group_id, source_episode, extraction_method, extraction_model, embedding, archived_at
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-const EDGE_INSERT = `INSERT INTO edges (
+const EDGE_INSERT = `INSERT INTO graph_edges (
 	id, from_id, to_id, type, weight, confidence, trust_tier,
 	t_created, t_expired, t_valid_from, t_valid_until,
 	hlc_created, hlc_modified, source_episode, extraction_method
@@ -87,7 +87,7 @@ describe("pushChanges", () => {
 		const pushResult = await pushChanges(db, CONFIG);
 		expect(pushResult.entitiesPushed).toBe(1);
 
-		const rows = await db.execute("SELECT id, synced_at FROM entities ORDER BY id");
+		const rows = await db.execute("SELECT id, synced_at FROM graph_nodes ORDER BY id");
 		const e1 = rows.rows.find((r) => (r as { id: string }).id === "e1") as {
 			synced_at: number | null;
 		};
@@ -119,7 +119,7 @@ describe("pushChanges", () => {
 		expect(pushResult.edgesPushed).toBe(1);
 
 		// Verify edge-1 has hlc_modified set (marked as synced)
-		const edgeRows = await db.execute("SELECT id, hlc_modified FROM edges ORDER BY id");
+		const edgeRows = await db.execute("SELECT id, hlc_modified FROM graph_edges ORDER BY id");
 		const edge1 = edgeRows.rows.find((r) => (r as { id: string }).id === "edge-1") as {
 			hlc_modified: number | null;
 		};
@@ -159,7 +159,7 @@ describe("pushChanges", () => {
 		expect(pushResult.entitiesPushed).toBe(1);
 
 		// Verify synced_at is set (will be the HLC wall-clock ms)
-		const rows = await db.execute("SELECT synced_at FROM entities WHERE id = 'e1'");
+		const rows = await db.execute("SELECT synced_at FROM graph_nodes WHERE id = 'e1'");
 		const syncedAt = (rows.rows[0] as { synced_at: number }).synced_at;
 		expect(syncedAt).toBeGreaterThan(0);
 	});

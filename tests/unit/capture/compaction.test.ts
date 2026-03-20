@@ -48,7 +48,7 @@ describe("compactSession", () => {
 		await compactSession(db, longContent, config);
 
 		const result = await db.execute(
-			"SELECT * FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(result.rows).toHaveLength(1);
 
@@ -74,7 +74,7 @@ describe("compactSession", () => {
 		await compactSession(db, shortContent, config);
 
 		const result = await db.execute(
-			"SELECT * FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(result.rows).toHaveLength(0);
 	});
@@ -94,7 +94,7 @@ describe("compactSession", () => {
 		await compactSession(db, exactContent, config);
 
 		const result = await db.execute(
-			"SELECT * FROM entities WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE type = 'Concept' AND t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(result.rows).toHaveLength(0);
 	});

@@ -62,7 +62,7 @@ describe("computePageRank", () => {
 
 		await computePageRank(db);
 
-		const rows = await db.execute("SELECT id, importance FROM entities WHERE id IN (?, ?, ?)", [
+		const rows = await db.execute("SELECT id, importance FROM graph_nodes WHERE id IN (?, ?, ?)", [
 			a.id,
 			b.id,
 			c.id,
@@ -100,7 +100,7 @@ describe("computePageRank", () => {
 
 		await computePageRank(db, [b.id]);
 
-		const rows = await db.execute("SELECT id, importance FROM entities WHERE id IN (?, ?)", [
+		const rows = await db.execute("SELECT id, importance FROM graph_nodes WHERE id IN (?, ?)", [
 			a.id,
 			b.id,
 		]);

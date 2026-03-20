@@ -100,7 +100,7 @@ export async function handleSiaCommunity(
 		const totalCommunities = (countResult.rows[0]?.cnt as number) ?? 0;
 
 		if (totalCommunities === 0) {
-			const entityCountResult = await db.execute("SELECT COUNT(*) AS cnt FROM entities", []);
+			const entityCountResult = await db.execute("SELECT COUNT(*) AS cnt FROM graph_nodes", []);
 			const totalEntities = (entityCountResult.rows[0]?.cnt as number) ?? 0;
 
 			if (totalEntities < 100) {

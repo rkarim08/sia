@@ -107,7 +107,7 @@ export async function validateDocumentation(
 ): Promise<{ checked: number; staleFound: number }> {
 	const { rows } = await db.execute(
 		`SELECT id, file_paths, t_created, confidence, tags
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE type IN ('CodeEntity', 'Convention', 'Decision')
 		   AND trust_tier = 1
 		   AND file_paths IS NOT NULL
@@ -174,7 +174,7 @@ export async function validateDocumentation(
 			}
 
 			const newConfidence = Math.max(0.01, currentConfidence - 0.1);
-			await db.execute("UPDATE entities SET tags = ?, confidence = ? WHERE id = ?", [
+			await db.execute("UPDATE graph_nodes SET tags = ?, confidence = ? WHERE id = ?", [
 				JSON.stringify(tags),
 				newConfidence,
 				entityId,
@@ -204,7 +204,7 @@ export async function identifyLowConfidenceClaims(
 ): Promise<{ verified: number; invalidated: number; confirmed: number }> {
 	const { rows } = await db.execute(
 		`SELECT id, file_paths, confidence
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE trust_tier = 3
 		   AND t_valid_until IS NULL
 		   AND archived_at IS NULL
@@ -234,7 +234,7 @@ export async function identifyLowConfidenceClaims(
 			// No source file to check — treat as confirmed
 			confirmed++;
 			await db.execute(
-				"UPDATE entities SET confidence = MIN(1.0, confidence + 0.05) WHERE id = ?",
+				"UPDATE graph_nodes SET confidence = MIN(1.0, confidence + 0.05) WHERE id = ?",
 				[entityId],
 			);
 			continue;
@@ -252,7 +252,7 @@ export async function identifyLowConfidenceClaims(
 			confirmed++;
 			// Bump confidence slightly as a re-observation
 			await db.execute(
-				"UPDATE entities SET confidence = MIN(1.0, confidence + 0.05) WHERE id = ?",
+				"UPDATE graph_nodes SET confidence = MIN(1.0, confidence + 0.05) WHERE id = ?",
 				[entityId],
 			);
 		}
@@ -276,7 +276,7 @@ export async function recomputePageRank(db: SiaDb): Promise<{ nodesScored: numbe
 	if (result.nodesScored > 0) {
 		// Build score map from the computed results
 		const { rows } = await db.execute(
-			"SELECT id, importance FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT id, importance FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		const scores = new Map<string, number>(
 			rows.map((r) => [r.id as string, r.importance as number]),
@@ -309,7 +309,7 @@ export async function compactVersions(
 
 	// 1. Delete archived entities beyond the main retention window
 	const { rows: deletedRows } = await db.execute(
-		`DELETE FROM entities
+		`DELETE FROM graph_nodes
 		 WHERE archived_at IS NOT NULL
 		   AND archived_at < ?
 		 RETURNING id`,
@@ -320,7 +320,7 @@ export async function compactVersions(
 	// 2. Delete archived event entities with low importance and zero edges
 	//    that are beyond the event retention window
 	const { rows: deletedEventRows } = await db.execute(
-		`DELETE FROM entities
+		`DELETE FROM graph_nodes
 		 WHERE type LIKE '%Event'
 		   AND importance < ?
 		   AND edge_count = 0
@@ -334,7 +334,7 @@ export async function compactVersions(
 	// 3. Optimize the FTS5 virtual table
 	let ftsOptimized = false;
 	try {
-		await db.execute("INSERT INTO entities_fts(entities_fts) VALUES('optimize')", []);
+		await db.execute("INSERT INTO graph_nodes_fts(graph_nodes_fts) VALUES('optimize')", []);
 		ftsOptimized = true;
 	} catch {
 		// FTS5 table may not exist in all test environments — treat as non-fatal

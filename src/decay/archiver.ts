@@ -32,7 +32,7 @@ export async function archiveBatch(
 	const cutoff = Date.now() - INACTIVE_DAYS_MS;
 
 	const { rows } = await db.execute(
-		`SELECT id FROM entities
+		`SELECT id FROM graph_nodes
 		 WHERE importance < ?
 		   AND edge_count = 0
 		   AND last_accessed < ?

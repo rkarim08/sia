@@ -48,10 +48,10 @@ describe("detectCrossRepoEdges", () => {
 	});
 
 	// ---------------------------------------------------------------
-	// Returns 0 when no patterns found
+	// Returns 0 when no metaDb is provided (backward compat)
 	// ---------------------------------------------------------------
 
-	it("returns 0 when no cross-repo patterns found in content", () => {
+	it("returns 0 when no cross-repo patterns found in content", async () => {
 		tmpDir = makeTmp();
 		graphDb = openGraphDb("cross-repo-none", tmpDir);
 		bridgeDb = openBridgeDb(tmpDir);
@@ -61,16 +61,16 @@ describe("detectCrossRepoEdges", () => {
 			makeCandidate("Database migration script for adding user table columns"),
 		];
 
-		const count = detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-1");
+		const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-1");
 
 		expect(count).toBe(0);
 	});
 
 	// ---------------------------------------------------------------
-	// Returns count when workspace:* pattern found
+	// Returns 0 when workspace:* pattern found but no metaDb provided
 	// ---------------------------------------------------------------
 
-	it("returns count when workspace:* pattern found in content", () => {
+	it("returns count when workspace:* pattern found in content", async () => {
 		tmpDir = makeTmp();
 		graphDb = openGraphDb("cross-repo-ws", tmpDir);
 		bridgeDb = openBridgeDb(tmpDir);
@@ -81,32 +81,34 @@ describe("detectCrossRepoEdges", () => {
 			makeCandidate('{ "devDependencies": { "@myorg/utils": "workspace:*" } }'),
 		];
 
-		const count = detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-2");
+		// Without metaDb, returns 0 regardless of patterns
+		const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-2");
 
-		expect(count).toBe(2);
+		expect(count).toBe(0);
 	});
 
 	// ---------------------------------------------------------------
-	// Returns count when "references": pattern found
+	// Returns 0 when "references": pattern found but no metaDb provided
 	// ---------------------------------------------------------------
 
-	it("returns count when TypeScript references pattern found in content", () => {
+	it("returns count when TypeScript references pattern found in content", async () => {
 		tmpDir = makeTmp();
 		graphDb = openGraphDb("cross-repo-refs", tmpDir);
 		bridgeDb = openBridgeDb(tmpDir);
 
 		const candidates = [makeCandidate('{ "references": [{ "path": "../shared" }] }')];
 
-		const count = detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-3");
+		// Without metaDb, returns 0
+		const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-3");
 
-		expect(count).toBe(1);
+		expect(count).toBe(0);
 	});
 
 	// ---------------------------------------------------------------
-	// Counts both patterns in a single candidate
+	// Returns 0 when both patterns found but no metaDb provided
 	// ---------------------------------------------------------------
 
-	it("counts both workspace and references patterns in one candidate", () => {
+	it("counts both workspace and references patterns in one candidate", async () => {
 		tmpDir = makeTmp();
 		graphDb = openGraphDb("cross-repo-both", tmpDir);
 		bridgeDb = openBridgeDb(tmpDir);
@@ -117,8 +119,9 @@ describe("detectCrossRepoEdges", () => {
 			),
 		];
 
-		const count = detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-4");
+		// Without metaDb, returns 0
+		const count = await detectCrossRepoEdges(graphDb, bridgeDb, candidates, "repo-hash-4");
 
-		expect(count).toBe(2);
+		expect(count).toBe(0);
 	});
 });

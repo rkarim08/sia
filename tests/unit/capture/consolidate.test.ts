@@ -98,7 +98,7 @@ describe("consolidate", () => {
 
 		// Verify entity exists in DB
 		const rows = await db.execute(
-			"SELECT * FROM entities WHERE name = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL",
 			["Brand New Entity"],
 		);
 		expect(rows.rows).toHaveLength(1);
@@ -178,7 +178,7 @@ describe("consolidate", () => {
 
 		// Verify content was updated
 		const rows = await db.execute(
-			"SELECT * FROM entities WHERE name = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL",
 			["Evolving Entity"],
 		);
 		expect(rows.rows).toHaveLength(1);
@@ -221,12 +221,12 @@ describe("consolidate", () => {
 		expect(result.noops).toBe(0);
 
 		// Old entity should be invalidated
-		const oldEntity = await db.execute("SELECT * FROM entities WHERE id = ?", [original.id]);
+		const oldEntity = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [original.id]);
 		expect((oldEntity.rows[0] as unknown as Entity).t_valid_until).not.toBeNull();
 
 		// New entity should exist
 		const newRows = await db.execute(
-			"SELECT * FROM entities WHERE name = ? AND t_valid_until IS NULL",
+			"SELECT * FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL",
 			["Architecture Choice"],
 		);
 		expect(newRows.rows).toHaveLength(1);
@@ -251,7 +251,7 @@ describe("consolidate", () => {
 		db = openGraphDb("consol-txn", tmpDir);
 
 		// Count entities before
-		const before = await db.execute("SELECT COUNT(*) as cnt FROM entities");
+		const before = await db.execute("SELECT COUNT(*) as cnt FROM graph_nodes");
 		const countBefore = (before.rows[0] as { cnt: number }).cnt;
 
 		// Create a wrapper that intercepts execute calls even inside transactions.
@@ -261,7 +261,7 @@ describe("consolidate", () => {
 		function wrapWithBomb(inner: SiaDb): SiaDb {
 			return {
 				execute: async (sql, params) => {
-					if (sql.trimStart().toUpperCase().startsWith("INSERT INTO ENTITIES")) {
+					if (sql.trimStart().toUpperCase().startsWith("INSERT INTO GRAPH_NODES")) {
 						insertCount++;
 						if (insertCount >= 2) {
 							throw new Error("Simulated failure on second insert");
@@ -300,7 +300,7 @@ describe("consolidate", () => {
 		);
 
 		// Verify nothing was written (transaction rolled back)
-		const after = await db.execute("SELECT COUNT(*) as cnt FROM entities");
+		const after = await db.execute("SELECT COUNT(*) as cnt FROM graph_nodes");
 		const countAfter = (after.rows[0] as { cnt: number }).cnt;
 		expect(countAfter).toBe(countBefore);
 	});

@@ -113,6 +113,7 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		file_paths: JSON.stringify([filePath]),
 		extraction_method: "hook:post-tool-use:edit",
 		source_episode: event.session_id,
+		kind: "EditEvent",
 	});
 
 	return { status: "processed", nodes_created: 1 };
@@ -132,6 +133,7 @@ async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		summary: `Executed: ${command.slice(0, 120)}`,
 		extraction_method: "hook:post-tool-use:bash",
 		source_episode: event.session_id,
+		kind: "ExecutionEvent",
 	});
 	nodesCreated++;
 

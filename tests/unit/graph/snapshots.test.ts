@@ -130,13 +130,13 @@ describe("snapshot rollback", () => {
 
 		// Verify 3 entities exist
 		const beforeDelete = await db.execute(
-			"SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(beforeDelete.rows).toHaveLength(3);
 
 		// Delete all entities
-		await db.execute("DELETE FROM entities");
-		const afterDelete = await db.execute("SELECT * FROM entities");
+		await db.execute("DELETE FROM graph_nodes");
+		const afterDelete = await db.execute("SELECT * FROM graph_nodes");
 		expect(afterDelete.rows).toHaveLength(0);
 
 		// Restore from snapshot
@@ -144,7 +144,7 @@ describe("snapshot rollback", () => {
 
 		// Verify 3 entities are back
 		const afterRestore = await db.execute(
-			"SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		expect(afterRestore.rows).toHaveLength(3);
 

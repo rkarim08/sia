@@ -24,7 +24,7 @@ export async function deepValidateBatch(
 	const cutoff = Date.now() - 86_400_000; // 24h ago
 
 	const { rows } = await db.execute(
-		`SELECT id, name, type, content, confidence FROM entities
+		`SELECT id, name, type, content, confidence FROM graph_nodes
 		 WHERE trust_tier = 3
 		   AND t_valid_until IS NULL
 		   AND archived_at IS NULL

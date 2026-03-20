@@ -35,7 +35,7 @@ export async function pushChanges(
 
 	// --- Push entities ---
 	const candidates = await db.execute(
-		`SELECT id FROM entities
+		`SELECT id FROM graph_nodes
 		 WHERE visibility != 'private'
 		   AND (synced_at IS NULL OR (hlc_modified IS NOT NULL AND synced_at < hlc_modified))`,
 	);
@@ -48,7 +48,7 @@ export async function pushChanges(
 		for (let i = 0; i < entityIds.length; i += 500) {
 			const chunk = entityIds.slice(i, i + 500);
 			const placeholders = chunk.map(() => "?").join(", ");
-			await db.execute(`UPDATE entities SET synced_at = ? WHERE id IN (${placeholders})`, [
+			await db.execute(`UPDATE graph_nodes SET synced_at = ? WHERE id IN (${placeholders})`, [
 				syncedAt,
 				...chunk,
 			]);
@@ -63,7 +63,7 @@ export async function pushChanges(
 	let edgesPushed = 0;
 	if (entityIdSet.size > 0) {
 		const allEdges = await db.execute(
-			`SELECT id, from_id, to_id FROM edges
+			`SELECT id, from_id, to_id FROM graph_edges
 			 WHERE t_valid_until IS NULL`,
 		);
 
@@ -78,7 +78,7 @@ export async function pushChanges(
 		for (let i = 0; i < eligibleEdgeIds.length; i += 500) {
 			const chunk = eligibleEdgeIds.slice(i, i + 500);
 			const placeholders = chunk.map(() => "?").join(", ");
-			await db.execute(`UPDATE edges SET hlc_modified = ? WHERE id IN (${placeholders})`, [
+			await db.execute(`UPDATE graph_edges SET hlc_modified = ? WHERE id IN (${placeholders})`, [
 				syncedAt,
 				...chunk,
 			]);

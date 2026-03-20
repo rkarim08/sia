@@ -77,7 +77,7 @@ describe("freshness CLI command", () => {
 		});
 
 		// Medium confidence (0.3–0.7) → stale
-		await db.execute("UPDATE entities SET confidence = 0.5 WHERE name = 'Fresh Node'", []);
+		await db.execute("UPDATE graph_nodes SET confidence = 0.5 WHERE name = 'Fresh Node'", []);
 
 		// Wait a tick then insert stale and rotten nodes
 		await insertEntity(db, {
@@ -97,8 +97,8 @@ describe("freshness CLI command", () => {
 		});
 
 		// Update confidence directly via SQL to ensure specific values
-		await db.execute("UPDATE entities SET confidence = 0.5 WHERE name = 'Stale Node'", []);
-		await db.execute("UPDATE entities SET confidence = 0.2 WHERE name = 'Rotten Node'", []);
+		await db.execute("UPDATE graph_nodes SET confidence = 0.5 WHERE name = 'Stale Node'", []);
+		await db.execute("UPDATE graph_nodes SET confidence = 0.2 WHERE name = 'Rotten Node'", []);
 
 		const report = await generateFreshnessReport(db);
 

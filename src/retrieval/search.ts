@@ -188,7 +188,7 @@ async function expandNeighbors(
 	const candidateIds = results.map((r) => r.entityId);
 	for (const entityId of candidateIds) {
 		const edgeResult = await db.execute(
-			"SELECT from_id, to_id FROM edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
+			"SELECT from_id, to_id FROM graph_edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
 			[entityId, entityId],
 		);
 
@@ -203,7 +203,7 @@ async function expandNeighbors(
 			// Validate the neighbor is active (and paranoid-safe)
 			const paranoidClause = paranoid ? " AND trust_tier < 4" : "";
 			const check = await db.execute(
-				`SELECT id FROM entities WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
+				`SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
 				[neighborId],
 			);
 			if (check.rows.length === 0) continue;
@@ -225,7 +225,7 @@ async function expandNeighbors(
 async function attachProvenance(db: SiaDb, results: SiaSearchResult[]): Promise<void> {
 	for (const result of results) {
 		if (result.extraction_method === undefined) {
-			const row = await db.execute("SELECT extraction_method FROM entities WHERE id = ?", [
+			const row = await db.execute("SELECT extraction_method FROM graph_nodes WHERE id = ?", [
 				result.id,
 			]);
 			if (row.rows.length > 0) {

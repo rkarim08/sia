@@ -124,7 +124,7 @@ describe("deep-validation", () => {
 			// Set t_created to a timestamp in the past so the file appears newer.
 			const pastTime = Date.now() - 200_000; // 200 seconds ago
 			await db.execute(
-				`INSERT INTO entities (
+				`INSERT INTO graph_nodes (
 					id, type, name, content, summary, tags, file_paths,
 					trust_tier, confidence, base_confidence,
 					importance, base_importance, access_count, edge_count,
@@ -333,7 +333,7 @@ describe("deep-validation", () => {
 			// Insert a calls edge from B to A
 			const now = Date.now();
 			await db.execute(
-				`INSERT INTO edges (id, from_id, to_id, type, weight, confidence, trust_tier, t_created)
+				`INSERT INTO graph_edges (id, from_id, to_id, type, weight, confidence, trust_tier, t_created)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 				[randomUUID(), nodeB.id, nodeA.id, "calls", 1.0, 0.8, 2, now],
 			);
@@ -342,7 +342,7 @@ describe("deep-validation", () => {
 			expect(result.nodesScored).toBe(2);
 
 			// After PageRank, NodeA should have higher importance since it's the target
-			const { rows } = await db.execute("SELECT id, importance FROM entities WHERE id IN (?, ?)", [
+			const { rows } = await db.execute("SELECT id, importance FROM graph_nodes WHERE id IN (?, ?)", [
 				nodeA.id,
 				nodeB.id,
 			]);
@@ -379,7 +379,7 @@ describe("deep-validation", () => {
 				summary: "summary",
 			});
 			const oldArchivedAt = Date.now() - retentionMs - 10 * 86_400_000;
-			await db.execute("UPDATE entities SET archived_at = ? WHERE id = ?", [
+			await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [
 				oldArchivedAt,
 				entity.id,
 			]);
@@ -388,7 +388,7 @@ describe("deep-validation", () => {
 			expect(result.compacted).toBeGreaterThanOrEqual(1);
 
 			// The entity should be hard-deleted
-			const { rows } = await db.execute("SELECT id FROM entities WHERE id = ?", [entity.id]);
+			const { rows } = await db.execute("SELECT id FROM graph_nodes WHERE id = ?", [entity.id]);
 			expect(rows.length).toBe(0);
 		});
 
@@ -406,7 +406,7 @@ describe("deep-validation", () => {
 				summary: "summary",
 			});
 			const recentArchivedAt = Date.now() - 10 * 86_400_000;
-			await db.execute("UPDATE entities SET archived_at = ? WHERE id = ?", [
+			await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [
 				recentArchivedAt,
 				entity.id,
 			]);
@@ -415,7 +415,7 @@ describe("deep-validation", () => {
 			expect(result.compacted).toBe(0);
 
 			// Entity should still exist
-			const { rows } = await db.execute("SELECT id FROM entities WHERE id = ?", [entity.id]);
+			const { rows } = await db.execute("SELECT id FROM graph_nodes WHERE id = ?", [entity.id]);
 			expect(rows.length).toBe(1);
 		});
 
@@ -434,7 +434,7 @@ describe("deep-validation", () => {
 			expect(result.compacted).toBe(0);
 
 			// Entity should still exist (no archived_at set)
-			const { rows } = await db.execute("SELECT id FROM entities WHERE id = ?", [entity.id]);
+			const { rows } = await db.execute("SELECT id FROM graph_nodes WHERE id = ?", [entity.id]);
 			expect(rows.length).toBe(1);
 		});
 

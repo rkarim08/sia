@@ -101,7 +101,7 @@ export async function graphTraversalSearch(
 	for (const term of terms) {
 		const paranoidClause = paranoid ? " AND trust_tier < 4" : "";
 		const result = await db.execute(
-			`SELECT id FROM entities WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
+			`SELECT id FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
 			[term],
 		);
 		for (const row of result.rows) {
@@ -116,7 +116,7 @@ export async function graphTraversalSearch(
 		if (term.length < 3) continue;
 		const paranoidClause = paranoid ? " AND trust_tier < 4" : "";
 		const result = await db.execute(
-			`SELECT id FROM entities WHERE name LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause} LIMIT 5`,
+			`SELECT id FROM graph_nodes WHERE name LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause} LIMIT 5`,
 			[`%${term}%`],
 		);
 		for (const row of result.rows) {
@@ -131,7 +131,7 @@ export async function graphTraversalSearch(
 	// Stage 3: 1-hop expansion via edges (score 0.7)
 	for (const entityId of directMatchIds) {
 		const edgeResult = await db.execute(
-			"SELECT from_id, to_id FROM edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
+			"SELECT from_id, to_id FROM graph_edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
 			[entityId, entityId],
 		);
 		for (const row of edgeResult.rows) {
@@ -142,13 +142,13 @@ export async function graphTraversalSearch(
 			// Only add neighbor if it is an active, non-archived entity
 			if (paranoid) {
 				const check = await db.execute(
-					"SELECT id FROM entities WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL AND trust_tier < 4",
+					"SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL AND trust_tier < 4",
 					[neighborId],
 				);
 				if (check.rows.length === 0) continue;
 			} else {
 				const check = await db.execute(
-					"SELECT id FROM entities WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+					"SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 					[neighborId],
 				);
 				if (check.rows.length === 0) continue;

@@ -86,9 +86,9 @@ function sanitizeUnquoted(text: string): string {
 }
 
 /**
- * Perform a BM25 keyword search against the entities_fts virtual table.
+ * Perform a BM25 keyword search against the graph_nodes_fts virtual table.
  *
- * Joins `entities_fts` with `entities` on rowid, filters for active entities
+ * Joins `graph_nodes_fts` with `entities` on rowid, filters for active entities
  * (t_valid_until IS NULL AND archived_at IS NULL), applies optional paranoid
  * and packagePath filters, and normalizes FTS5 rank to a 0–1 range.
  *
@@ -125,9 +125,9 @@ export async function bm25Search(
 
 	const sql = `
 		SELECT e.id AS entityId, -fts.rank AS rawRank
-		FROM entities_fts fts
-		JOIN entities e ON e.rowid = fts.rowid
-		WHERE entities_fts MATCH ?
+		FROM graph_nodes_fts fts
+		JOIN graph_nodes e ON e.rowid = fts.rowid
+		WHERE graph_nodes_fts MATCH ?
 		  AND ${whereClause}
 		ORDER BY fts.rank
 		LIMIT ?

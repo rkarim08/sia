@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import * as edgesModule from "@/graph/edges";
-import { getActiveEdges, getEdgesAsOf, insertEdge, invalidateEdge } from "@/graph/edges";
+import { getActiveEdges, getEdgesByType, getEdgesAsOf, insertEdge, invalidateEdge } from "@/graph/edges";
 import { openGraphDb } from "@/graph/semantic-db";
 
 describe("edge CRUD layer", () => {
@@ -22,7 +22,7 @@ describe("edge CRUD layer", () => {
 	async function insertEntity(siaDb: SiaDb, id: string, name: string): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths, trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,
@@ -84,7 +84,7 @@ describe("edge CRUD layer", () => {
 		expect(edge.t_valid_until).toBeNull();
 
 		// Verify in DB
-		const result = await db.execute("SELECT * FROM edges WHERE id = ?", [edge.id]);
+		const result = await db.execute("SELECT * FROM graph_edges WHERE id = ?", [edge.id]);
 		expect(result.rows).toHaveLength(1);
 		expect(result.rows[0]?.from_id).toBe(eA);
 		expect(result.rows[0]?.to_id).toBe(eB);
@@ -119,7 +119,7 @@ describe("edge CRUD layer", () => {
 		const invalidationTs = Date.now() + 1000;
 		await invalidateEdge(db, edge.id, invalidationTs);
 
-		const result = await db.execute("SELECT * FROM edges WHERE id = ?", [edge.id]);
+		const result = await db.execute("SELECT * FROM graph_edges WHERE id = ?", [edge.id]);
 		expect(result.rows).toHaveLength(1);
 
 		const row = result.rows[0] as Record<string, unknown>;
@@ -194,7 +194,7 @@ describe("edge CRUD layer", () => {
 		// Insert edge directly with controlled timestamps for deterministic testing
 		const edgeId = randomUUID();
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, 'relates_to', 1.0, 0.7, 3, ?, NULL, ?, ?)`,
@@ -231,7 +231,7 @@ describe("edge CRUD layer", () => {
 
 		const edgeId = randomUUID();
 		await db.execute(
-			`INSERT INTO edges (
+			`INSERT INTO graph_edges (
 				id, from_id, to_id, type, weight, confidence, trust_tier,
 				t_created, t_expired, t_valid_from, t_valid_until
 			) VALUES (?, ?, ?, 'relates_to', 1.0, 0.7, 3, ?, NULL, ?, ?)`,
@@ -244,6 +244,50 @@ describe("edge CRUD layer", () => {
 
 		const edgesB = await getEdgesAsOf(db, eB, queryTime);
 		expect(edgesB).toHaveLength(0);
+	});
+
+	// ---------------------------------------------------------------
+	// getEdgesByType filters by from_id and type
+	// ---------------------------------------------------------------
+
+	it("getEdgesByType returns only matching types from a given source node", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edges-by-type", tmpDir);
+
+		const eA = randomUUID();
+		const eB = randomUUID();
+		const eC = randomUUID();
+		await insertEntity(db, eA, "Entity A");
+		await insertEntity(db, eB, "Entity B");
+		await insertEntity(db, eC, "Entity C");
+
+		// Insert edges of different types from eA
+		const edge1 = await insertEdge(db, { from_id: eA, to_id: eB, type: "calls" });
+		const edge2 = await insertEdge(db, { from_id: eA, to_id: eC, type: "depends_on" });
+		const edge3 = await insertEdge(db, { from_id: eA, to_id: eB, type: "relates_to" });
+
+		// Insert an invalidated edge that should not be returned
+		const invalidated = await insertEdge(db, { from_id: eA, to_id: eC, type: "calls" });
+		await invalidateEdge(db, invalidated.id);
+
+		// Query for only "calls" and "depends_on" types
+		const results = await getEdgesByType(db, eA, ["calls", "depends_on"]);
+		expect(results).toHaveLength(2);
+
+		const ids = results.map((r) => r.id);
+		expect(ids).toContain(edge1.id);
+		expect(ids).toContain(edge2.id);
+		expect(ids).not.toContain(edge3.id);
+		expect(ids).not.toContain(invalidated.id);
+
+		// Query for only "relates_to"
+		const relatesToResults = await getEdgesByType(db, eA, ["relates_to"]);
+		expect(relatesToResults).toHaveLength(1);
+		expect(relatesToResults[0]?.id).toBe(edge3.id);
+
+		// Query for a type not present
+		const emptyResults = await getEdgesByType(db, eA, ["nonexistent"]);
+		expect(emptyResults).toHaveLength(0);
 	});
 
 	// ---------------------------------------------------------------

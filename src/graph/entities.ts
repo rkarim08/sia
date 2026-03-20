@@ -39,6 +39,8 @@ export interface Entity {
 	extraction_model: string | null;
 	embedding: Uint8Array | null;
 	archived_at: number | null;
+	session_id: string | null;
+	kind: string | null;
 }
 
 /** Fields the caller must or may provide when inserting an entity. */
@@ -69,6 +71,8 @@ export interface InsertEntityInput {
 	extraction_method?: string | null;
 	extraction_model?: string | null;
 	embedding?: Uint8Array | null;
+	session_id?: string | null;
+	kind?: string | null;
 }
 
 /** Fields that can be partially updated on an existing entity. */
@@ -122,10 +126,12 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 		extraction_model: input.extraction_model ?? null,
 		embedding: input.embedding ?? null,
 		archived_at: null,
+		session_id: input.session_id ?? null,
+		kind: input.kind ?? input.type,
 	};
 
 	await db.execute(
-		`INSERT INTO entities (
+		`INSERT INTO graph_nodes (
 			id, type, name, content, summary,
 			package_path, tags, file_paths,
 			trust_tier, confidence, base_confidence,
@@ -137,7 +143,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			hlc_created, hlc_modified, synced_at,
 			conflict_group_id,
 			source_episode, extraction_method, extraction_model,
-			embedding, archived_at
+			embedding, archived_at,
+			session_id, kind
 		) VALUES (
 			?, ?, ?, ?, ?,
 			?, ?, ?,
@@ -150,6 +157,7 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			?, ?, ?,
 			?,
 			?, ?, ?,
+			?, ?,
 			?, ?
 		)`,
 		[
@@ -186,6 +194,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			entity.extraction_model,
 			entity.embedding,
 			entity.archived_at,
+			entity.session_id,
+			entity.kind,
 		],
 	);
 
@@ -199,7 +209,7 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
  * Returns the entity or undefined if not found.
  */
 export async function getEntity(db: SiaDb, id: string): Promise<Entity | undefined> {
-	const result = await db.execute("SELECT * FROM entities WHERE id = ?", [id]);
+	const result = await db.execute("SELECT * FROM graph_nodes WHERE id = ?", [id]);
 	return (result.rows[0] as unknown as Entity | undefined) ?? undefined;
 }
 
@@ -218,7 +228,7 @@ export async function updateEntity(
 	const setClauses = entries.map(([key]) => `${key} = ?`).join(", ");
 	const values = entries.map(([, v]) => v);
 
-	await db.execute(`UPDATE entities SET ${setClauses} WHERE id = ?`, [...values, id]);
+	await db.execute(`UPDATE graph_nodes SET ${setClauses} WHERE id = ?`, [...values, id]);
 
 	await writeAuditEntry(db, "UPDATE", { entity_id: id });
 }
@@ -228,7 +238,7 @@ export async function updateEntity(
  */
 export async function touchEntity(db: SiaDb, id: string): Promise<void> {
 	await db.execute(
-		"UPDATE entities SET last_accessed = ?, access_count = access_count + 1 WHERE id = ?",
+		"UPDATE graph_nodes SET last_accessed = ?, access_count = access_count + 1 WHERE id = ?",
 		[Date.now(), id],
 	);
 }
@@ -240,7 +250,7 @@ export async function touchEntity(db: SiaDb, id: string): Promise<void> {
  */
 export async function invalidateEntity(db: SiaDb, id: string, tValidUntil?: number): Promise<void> {
 	const ts = tValidUntil ?? Date.now();
-	await db.execute("UPDATE entities SET t_valid_until = ?, t_expired = ? WHERE id = ?", [
+	await db.execute("UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ?", [
 		ts,
 		ts,
 		id,
@@ -254,7 +264,7 @@ export async function invalidateEntity(db: SiaDb, id: string, tValidUntil?: numb
  * Sets archived_at only. Does NOT touch t_valid_until or t_expired.
  */
 export async function archiveEntity(db: SiaDb, id: string): Promise<void> {
-	await db.execute("UPDATE entities SET archived_at = ? WHERE id = ?", [Date.now(), id]);
+	await db.execute("UPDATE graph_nodes SET archived_at = ? WHERE id = ?", [Date.now(), id]);
 
 	await writeAuditEntry(db, "ARCHIVE", { entity_id: id });
 }
@@ -269,8 +279,8 @@ export async function getActiveEntities(
 ): Promise<Entity[]> {
 	const limit = opts?.limit;
 	const sql = limit
-		? "SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL LIMIT ?"
-		: "SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL";
+		? "SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL LIMIT ?"
+		: "SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL";
 	const params = limit ? [limit] : [];
 
 	const result = await db.execute(sql, params);
@@ -283,8 +293,38 @@ export async function getActiveEntities(
  */
 export async function getEntitiesByPackage(db: SiaDb, packagePath: string): Promise<Entity[]> {
 	const result = await db.execute(
-		"SELECT * FROM entities WHERE package_path = ? AND t_valid_until IS NULL AND archived_at IS NULL",
+		"SELECT * FROM graph_nodes WHERE package_path = ? AND t_valid_until IS NULL AND archived_at IS NULL",
 		[packagePath],
 	);
 	return result.rows as unknown as Entity[];
+}
+
+/**
+ * Retrieve active nodes belonging to a specific session.
+ * Filters WHERE session_id = ? AND archived_at IS NULL AND t_valid_until IS NULL.
+ */
+export async function getNodesBySession(
+	db: SiaDb,
+	sessionId: string,
+): Promise<Record<string, unknown>[]> {
+	const { rows } = await db.execute(
+		"SELECT * FROM graph_nodes WHERE session_id = ? AND archived_at IS NULL AND t_valid_until IS NULL",
+		[sessionId],
+	);
+	return rows;
+}
+
+/**
+ * Retrieve active nodes of a specific semantic kind.
+ * Filters WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL.
+ */
+export async function getNodesByKind(
+	db: SiaDb,
+	kind: string,
+): Promise<Record<string, unknown>[]> {
+	const { rows } = await db.execute(
+		"SELECT * FROM graph_nodes WHERE kind = ? AND archived_at IS NULL AND t_valid_until IS NULL",
+		[kind],
+	);
+	return rows;
 }

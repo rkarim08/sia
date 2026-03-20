@@ -45,7 +45,7 @@ describe("indexRepository", () => {
 		expect(result.entitiesCreated).toBe(2);
 
 		const rows = await db.execute(
-			"SELECT name, file_paths FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT name, file_paths FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		const names = rows.rows.map((r) => r.name);
 		expect(names).toContain("alpha");
@@ -80,7 +80,7 @@ describe("indexRepository", () => {
 		await indexRepository(repoRoot, db, config, { repoHash });
 
 		const rows = await db.execute(
-			"SELECT COUNT(*) as cnt FROM entities WHERE name = 'dup' AND t_valid_until IS NULL",
+			"SELECT COUNT(*) as cnt FROM graph_nodes WHERE name = 'dup' AND t_valid_until IS NULL",
 		);
 		expect(rows.rows[0]?.cnt).toBe(1);
 	});
@@ -93,7 +93,7 @@ describe("indexRepository", () => {
 		writeFileSync(join(repoRoot, "vendor", "ignored.ts"), "export function ignored() {}", "utf-8");
 
 		const _result = await indexRepository(repoRoot, db, config, { repoHash });
-		const rows = await db.execute("SELECT name FROM entities WHERE t_valid_until IS NULL");
+		const rows = await db.execute("SELECT name FROM graph_nodes WHERE t_valid_until IS NULL");
 		const names = rows.rows.map((r) => r.name);
 		expect(names).toContain("kept");
 		expect(names).not.toContain("ignored");
@@ -128,7 +128,7 @@ describe("indexRepository", () => {
 		await indexRepository(repoRoot, db, config, { repoHash });
 
 		const result = await db.execute(
-			"SELECT package_path FROM entities WHERE name = ? AND t_valid_until IS NULL",
+			"SELECT package_path FROM graph_nodes WHERE name = ? AND t_valid_until IS NULL",
 			["delta"],
 		);
 		expect(result.rows[0]?.package_path).toBe("packages/app");

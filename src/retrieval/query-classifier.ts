@@ -71,7 +71,7 @@ export async function classifyQuery(
 	// Check graph size — force local if too few entities for community summaries
 	if (mode === "global") {
 		const result = await db.execute(
-			"SELECT COUNT(*) AS cnt FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+			"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 		);
 		const count = Number((result.rows[0] as { cnt: number }).cnt);
 		if (count < config.communityMinGraphSize) {

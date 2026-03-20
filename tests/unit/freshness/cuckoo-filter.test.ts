@@ -12,7 +12,7 @@ import { openGraphDb } from "@/graph/semantic-db";
 async function seedEntity(db: SiaDb, id: string): Promise<void> {
 	const now = Date.now();
 	await db.execute(
-		`INSERT INTO entities (
+		`INSERT INTO graph_nodes (
 			id, type, name, content, summary, tags, file_paths,
 			trust_tier, confidence, base_confidence,
 			importance, base_importance, access_count, edge_count,

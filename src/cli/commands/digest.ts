@@ -99,7 +99,7 @@ export async function generateDigest(db: SiaDb, opts?: DigestOpts): Promise<Dige
 	const { period, startDate, endDate } = resolveTimeRange(opts);
 
 	const { rows } = await db.execute(
-		`SELECT id, type, name, summary, created_at FROM entities
+		`SELECT id, type, name, summary, created_at FROM graph_nodes
 		 WHERE created_at >= ? AND created_at <= ?
 		   AND t_valid_until IS NULL AND archived_at IS NULL
 		 ORDER BY type, importance DESC`,

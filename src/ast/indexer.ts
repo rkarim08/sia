@@ -104,7 +104,7 @@ export async function indexRepository(
 				if (!opts.dryRun) {
 					// Dedup: check for existing active entity with same name in the same file
 					const existing = await db.execute(
-						`SELECT id FROM entities
+						`SELECT id FROM graph_nodes
 						 WHERE name = ? AND file_paths LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL`,
 						[fact.name, `%${relPath}%`],
 					);

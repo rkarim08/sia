@@ -31,7 +31,7 @@ describe("sia_by_file tool", () => {
 	): Promise<void> {
 		const now = Date.now();
 		await siaDb.execute(
-			`INSERT INTO entities (
+			`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths, trust_tier, confidence, base_confidence,
 				importance, base_importance, access_count, edge_count,

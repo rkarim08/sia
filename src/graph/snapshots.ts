@@ -64,11 +64,11 @@ export async function createSnapshot(
 
 	// Query active entities
 	const entitiesResult = await db.execute(
-		"SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 	);
 
 	// Query active edges
-	const edgesResult = await db.execute("SELECT * FROM edges WHERE t_valid_until IS NULL");
+	const edgesResult = await db.execute("SELECT * FROM graph_edges WHERE t_valid_until IS NULL");
 
 	const now = Date.now();
 	const data: SnapshotData = {
@@ -152,16 +152,16 @@ export async function restoreSnapshot(
 	// Step 3: Delete all existing entities and edges, then re-insert from snapshot.
 	await db.transaction(async (tx) => {
 		// Delete edges first (FK constraint: edges reference entities)
-		await tx.execute("DELETE FROM edges");
+		await tx.execute("DELETE FROM graph_edges");
 		// Delete entities
-		await tx.execute("DELETE FROM entities");
+		await tx.execute("DELETE FROM graph_nodes");
 
 		// Re-insert entities
 		for (const entity of data.entities) {
 			const columns = Object.keys(entity);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => entity[col] ?? null);
-			const sql = `INSERT INTO entities (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_nodes (${columns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 
@@ -170,7 +170,7 @@ export async function restoreSnapshot(
 			const columns = Object.keys(edge);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => edge[col] ?? null);
-			const sql = `INSERT INTO edges (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_edges (${columns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 	});

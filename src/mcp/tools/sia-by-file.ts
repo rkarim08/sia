@@ -44,7 +44,7 @@ export async function handleSiaByFile(
 
 	// --- Exact match ---
 	const exactResult = await db.execute(
-		`SELECT * FROM entities
+		`SELECT * FROM graph_nodes
 		 WHERE EXISTS (SELECT 1 FROM json_each(file_paths) WHERE value = ?)
 		   AND t_valid_until IS NULL
 		   AND archived_at IS NULL
@@ -63,7 +63,7 @@ export async function handleSiaByFile(
 	const filename = parts[parts.length - 1] ?? filePath;
 
 	const stemResult = await db.execute(
-		`SELECT * FROM entities
+		`SELECT * FROM graph_nodes
 		 WHERE EXISTS (SELECT 1 FROM json_each(file_paths) WHERE value LIKE '%/' || ? || '%')
 		   AND t_valid_until IS NULL
 		   AND archived_at IS NULL

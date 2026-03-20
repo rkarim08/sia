@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { createMemoryDb, type SiaDb } from "@/graph/db-interface";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createMemoryDb, LibSqlDb, type SiaDb } from "@/graph/db-interface";
 
 describe("BunSqliteDb", () => {
 	let db: SiaDb;
@@ -77,11 +77,72 @@ describe("BunSqliteDb", () => {
 		).rejects.toThrow("Nested transactions not supported");
 	});
 
+	it("executeMany is atomic — rolls back all rows on mid-batch failure", async () => {
+		setup();
+		await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)");
+		// Pre-insert id=2 so the second INSERT in the batch will fail with a PK conflict
+		await db.execute("INSERT INTO test (id, name) VALUES (?, ?)", [2, "existing"]);
+		await expect(
+			db.executeMany([
+				{ sql: "INSERT INTO test (id, name) VALUES (?, ?)", params: [1, "alice"] },
+				{ sql: "INSERT INTO test (id, name) VALUES (?, ?)", params: [2, "duplicate"] },
+			]),
+		).rejects.toThrow();
+		// The first row (id=1) must have been rolled back — only id=2 (pre-existing) remains
+		const result = await db.execute("SELECT * FROM test");
+		expect(result.rows).toHaveLength(1);
+		expect(result.rows[0]).toMatchObject({ id: 2, name: "existing" });
+	});
+
 	it("rawSqlite returns the underlying Database", () => {
 		setup();
 		const underlying = db.rawSqlite();
 		expect(underlying).not.toBeNull();
 		expect(underlying).toHaveProperty("prepare");
 		expect(underlying).toHaveProperty("close");
+	});
+
+	it("execute on outer db during active transaction throws with 'transaction' in message", async () => {
+		setup();
+		await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)");
+		await db.transaction(async (txDb) => {
+			// txProxy execute must still work
+			await txDb.execute("INSERT INTO test (id, name) VALUES (?, ?)", [1, "alice"]);
+			// outer db.execute during active transaction must throw
+			await expect(
+				db.execute("INSERT INTO test (id, name) VALUES (?, ?)", [2, "bob"]),
+			).rejects.toThrow(/transaction/i);
+		});
+	});
+
+	it("executeMany on outer db during active transaction throws with 'transaction' in message", async () => {
+		setup();
+		await db.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)");
+		await db.transaction(async (txDb) => {
+			await txDb.execute("INSERT INTO test (id, name) VALUES (?, ?)", [1, "alice"]);
+			await expect(
+				db.executeMany([{ sql: "INSERT INTO test (id, name) VALUES (?, ?)", params: [2, "bob"] }]),
+			).rejects.toThrow(/transaction/i);
+		});
+	});
+});
+
+describe("LibSqlDb", () => {
+	it("executeMany passes 'write' as the batch mode", async () => {
+		const batchMock = vi.fn().mockResolvedValue(undefined);
+		const mockClient = {
+			execute: vi.fn().mockResolvedValue({ rows: [] }),
+			batch: batchMock,
+		};
+
+		const libSqlDb = new LibSqlDb(mockClient);
+		await libSqlDb.executeMany([
+			{ sql: "INSERT INTO test VALUES (?)", params: [1] },
+			{ sql: "INSERT INTO test VALUES (?)", params: [2] },
+		]);
+
+		expect(batchMock).toHaveBeenCalledOnce();
+		const [_stmts, mode] = batchMock.mock.calls[0];
+		expect(mode).toBe("write");
 	});
 });

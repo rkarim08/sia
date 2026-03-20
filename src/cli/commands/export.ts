@@ -33,11 +33,11 @@ export interface ExportData {
 export async function exportGraph(db: SiaDb, opts?: ExportOpts): Promise<ExportData> {
 	// 1. Active entities
 	const entitiesResult = await db.execute(
-		"SELECT * FROM entities WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 	);
 
 	// 2. Active edges
-	const edgesResult = await db.execute("SELECT * FROM edges WHERE t_valid_until IS NULL");
+	const edgesResult = await db.execute("SELECT * FROM graph_edges WHERE t_valid_until IS NULL");
 
 	// 3. All communities
 	const communitiesResult = await db.execute("SELECT * FROM communities");

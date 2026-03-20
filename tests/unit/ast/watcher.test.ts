@@ -57,13 +57,13 @@ describe("createWatcher", () => {
 		writeFileSync(join(repoRoot, "src", "watch.ts"), "export function watchMe() {}", "utf-8");
 
 		await waitForCondition(async () => {
-			const rows = await db.execute("SELECT name FROM entities WHERE name = ?", ["watchMe"]);
+			const rows = await db.execute("SELECT name FROM graph_nodes WHERE name = ?", ["watchMe"]);
 			return rows.rows.length >= 1;
 		});
 
 		await watcher.stop();
 
-		const rows = await db.execute("SELECT name FROM entities WHERE name = ?", ["watchMe"]);
+		const rows = await db.execute("SELECT name FROM graph_nodes WHERE name = ?", ["watchMe"]);
 		expect(rows.rows.length).toBe(1);
 	});
 
@@ -80,7 +80,7 @@ describe("createWatcher", () => {
 
 		await waitForCondition(async () => {
 			const rows = await db.execute(
-				"SELECT t_valid_until FROM entities WHERE name = ? ORDER BY t_created DESC LIMIT 1",
+				"SELECT t_valid_until FROM graph_nodes WHERE name = ? ORDER BY t_created DESC LIMIT 1",
 				["doomed"],
 			);
 			return rows.rows[0]?.t_valid_until !== null && rows.rows[0]?.t_valid_until !== undefined;
@@ -89,7 +89,7 @@ describe("createWatcher", () => {
 		await watcher.stop();
 
 		const rows = await db.execute(
-			"SELECT t_valid_until FROM entities WHERE name = ? ORDER BY t_created DESC LIMIT 1",
+			"SELECT t_valid_until FROM graph_nodes WHERE name = ? ORDER BY t_created DESC LIMIT 1",
 			["doomed"],
 		);
 		expect(rows.rows[0]?.t_valid_until).not.toBeNull();
@@ -110,7 +110,7 @@ describe("createWatcher", () => {
 
 		await waitForCondition(async () => {
 			const rows = await db.execute(
-				"SELECT COUNT(*) as cnt FROM entities WHERE name = 'renamed' AND t_valid_until IS NULL",
+				"SELECT COUNT(*) as cnt FROM graph_nodes WHERE name = 'renamed' AND t_valid_until IS NULL",
 			);
 			return (rows.rows[0]?.cnt as number) >= 1;
 		});

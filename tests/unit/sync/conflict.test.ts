@@ -14,7 +14,7 @@ afterEach(() => {
 
 const now = Date.now();
 
-const ENTITY_INSERT = `INSERT INTO entities (
+const ENTITY_INSERT = `INSERT INTO graph_nodes (
 	id, type, name, content, summary, package_path,
 	tags, file_paths, trust_tier, confidence, base_confidence,
 	importance, base_importance, access_count, edge_count,
@@ -88,7 +88,7 @@ describe("detectConflicts", () => {
 		const count = await detectConflicts(db);
 		expect(count).toBe(1);
 
-		const rows = await db.execute("SELECT conflict_group_id FROM entities WHERE id IN ('e1','e2')");
+		const rows = await db.execute("SELECT conflict_group_id FROM graph_nodes WHERE id IN ('e1','e2')");
 		for (const row of rows.rows as Array<{ conflict_group_id: string | null }>) {
 			expect(row.conflict_group_id).not.toBeNull();
 		}

@@ -108,7 +108,7 @@ export async function exportAsMarkdown(
 	const placeholders = effectiveTypes.map(() => "?").join(", ");
 	const { rows: entityRows } = await db.execute(
 		`SELECT id, type, name, content, summary, importance, trust_tier, tags, created_at, t_valid_from
-		 FROM entities
+		 FROM graph_nodes
 		 WHERE t_valid_until IS NULL AND archived_at IS NULL
 		   AND type IN (${placeholders})
 		 ORDER BY type, importance DESC`,
@@ -145,8 +145,8 @@ export async function exportAsMarkdown(
 		// Resolve related entities via outgoing edges
 		const { rows: relatedRows } = await db.execute(
 			`SELECT e.type AS edge_type, ent.id, ent.type AS entity_type, ent.name
-			 FROM edges e
-			 JOIN entities ent ON ent.id = e.to_id
+			 FROM graph_edges e
+			 JOIN graph_nodes ent ON ent.id = e.to_id
 			 WHERE e.from_id = ? AND e.t_valid_until IS NULL
 			   AND ent.t_valid_until IS NULL AND ent.archived_at IS NULL`,
 			[entityId],
