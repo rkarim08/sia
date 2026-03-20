@@ -48,8 +48,15 @@ export class BunSqliteDb implements SiaDb {
 	}
 
 	async executeMany(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
-		for (const { sql, params = [] } of statements) {
-			this.db.prepare(sql).run(...(params as SQLQueryBindings[]));
+		this.db.prepare("BEGIN").run();
+		try {
+			for (const { sql, params = [] } of statements) {
+				this.db.prepare(sql).run(...(params as SQLQueryBindings[]));
+			}
+			this.db.prepare("COMMIT").run();
+		} catch (e) {
+			this.db.prepare("ROLLBACK").run();
+			throw e;
 		}
 	}
 
