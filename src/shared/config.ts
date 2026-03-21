@@ -1,10 +1,28 @@
 // Module: config — SIA_HOME constant, SiaConfig, and config loading
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 
-/** Default root directory for all Sia data: ~/.sia */
-export const SIA_HOME: string = join(homedir(), ".sia");
+/**
+ * Resolve the SIA home directory.
+ * In Claude Code plugin mode, uses CLAUDE_PLUGIN_DATA for persistent storage.
+ * In standalone mode, falls back to ~/.sia.
+ *
+ * Note: SIA_HOME is evaluated once at module load time. If using
+ * CLAUDE_PLUGIN_DATA, ensure it is set before this module is first imported.
+ */
+export function resolveSiaHome(): string {
+	const pluginData = process.env.CLAUDE_PLUGIN_DATA;
+	if (pluginData !== undefined && pluginData !== "") {
+		if (!isAbsolute(pluginData)) {
+			throw new Error(`CLAUDE_PLUGIN_DATA must be an absolute path, got: "${pluginData}"`);
+		}
+		return pluginData;
+	}
+	return join(homedir(), ".sia");
+}
+
+export const SIA_HOME: string = resolveSiaHome();
 
 /** Configuration for optional sync/replication via @libsql/client. */
 export interface SyncConfig {
@@ -234,7 +252,14 @@ export function getConfig(siaHome: string = SIA_HOME): SiaConfig {
 	}
 
 	const raw = readFileSync(configPath, "utf-8");
-	const parsed = JSON.parse(raw) as Record<string, unknown>;
+	let parsed: Record<string, unknown>;
+	try {
+		parsed = JSON.parse(raw) as Record<string, unknown>;
+	} catch (err) {
+		throw new Error(
+			`Failed to parse Sia config at ${configPath}: ${err instanceof Error ? err.message : String(err)}. Delete or fix the file to use defaults.`,
+		);
+	}
 
 	if (
 		parsed.decayHalfLife &&
@@ -263,7 +288,13 @@ export function writeConfig(partial: Partial<SiaConfig>, siaHome: string = SIA_H
 	let existing: Record<string, unknown> = {};
 	if (existsSync(configPath)) {
 		const raw = readFileSync(configPath, "utf-8");
-		existing = JSON.parse(raw) as Record<string, unknown>;
+		try {
+			existing = JSON.parse(raw) as Record<string, unknown>;
+		} catch (err) {
+			throw new Error(
+				`Failed to parse existing Sia config at ${configPath}: ${err instanceof Error ? err.message : String(err)}. Delete or fix the file before writing new config.`,
+			);
+		}
 	}
 
 	const merged = deepMerge(existing, partial as Record<string, unknown>);
