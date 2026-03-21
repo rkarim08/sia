@@ -1,6 +1,7 @@
 // Module: server — MCP server with 16 tool registrations
 //
-// All handlers are wired to real implementations via McpServerDeps.
+// Read-heavy against graph.db. Write paths: session_flags (sia_flag),
+// graph entities/edges (sia_note), sandbox results (sia_execute*).
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -23,6 +24,7 @@ import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
+import { truncateResponse } from "@/mcp/truncate";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
 import type { SiaConfig } from "@/shared/config";
 
@@ -185,15 +187,21 @@ export interface McpServerDeps {
 // safeToolCall — wrap a handler call with try-catch, returning structured error
 // ---------------------------------------------------------------------------
 
-/** Wrap a handler call with try-catch, returning structured error on failure. */
+/** Wrap a handler call with try-catch, truncation, and server-side error logging. */
 async function safeToolCall<T>(
 	toolName: string,
 	fn: () => Promise<T>,
+	maxChars?: number,
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
 	try {
 		const result = await fn();
-		return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+		return {
+			content: [
+				{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
+			],
+		};
 	} catch (err) {
+		console.error(`[sia] ${toolName} error:`, err);
 		return {
 			content: [
 				{
@@ -214,6 +222,9 @@ async function safeToolCall<T>(
 
 export function createMcpServer(deps?: McpServerDeps): McpServer {
 	const server = new McpServer({ name: "sia", version: "0.2.0" });
+	// workingMemoryTokenBudget is token-denominated; multiply by ~4 to approximate
+	// a character budget for JSON truncation (1 token ≈ 4 chars in JSON output).
+	const maxChars = deps ? deps.config.workingMemoryTokenBudget * 4 : undefined;
 
 	// --- sia_search --------------------------------------------------------
 	server.registerTool(
@@ -224,8 +235,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_search", () =>
-					handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined),
+				return safeToolCall(
+					"sia_search",
+					() => handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined),
+					maxChars,
 				);
 			}
 			return {
@@ -249,7 +262,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_by_file", () => handleSiaByFile(deps.graphDb, args));
+				return safeToolCall("sia_by_file", () => handleSiaByFile(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
@@ -272,7 +285,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_expand", () => handleSiaExpand(deps.graphDb, args));
+				return safeToolCall("sia_expand", () => handleSiaExpand(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
@@ -295,7 +308,11 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_community", () => handleSiaCommunity(deps.graphDb, args));
+				return safeToolCall(
+					"sia_community",
+					() => handleSiaCommunity(deps.graphDb, args),
+					maxChars,
+				);
 			}
 			return {
 				content: [
@@ -318,7 +335,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_at_time", () => handleSiaAtTime(deps.graphDb, args));
+				return safeToolCall("sia_at_time", () => handleSiaAtTime(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
@@ -341,11 +358,14 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_flag", () =>
-					handleSiaFlag(deps.graphDb, args, {
-						enableFlagging: deps.config.enableFlagging,
-						sessionId: deps.sessionId,
-					}),
+				return safeToolCall(
+					"sia_flag",
+					() =>
+						handleSiaFlag(deps.graphDb, args, {
+							enableFlagging: deps.config.enableFlagging,
+							sessionId: deps.sessionId,
+						}),
+					maxChars,
 				);
 			}
 			return {
@@ -369,7 +389,11 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_backlinks", () => handleSiaBacklinks(deps.graphDb, args));
+				return safeToolCall(
+					"sia_backlinks",
+					() => handleSiaBacklinks(deps.graphDb, args),
+					maxChars,
+				);
 			}
 			return {
 				content: [
@@ -392,7 +416,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_note", () => handleSiaNote(deps.graphDb, args));
+				return safeToolCall("sia_note", () => handleSiaNote(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
@@ -433,20 +457,16 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				return safeToolCall("sia_execute", () =>
-					handleSiaExecute(
-						deps.graphDb,
-						args,
-						embedder,
-						throttle,
-						deps.sessionId,
-						{
+				return safeToolCall(
+					"sia_execute",
+					() =>
+						handleSiaExecute(deps.graphDb, args, embedder, throttle, deps.sessionId, {
 							sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
 							sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
 							contextModeThreshold: deps.config.contextModeThreshold,
 							contextModeTopK: deps.config.contextModeTopK,
-						},
-					),
+						}),
+					maxChars,
 				);
 			}
 			return {
@@ -488,20 +508,16 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				return safeToolCall("sia_execute_file", () =>
-					handleSiaExecuteFile(
-						deps.graphDb,
-						args,
-						embedderFile,
-						throttle,
-						deps.sessionId,
-						{
+				return safeToolCall(
+					"sia_execute_file",
+					() =>
+						handleSiaExecuteFile(deps.graphDb, args, embedderFile, throttle, deps.sessionId, {
 							sandboxTimeoutMs: deps.config.sandboxTimeoutMs,
 							sandboxOutputMaxBytes: deps.config.sandboxOutputMaxBytes,
 							contextModeThreshold: deps.config.contextModeThreshold,
 							contextModeTopK: deps.config.contextModeTopK,
-						},
-					),
+						}),
+					maxChars,
 				);
 			}
 			return {
@@ -539,8 +555,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					};
 				}
 				const embedderIndex = deps.embedder;
-				return safeToolCall("sia_index", () =>
-					handleSiaIndex(deps.graphDb, args, embedderIndex, deps.sessionId),
+				return safeToolCall(
+					"sia_index",
+					() => handleSiaIndex(deps.graphDb, args, embedderIndex, deps.sessionId),
+					maxChars,
 				);
 			}
 			return {
@@ -582,15 +600,18 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
 				});
-				return safeToolCall("sia_batch_execute", () =>
-					handleSiaBatchExecute(
-						deps.graphDb,
-						args as Parameters<typeof handleSiaBatchExecute>[1],
-						embedderBatch,
-						throttle,
-						deps.sessionId,
-						{ timeoutPerOp: deps.config.sandboxTimeoutMs },
-					),
+				return safeToolCall(
+					"sia_batch_execute",
+					() =>
+						handleSiaBatchExecute(
+							deps.graphDb,
+							args as Parameters<typeof handleSiaBatchExecute>[1],
+							embedderBatch,
+							throttle,
+							deps.sessionId,
+							{ timeoutPerOp: deps.config.sandboxTimeoutMs },
+						),
+					maxChars,
 				);
 			}
 			return {
@@ -628,8 +649,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					};
 				}
 				const embedderFetch = deps.embedder;
-				return safeToolCall("sia_fetch_and_index", () =>
-					handleSiaFetchAndIndex(deps.graphDb, args, embedderFetch, deps.sessionId),
+				return safeToolCall(
+					"sia_fetch_and_index",
+					() => handleSiaFetchAndIndex(deps.graphDb, args, embedderFetch, deps.sessionId),
+					maxChars,
 				);
 			}
 			return {
@@ -653,8 +676,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_stats", () =>
-					handleSiaStats(deps.graphDb, args, deps.sessionId),
+				return safeToolCall(
+					"sia_stats",
+					() => handleSiaStats(deps.graphDb, args, deps.sessionId),
+					maxChars,
 				);
 			}
 			return {
@@ -678,7 +703,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_doctor", () => handleSiaDoctor(deps.graphDb, args));
+				return safeToolCall("sia_doctor", () => handleSiaDoctor(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
@@ -701,10 +726,13 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_upgrade", () =>
-					handleSiaUpgrade(deps.graphDb, args, {
-						upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
-					}),
+				return safeToolCall(
+					"sia_upgrade",
+					() =>
+						handleSiaUpgrade(deps.graphDb, args, {
+							upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
+						}),
+					maxChars,
 				);
 			}
 			return {
@@ -729,25 +757,12 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 export async function startServer(deps?: McpServerDeps): Promise<McpServer> {
 	const server = createMcpServer(deps);
 	const transport = new StdioServerTransport();
-	await server.connect(transport);
-
-	// --- Health-check HTTP server (non-essential — failure should not crash MCP) ---
-	const healthPort = Number(process.env.SIA_HEALTH_PORT ?? 52731);
 	try {
-		Bun.serve({
-			port: healthPort,
-			fetch() {
-				return new Response(JSON.stringify({ status: "ok" }), {
-					headers: { "Content-Type": "application/json" },
-				});
-			},
-		});
+		await server.connect(transport);
 	} catch (err) {
-		console.error(
-			`[sia] Health server failed to bind on port ${healthPort}: ${(err as Error).message}. ` +
-				"MCP server will continue without health endpoint. Set SIA_HEALTH_PORT to an available port.",
-		);
+		const message = err instanceof Error ? err.message : String(err);
+		console.error(`[sia] Failed to start MCP server: ${message}`);
+		throw new Error(`Sia MCP server failed to connect via stdio: ${message}`);
 	}
-
 	return server;
 }

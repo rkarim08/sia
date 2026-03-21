@@ -2,7 +2,13 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_CONFIG, DEFAULT_SYNC_CONFIG, getConfig, writeConfig } from "@/shared/config";
+import {
+	DEFAULT_CONFIG,
+	DEFAULT_SYNC_CONFIG,
+	getConfig,
+	resolveSiaHome,
+	writeConfig,
+} from "@/shared/config";
 
 describe("config", () => {
 	let tempHome: string;
@@ -89,5 +95,58 @@ describe("config", () => {
 		expect(config.throttleNormalMax).toBe(3);
 		expect(config.throttleReducedMax).toBe(8);
 		expect(config.upgradeReleaseUrl).toBe(null);
+	});
+
+	it("getConfig throws actionable error on corrupt config.json", () => {
+		const configPath = join(tempHome, "config.json");
+		const { writeFileSync } = require("node:fs");
+		writeFileSync(configPath, "{ invalid json !!!", "utf-8");
+		expect(() => getConfig(tempHome)).toThrow("Failed to parse Sia config");
+	});
+
+	it("writeConfig throws actionable error on corrupt existing config.json", () => {
+		const configPath = join(tempHome, "config.json");
+		const { writeFileSync } = require("node:fs");
+		writeFileSync(configPath, "{ invalid json !!!", "utf-8");
+		expect(() => writeConfig({ airGapped: true }, tempHome)).toThrow(
+			"Failed to parse existing Sia config",
+		);
+	});
+});
+
+describe("SIA_HOME resolution", () => {
+	const originalEnv = process.env.CLAUDE_PLUGIN_DATA;
+
+	beforeEach(() => {
+		delete process.env.CLAUDE_PLUGIN_DATA;
+	});
+
+	afterEach(() => {
+		if (originalEnv !== undefined) {
+			process.env.CLAUDE_PLUGIN_DATA = originalEnv;
+		} else {
+			delete process.env.CLAUDE_PLUGIN_DATA;
+		}
+	});
+
+	it("should use CLAUDE_PLUGIN_DATA when set to an absolute path", () => {
+		process.env.CLAUDE_PLUGIN_DATA = "/tmp/test-plugin-data";
+		expect(resolveSiaHome()).toBe("/tmp/test-plugin-data");
+	});
+
+	it("should fall back to ~/.sia when CLAUDE_PLUGIN_DATA is not set", () => {
+		const home = resolveSiaHome();
+		expect(home).toContain(".sia");
+	});
+
+	it("should fall back to ~/.sia when CLAUDE_PLUGIN_DATA is empty string", () => {
+		process.env.CLAUDE_PLUGIN_DATA = "";
+		const home = resolveSiaHome();
+		expect(home).toContain(".sia");
+	});
+
+	it("should throw when CLAUDE_PLUGIN_DATA is a relative path", () => {
+		process.env.CLAUDE_PLUGIN_DATA = "relative/path";
+		expect(() => resolveSiaHome()).toThrow("must be an absolute path");
 	});
 });
