@@ -59,12 +59,20 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 ### Plugin Installation (Recommended)
 
 ```bash
-claude plugin add sia
+# 1. Add the Sia marketplace (one-time)
+/plugin marketplace add rkarim08/sia
+
+# 2. Install the plugin
+/plugin install sia@sia-plugins
 ```
 
-This registers all 16 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
+This registers all 21 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
+
+> **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
 ### Standalone Installation
+
+If you prefer CLI-only usage without the plugin system:
 
 ```bash
 npx sia install
