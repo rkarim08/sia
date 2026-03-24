@@ -39,6 +39,8 @@ If the expansion graphs overlap (shared entities), the tasks are NOT independent
 
 ### Step 2 — Create Agent Tasks (ENHANCED)
 
+**For task description format:** See [agent-task-template.md](agent-task-template.md)
+
 For each agent, auto-extract the relevant subgraph:
 
 ```
