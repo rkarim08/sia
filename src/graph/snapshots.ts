@@ -1,4 +1,4 @@
-// Module: snapshots — Daily snapshot creation and rollback
+// Module: snapshots — Daily snapshot creation and rollback + branch-keyed snapshots
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
@@ -159,22 +159,206 @@ export async function restoreSnapshot(
 		// Re-insert entities
 		for (const entity of data.entities) {
 			const columns = Object.keys(entity);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => entity[col] ?? null);
-			const sql = `INSERT INTO graph_nodes (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_nodes (${safeColumns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 
 		// Re-insert edges
 		for (const edge of data.edges) {
 			const columns = Object.keys(edge);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => edge[col] ?? null);
-			const sql = `INSERT INTO graph_edges (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_edges (${safeColumns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 	});
 
 	// Step 4: Write audit entry for the restore
 	await writeAuditEntry(db, "UPDATE", { snapshot_id: snapshotPath });
+}
+
+// ---------------------------------------------------------------------------
+// Branch-keyed snapshots (stored in SQLite, not on disk)
+// ---------------------------------------------------------------------------
+
+/** Shape of a branch snapshot row. */
+export interface BranchSnapshot {
+	id: number;
+	branch_name: string;
+	commit_hash: string;
+	node_count: number;
+	edge_count: number;
+	snapshot_data: string;
+	created_at: number;
+	updated_at: number;
+}
+
+/**
+ * Create (or update) a branch snapshot.
+ * Serializes all active nodes and edges into JSON and UPSERTs into
+ * the branch_snapshots table. Each branch gets exactly one snapshot row.
+ */
+export async function createBranchSnapshot(
+	db: SiaDb,
+	branchName: string,
+	commitHash: string,
+): Promise<void> {
+	const { rows: nodes } = await db.execute(
+		"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+	);
+	const { rows: edges } = await db.execute(
+		"SELECT * FROM graph_edges WHERE t_valid_until IS NULL",
+	);
+
+	const snapshotData = JSON.stringify({ nodes, edges });
+	const now = Date.now();
+
+	await db.execute(
+		`INSERT INTO branch_snapshots (branch_name, commit_hash, node_count, edge_count, snapshot_data, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(branch_name) DO UPDATE SET
+		   commit_hash = excluded.commit_hash,
+		   node_count = excluded.node_count,
+		   edge_count = excluded.edge_count,
+		   snapshot_data = excluded.snapshot_data,
+		   updated_at = excluded.updated_at`,
+		[branchName, commitHash, nodes.length, edges.length, snapshotData, now, now],
+	);
+
+	await writeAuditEntry(db, "ADD", { snapshot_id: `branch:${branchName}:${commitHash}` });
+}
+
+/**
+ * Restore graph state from a branch snapshot.
+ * Deletes all current nodes/edges, then re-inserts from the snapshot.
+ * Returns true if a snapshot was found and restored, false otherwise.
+ */
+export async function restoreBranchSnapshot(
+	db: SiaDb,
+	branchName: string,
+): Promise<boolean> {
+	const { rows } = await db.execute(
+		"SELECT snapshot_data FROM branch_snapshots WHERE branch_name = ?",
+		[branchName],
+	);
+
+	if (rows.length === 0) return false;
+
+	let data: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+	try {
+		const parsed = JSON.parse(rows[0].snapshot_data as string);
+		if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+			throw new Error("Invalid snapshot structure: missing nodes or edges arrays");
+		}
+		data = parsed;
+	} catch (err) {
+		throw new Error(
+			`Failed to parse branch snapshot for "${branchName}": ${err instanceof Error ? err.message : err}`,
+		);
+	}
+
+	await db.transaction(async (tx) => {
+		await tx.execute("DELETE FROM graph_edges");
+		await tx.execute("DELETE FROM graph_nodes");
+
+		for (const node of data.nodes) {
+			const columns = Object.keys(node);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
+			const placeholders = columns.map(() => "?").join(", ");
+			const values = columns.map((col) => node[col] ?? null);
+			await tx.execute(
+				`INSERT INTO graph_nodes (${safeColumns.join(", ")}) VALUES (${placeholders})`,
+				values,
+			);
+		}
+
+		for (const edge of data.edges) {
+			const columns = Object.keys(edge);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
+			const placeholders = columns.map(() => "?").join(", ");
+			const values = columns.map((col) => edge[col] ?? null);
+			await tx.execute(
+				`INSERT INTO graph_edges (${safeColumns.join(", ")}) VALUES (${placeholders})`,
+				values,
+			);
+		}
+	});
+
+	await writeAuditEntry(db, "UPDATE", { snapshot_id: `branch-restore:${branchName}` });
+	return true;
+}
+
+/**
+ * List all branch snapshots, ordered by updated_at descending.
+ */
+export async function listBranchSnapshots(db: SiaDb): Promise<BranchSnapshot[]> {
+	const { rows } = await db.execute(
+		"SELECT id, branch_name, commit_hash, node_count, edge_count, snapshot_data, created_at, updated_at FROM branch_snapshots ORDER BY updated_at DESC",
+	);
+	return rows as unknown as BranchSnapshot[];
+}
+
+/**
+ * Prune snapshots for specific branches (e.g., deleted branches).
+ * Returns the number of snapshots deleted.
+ */
+export async function pruneBranchSnapshots(
+	db: SiaDb,
+	branchNames: string[],
+): Promise<number> {
+	if (branchNames.length === 0) return 0;
+
+	const { rows: before } = await db.execute(
+		"SELECT COUNT(*) as cnt FROM branch_snapshots",
+	);
+
+	const placeholders = branchNames.map(() => "?").join(", ");
+	await db.execute(
+		`DELETE FROM branch_snapshots WHERE branch_name IN (${placeholders})`,
+		branchNames,
+	);
+
+	const { rows: after } = await db.execute(
+		"SELECT COUNT(*) as cnt FROM branch_snapshots",
+	);
+
+	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
+	if (deleted > 0) {
+		await writeAuditEntry(db, "ARCHIVE", { snapshot_id: `branch-prune:${branchNames.join(",")}` });
+	}
+	return deleted;
+}
+
+/**
+ * Garbage-collect branch snapshots older than ttlDays.
+ * Returns the number of snapshots deleted.
+ */
+export async function gcBranchSnapshots(
+	db: SiaDb,
+	ttlDays: number,
+): Promise<number> {
+	const cutoff = Date.now() - ttlDays * 24 * 60 * 60 * 1000;
+
+	const { rows: before } = await db.execute(
+		"SELECT COUNT(*) as cnt FROM branch_snapshots",
+	);
+
+	await db.execute(
+		"DELETE FROM branch_snapshots WHERE updated_at < ?",
+		[cutoff],
+	);
+
+	const { rows: after } = await db.execute(
+		"SELECT COUNT(*) as cnt FROM branch_snapshots",
+	);
+
+	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
+	if (deleted > 0) {
+		await writeAuditEntry(db, "ARCHIVE", { snapshot_id: `branch-gc:${deleted}:ttl=${ttlDays}d` });
+	}
+	return deleted;
 }

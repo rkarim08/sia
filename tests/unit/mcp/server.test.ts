@@ -9,6 +9,9 @@ import {
 	SiaExpandInput,
 	SiaFlagInput,
 	SiaSearchInput,
+	SiaSnapshotListInput,
+	SiaSnapshotPruneInput,
+	SiaSnapshotRestoreInput,
 	TOOL_NAMES,
 } from "@/mcp/server";
 import { DEFAULT_CONFIG } from "@/shared/config";
@@ -44,17 +47,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(18);
+		expect(Object.keys(registered)).toHaveLength(21);
 	});
 
-	it("registers all 18 tools", () => {
+	it("registers all 21 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(18);
+		expect(registeredNames).toHaveLength(21);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -80,6 +83,9 @@ describe("createMcpServer", () => {
 			"sia_upgrade",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_snapshot_list",
+			"sia_snapshot_restore",
+			"sia_snapshot_prune",
 		]);
 	});
 	it("all tools have annotations with readOnlyHint", () => {
@@ -101,6 +107,7 @@ describe("createMcpServer", () => {
 			"sia_doctor",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_snapshot_list",
 		];
 		const writeTools = [
 			"sia_flag",
@@ -111,6 +118,8 @@ describe("createMcpServer", () => {
 			"sia_batch_execute",
 			"sia_fetch_and_index",
 			"sia_upgrade",
+			"sia_snapshot_restore",
+			"sia_snapshot_prune",
 		];
 
 		for (const name of readOnlyTools) {
@@ -289,6 +298,51 @@ describe("SiaAstQueryInput", () => {
 
 	it("rejects missing query_type", () => {
 		const result = SiaAstQueryInput.safeParse({ file_path: "a.ts" });
+		expect(result.success).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Snapshot Zod schemas
+// ---------------------------------------------------------------------------
+
+describe("SiaSnapshotListInput", () => {
+	it("accepts empty input", () => {
+		const result = SiaSnapshotListInput.safeParse({});
+		expect(result.success).toBe(true);
+	});
+});
+
+describe("SiaSnapshotRestoreInput", () => {
+	it("accepts valid input", () => {
+		const result = SiaSnapshotRestoreInput.safeParse({ branch_name: "main" });
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects missing branch_name", () => {
+		const result = SiaSnapshotRestoreInput.safeParse({});
+		expect(result.success).toBe(false);
+	});
+});
+
+describe("SiaSnapshotPruneInput", () => {
+	it("accepts valid input", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: ["old-branch", "stale"] });
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts empty array", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: [] });
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects missing branch_names", () => {
+		const result = SiaSnapshotPruneInput.safeParse({});
+		expect(result.success).toBe(false);
+	});
+
+	it("rejects non-array branch_names", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: "single-string" });
 		expect(result.success).toBe(false);
 	});
 });
