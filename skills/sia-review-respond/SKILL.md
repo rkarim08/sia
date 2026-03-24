@@ -65,6 +65,8 @@ If the suggestion contradicts an established decision, present the conflict:
 
 ### Step 5 — Respond (enhanced)
 
+**For response templates with graph citations:** See [pushback-patterns.md](pushback-patterns.md)
+
 When pushing back on feedback, cite SIA entities:
 
 > "The current implementation follows [Convention: Error handlers return structured JSON]. Changing this would break the established pattern documented in entity [id]."
