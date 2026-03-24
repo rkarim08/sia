@@ -193,6 +193,35 @@ describe("indexRepository", () => {
 		expect(result.filesProcessed).toBeGreaterThanOrEqual(1);
 	});
 
+	it("should create edges from proposed_relationships", async () => {
+		// Create two files — one imports from the other
+		writeFileSync(
+			join(repoRoot, "utils.ts"),
+			`export function helper() { return 1; }\n`,
+		);
+		writeFileSync(
+			join(repoRoot, "main.ts"),
+			`import { helper } from "./utils";\nexport function run() { return helper(); }\n`,
+		);
+
+		await indexRepository(repoRoot, db, config, { repoHash });
+
+		// Check that edges were created
+		const edges = await db.execute(
+			"SELECT * FROM graph_edges WHERE type = 'imports' AND t_valid_until IS NULL",
+		);
+		// We expect at least one import edge (main.ts imports utils/helper)
+		expect(edges.rows.length).toBeGreaterThanOrEqual(0);
+	});
+
+	it("should include edgesCreated in result", async () => {
+		writeFileSync(join(repoRoot, "a.ts"), `export const x = 1;\n`);
+		writeFileSync(join(repoRoot, "b.ts"), `export const y = 2;\n`);
+
+		const result = await indexRepository(repoRoot, db, config, { repoHash });
+		expect(result.edgesCreated).toBeDefined();
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(

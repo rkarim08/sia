@@ -7,12 +7,14 @@ import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
 import type { CandidateFact } from "@/capture/types";
 import type { SiaDb } from "@/graph/db-interface";
+import { insertEdge } from "@/graph/edges";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
 
 export interface IndexResult {
 	filesProcessed: number;
 	entitiesCreated: number;
+	edgesCreated: number;
 	cacheHits: number;
 	durationMs: number;
 	skippedFiles?: Array<{ path: string; error: string }>;
@@ -52,14 +54,25 @@ interface PendingFact {
 	fact: CandidateFact;
 	relPath: string;
 	packagePath: string | null;
+	entityId?: string; // Set after insert
+}
+
+interface FlushResult {
+	created: number;
+	insertedIds: string[];
 }
 
 /**
  * Flush a batch of facts to the database.
  * Uses a single IN-clause SELECT for dedup, then INSERT/UPDATE per entry.
+ * Returns both count of new entities and their IDs for edge creation.
  */
-async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Promise<number> {
-	if (batch.length === 0 || dryRun) return 0;
+async function flushBatch(
+	db: SiaDb,
+	batch: PendingFact[],
+	dryRun: boolean,
+): Promise<FlushResult> {
+	if (batch.length === 0 || dryRun) return { created: 0, insertedIds: [] };
 
 	// Batch dedup: single query with IN clause
 	const names = batch.map((f) => f.fact.name);
@@ -83,6 +96,7 @@ async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Pro
 	}
 
 	let created = 0;
+	const insertedIds: string[] = [];
 	for (const pending of batch) {
 		const compositeKey = `${pending.fact.name}::${JSON.stringify(pending.fact.file_paths ?? [pending.relPath])}`;
 		// Also check without exact file_paths match — the DB may store differently
@@ -100,7 +114,7 @@ async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Pro
 				tags: JSON.stringify(pending.fact.tags ?? []),
 			});
 		} else {
-			await insertEntity(db, {
+			const entity = await insertEntity(db, {
 				type: pending.fact.type,
 				name: pending.fact.name,
 				content: pending.fact.content,
@@ -112,11 +126,13 @@ async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Pro
 				package_path: pending.packagePath,
 				extraction_method: pending.fact.extraction_method ?? null,
 			});
+			pending.entityId = entity.id;
+			insertedIds.push(entity.id);
 			created++;
 		}
 	}
 
-	return created;
+	return { created, insertedIds };
 }
 
 /**
@@ -129,6 +145,8 @@ async function processResult(
 		db: SiaDb;
 		cache: CacheMap;
 		pendingBatch: PendingFact[];
+		allProcessedFacts: PendingFact[];
+		allInsertedIds: string[];
 		skippedFiles: Array<{ path: string; error: string }>;
 		filesProcessed: number;
 		entitiesCreated: number;
@@ -148,6 +166,7 @@ async function processResult(
 		ctx.onProgress?.({
 			filesProcessed,
 			entitiesCreated,
+			edgesCreated: 0,
 			cacheHits: ctx.cacheHits,
 			durationMs: Date.now() - ctx.start,
 			file: result.relPath,
@@ -157,16 +176,20 @@ async function processResult(
 	}
 
 	for (const fact of result.facts) {
-		ctx.pendingBatch.push({
+		const pending: PendingFact = {
 			fact,
 			relPath: result.relPath,
 			packagePath: result.packagePath,
-		});
+		};
+		ctx.pendingBatch.push(pending);
+		ctx.allProcessedFacts.push(pending);
 	}
 
 	// Flush batch when it reaches BATCH_SIZE
 	if (ctx.pendingBatch.length >= BATCH_SIZE) {
-		entitiesCreated += await flushBatch(ctx.db, ctx.pendingBatch, ctx.dryRun);
+		const flushed = await flushBatch(ctx.db, ctx.pendingBatch, ctx.dryRun);
+		entitiesCreated += flushed.created;
+		ctx.allInsertedIds.push(...flushed.insertedIds);
 		ctx.pendingBatch.length = 0;
 	}
 
@@ -183,12 +206,53 @@ async function processResult(
 	ctx.onProgress?.({
 		filesProcessed,
 		entitiesCreated,
+		edgesCreated: 0,
 		cacheHits: ctx.cacheHits,
 		durationMs: Date.now() - ctx.start,
 		file: result.relPath,
 	});
 
 	return { filesProcessed, entitiesCreated };
+}
+
+/**
+ * Resolve proposed_relationships on inserted entities into actual graph edges.
+ */
+async function createEdgesFromRelationships(
+	db: SiaDb,
+	allProcessedFacts: PendingFact[],
+): Promise<number> {
+	let edgesCreated = 0;
+
+	for (const pending of allProcessedFacts) {
+		if (!pending.fact.proposed_relationships?.length) continue;
+		if (!pending.entityId) continue; // was an update, not an insert
+
+		for (const rel of pending.fact.proposed_relationships) {
+			// Look up target entity by name
+			const targetRows = await db.execute(
+				`SELECT id FROM graph_nodes
+				 WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL
+				 LIMIT 1`,
+				[rel.target_name],
+			);
+			if (targetRows.rows.length > 0) {
+				const targetId = targetRows.rows[0].id as string;
+				await insertEdge(db, {
+					from_id: pending.entityId,
+					to_id: targetId,
+					type: rel.type,
+					weight: rel.weight,
+					confidence: 0.8,
+					trust_tier: 2,
+					extraction_method: "ast",
+				});
+				edgesCreated++;
+			}
+		}
+	}
+
+	return edgesCreated;
 }
 
 /** Walk the repository, extract AST facts, and write CodeEntity nodes. */
@@ -212,6 +276,8 @@ export async function indexRepository(
 	let entitiesCreated = 0;
 	let cacheHits = 0;
 	const pendingBatch: PendingFact[] = [];
+	const allProcessedFacts: PendingFact[] = [];
+	const allInsertedIds: string[] = [];
 	const skippedFiles: Array<{ path: string; error: string }> = [];
 
 	// Phase 1: Walk file tree, collect all files to process
@@ -268,6 +334,8 @@ export async function indexRepository(
 			db,
 			cache,
 			pendingBatch,
+			allProcessedFacts,
+			allInsertedIds,
 			skippedFiles,
 			filesProcessed,
 			entitiesCreated,
@@ -284,9 +352,25 @@ export async function indexRepository(
 	}
 
 	// Final batch flush
-	entitiesCreated += await flushBatch(db, pendingBatch, opts.dryRun ?? false);
+	const finalFlush = await flushBatch(db, pendingBatch, opts.dryRun ?? false);
+	entitiesCreated += finalFlush.created;
+	allInsertedIds.push(...finalFlush.insertedIds);
 
+	// Phase 3: Create edges from proposed_relationships
+	let edgesCreated = 0;
 	if (!opts.dryRun) {
+		edgesCreated += await createEdgesFromRelationships(db, allProcessedFacts);
+
+		// Run inferEdges for semantic proximity edges
+		try {
+			const { inferEdges } = await import("@/capture/edge-inferrer");
+			if (allInsertedIds.length > 0) {
+				edgesCreated += await inferEdges(db, allInsertedIds);
+			}
+		} catch {
+			// inferEdges failure is non-fatal
+		}
+
 		mkdirSync(cacheDir, { recursive: true });
 		saveCache(cachePath, cache);
 	}
@@ -297,6 +381,7 @@ export async function indexRepository(
 	return {
 		filesProcessed,
 		entitiesCreated,
+		edgesCreated,
 		cacheHits,
 		durationMs: Date.now() - start,
 		skippedFiles: skippedFiles.length > 0 ? skippedFiles : undefined,
