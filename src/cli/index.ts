@@ -22,6 +22,7 @@ Commands:
   doctor               Run diagnostic checks
   digest               Generate session digest
   graph                Visualize the knowledge graph
+  visualize-live       Launch interactive browser graph visualizer
   prune                Remove archived entities
   export               Export graph to JSON
   import               Import graph from JSON
@@ -181,6 +182,16 @@ async function main(): Promise<void> {
 			try {
 				const output = await generateGraphVisualization(db);
 				console.log(output);
+			} finally {
+				await db.close();
+			}
+			return;
+		}
+		case "visualize-live": {
+			const { runVisualizeLive } = await import("@/cli/commands/visualize-live");
+			const db = await openDb();
+			try {
+				await runVisualizeLive(db, rest);
 			} finally {
 				await db.close();
 			}
