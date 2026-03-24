@@ -129,6 +129,11 @@ export function formatSessionContext(context: SessionContext): string {
 		lines.push("");
 	}
 
+	// Lightweight nudge — CLAUDE.md has the full behavioral spec
+	lines.push("---");
+	lines.push("Sia memory tools are active. See CLAUDE.md for tool selection guidance.");
+	lines.push("");
+
 	return lines.join("\n");
 }
 
