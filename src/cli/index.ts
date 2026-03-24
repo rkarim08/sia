@@ -30,6 +30,7 @@ Commands:
   conflicts            List or resolve entity conflicts
   freshness            Generate freshness report
   share                Share an entity
+  history              Show temporal knowledge history
   download-model       Download ONNX embedding model
   enable-flagging      Enable mid-session flagging
   disable-flagging     Disable mid-session flagging
@@ -329,6 +330,11 @@ async function main(): Promise<void> {
 			} finally {
 				await db.close();
 			}
+			return;
+		}
+		case "history": {
+			const { runHistory } = await import("@/cli/commands/history");
+			await runHistory(rest);
 			return;
 		}
 		case "server": {
