@@ -17,6 +17,7 @@ describe("walkTree", () => {
 		walkTree(mockTree as any, {
 			enter(nodeType, text, _start, _end) {
 				visited.push({ type: nodeType, text });
+				return undefined;
 			},
 		});
 		expect(visited).toHaveLength(1);

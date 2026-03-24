@@ -31,7 +31,9 @@
 			"!sia-native/index.d.ts",
 			"!sia-native/index.js",
 			"!sia-native/target",
-			"!sia-native/package.json"
+			"!sia-native/package.json",
+			"!skills/sia-brainstorm/scripts",
+			"!skills/sia-visualize-live/scripts"
 		]
 	}
 }

@@ -19,7 +19,7 @@ const BatchOperation = z.union([
 		code: z.string(),
 		language: z.string().optional(),
 		timeout: z.number().optional(),
-		env: z.record(z.string()).optional(),
+		env: z.record(z.string(), z.string()).optional(),
 	}),
 	z.object({
 		type: z.literal("search"),

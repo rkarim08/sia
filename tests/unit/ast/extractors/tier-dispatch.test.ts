@@ -16,7 +16,8 @@ describe("dispatchExtractionAsync import relationships", () => {
 		expect(withRels.length).toBeGreaterThan(0);
 
 		// Check the relationship shape
-		const rel = withRels[0].proposed_relationships![0];
+		const rel = withRels[0].proposed_relationships?.[0];
+		if (!rel) throw new Error("unreachable: expected relationship");
 		expect(rel.type).toBe("imports");
 		expect(rel.target_name).toBeTruthy();
 		expect(rel.weight).toBeGreaterThan(0);

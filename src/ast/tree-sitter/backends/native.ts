@@ -40,7 +40,7 @@ export async function tryLoadNativeBackend(): Promise<ParserBackend | null> {
 				return parser.parse(source, previousTree as any) ?? null;
 			},
 			query(language: any, querySource: string) {
-				// biome-ignore lint/style/noVar: dynamic require needed for native module
+				// biome-ignore lint: dynamic require needed for native module
 				var NativeParser = require("tree-sitter");
 				return new NativeParser.Query(language, querySource);
 			},
