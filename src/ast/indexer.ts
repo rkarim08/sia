@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpus } from "node:os";
 import { join, relative, resolve } from "node:path";
-import type { WorkerResult } from "@/ast/index-worker";
+import type { WorkerMessage, WorkerResult } from "@/ast/index-worker";
 import { parseFileWithRetry } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
@@ -251,6 +252,66 @@ async function createEdgesFromRelationships(
 	return edgesCreated;
 }
 
+/**
+ * Dispatch files to a pool of Worker threads for parallel parsing.
+ * Uses round-robin with backpressure: each worker gets one file at a time,
+ * receives the next when it reports completion.
+ */
+async function dispatchToWorkerPool(
+	filesToProcess: Array<{ absPath: string; relPath: string }>,
+	numWorkers: number,
+): Promise<WorkerResult[]> {
+	const { Worker } = await import("node:worker_threads");
+	const workerPath = new URL("./index-worker.ts", import.meta.url).pathname;
+	const workers: InstanceType<typeof Worker>[] = [];
+	for (let i = 0; i < numWorkers; i++) {
+		workers.push(new Worker(workerPath));
+	}
+
+	const results: WorkerResult[] = [];
+	let fileIndex = 0;
+	const total = filesToProcess.length;
+
+	await new Promise<void>((resolve, reject) => {
+		if (total === 0) {
+			resolve();
+			return;
+		}
+
+		let completed = 0;
+		for (const worker of workers) {
+			worker.on("message", (result: WorkerResult) => {
+				results.push(result);
+				completed++;
+
+				if (fileIndex < total) {
+					const msg: WorkerMessage = filesToProcess[fileIndex++];
+					worker.postMessage(msg);
+				} else if (completed === total) {
+					resolve();
+				}
+			});
+
+			worker.on("error", (err) => {
+				reject(err);
+			});
+
+			// Seed each worker with initial work
+			if (fileIndex < total) {
+				const msg: WorkerMessage = filesToProcess[fileIndex++];
+				worker.postMessage(msg);
+			}
+		}
+	});
+
+	// Terminate workers
+	for (const worker of workers) {
+		await worker.terminate();
+	}
+
+	return results;
+}
+
 /** Walk the repository, extract AST facts, and write CodeEntity nodes. */
 export async function indexRepository(
 	repoRoot: string,
@@ -320,31 +381,69 @@ export async function indexRepository(
 	const totalFilesScanned = filesProcessed;
 	filesProcessed = 0;
 
-	// Phase 2: Process files (sequential via parseFileWithRetry)
-	// Worker threads are used in production via Bun's Worker API.
-	// In test/Node environments, we use the sequential fallback which calls
-	// parseFileWithRetry directly — same logic, no thread overhead.
-	for (const file of filesToProcess) {
-		const result = await parseFileWithRetry(file.absPath, file.relPath);
-		const updated = await processResult(result, {
-			db,
-			cache,
-			pendingBatch,
-			allProcessedFacts,
-			allInsertedIds,
-			skippedFiles,
-			filesProcessed,
-			entitiesCreated,
-			cacheHits,
-			dryRun: opts.dryRun ?? false,
-			cacheInterval: CACHE_INTERVAL,
-			cacheDir,
-			cachePath,
-			start,
-			onProgress: opts.onProgress,
-		});
-		filesProcessed = updated.filesProcessed;
-		entitiesCreated = updated.entitiesCreated;
+	// Phase 2: Process files
+	// Use worker threads when explicitly requested and there are enough files.
+	// Otherwise fall back to sequential processing (always used in tests).
+	const numWorkers = opts.workerCount ?? Math.max(1, cpus().length - 1);
+	const useWorkers = numWorkers > 0 && filesToProcess.length > 10 && opts.workerCount !== 0;
+
+	let workerResults: WorkerResult[] | null = null;
+	if (useWorkers) {
+		try {
+			workerResults = await dispatchToWorkerPool(filesToProcess, numWorkers);
+		} catch {
+			// Worker creation failed (e.g., in test/Node environment) — fall back
+			workerResults = null;
+		}
+	}
+
+	if (workerResults) {
+		// Process all worker results
+		for (const result of workerResults) {
+			const updated = await processResult(result, {
+				db,
+				cache,
+				pendingBatch,
+				allProcessedFacts,
+				allInsertedIds,
+				skippedFiles,
+				filesProcessed,
+				entitiesCreated,
+				cacheHits,
+				dryRun: opts.dryRun ?? false,
+				cacheInterval: CACHE_INTERVAL,
+				cacheDir,
+				cachePath,
+				start,
+				onProgress: opts.onProgress,
+			});
+			filesProcessed = updated.filesProcessed;
+			entitiesCreated = updated.entitiesCreated;
+		}
+	} else {
+		// Sequential fallback — process files one at a time via parseFileWithRetry
+		for (const file of filesToProcess) {
+			const result = await parseFileWithRetry(file.absPath, file.relPath);
+			const updated = await processResult(result, {
+				db,
+				cache,
+				pendingBatch,
+				allProcessedFacts,
+				allInsertedIds,
+				skippedFiles,
+				filesProcessed,
+				entitiesCreated,
+				cacheHits,
+				dryRun: opts.dryRun ?? false,
+				cacheInterval: CACHE_INTERVAL,
+				cacheDir,
+				cachePath,
+				start,
+				onProgress: opts.onProgress,
+			});
+			filesProcessed = updated.filesProcessed;
+			entitiesCreated = updated.entitiesCreated;
+		}
 	}
 
 	// Final batch flush
