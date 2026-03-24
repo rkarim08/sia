@@ -9,10 +9,12 @@ describe("downloadModel", () => {
 
 	beforeEach(() => {
 		tempHome = mkdtempSync(join(tmpdir(), "sia-download-model-test-"));
+		process.env.SIA_SKIP_CHECKSUM = "1";
 	});
 
 	afterEach(() => {
 		rmSync(tempHome, { recursive: true, force: true });
+		delete process.env.SIA_SKIP_CHECKSUM;
 		vi.restoreAllMocks();
 	});
 

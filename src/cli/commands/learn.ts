@@ -131,6 +131,14 @@ export async function siaLearn(opts: LearnOptions = {}): Promise<LearnResult | n
 		result.phasesCompleted.push(0);
 	}
 
+	// --- Phase 0.5: Ensure embedding model is downloaded ---
+	try {
+		const { downloadModel } = await import("@/cli/commands/download-model");
+		await downloadModel(siaHome);
+	} catch (err) {
+		log(verbosity, `[sia-learn] Model download failed (non-fatal): ${err}`);
+	}
+
 	// Open graph DB for remaining phases
 	const { openGraphDb } = await import("@/graph/semantic-db");
 	const repoHash = resolveRepoHash(cwd);

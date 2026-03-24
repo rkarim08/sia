@@ -127,16 +127,9 @@ export async function downloadModel(siaHome: string = SIA_HOME): Promise<string>
 	if (!fileExistsWithContent(modelPath)) {
 		console.log("Downloading ONNX model...");
 		await downloadFile(MODEL_URL, modelPath);
-		// TODO: Replace placeholder with the real SHA-256 hash from the HuggingFace model card:
-		// https://huggingface.co/Xenova/all-MiniLM-L6-v2/blob/main/onnx/model_quantized.onnx
-		const MODEL_EXPECTED_HASH = "CHECKSUM_NOT_YET_KNOWN";
-		if (MODEL_EXPECTED_HASH !== "CHECKSUM_NOT_YET_KNOWN") {
+		if (!process.env.SIA_SKIP_CHECKSUM) {
+			const MODEL_EXPECTED_HASH = "afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1";
 			verifyModelChecksum(modelPath, MODEL_EXPECTED_HASH);
-		} else {
-			console.warn(
-				"[warn] Model checksum not configured — skipping integrity verification. " +
-					"Set the real SHA-256 hash in download-model.ts to enable verification.",
-			);
 		}
 	}
 
@@ -144,16 +137,9 @@ export async function downloadModel(siaHome: string = SIA_HOME): Promise<string>
 	if (!fileExistsWithContent(tokenizerPath)) {
 		console.log("Downloading tokenizer...");
 		await downloadFile(TOKENIZER_URL, tokenizerPath);
-		// TODO: Replace placeholder with the real SHA-256 hash from the HuggingFace model card:
-		// https://huggingface.co/Xenova/all-MiniLM-L6-v2/blob/main/tokenizer.json
-		const TOKENIZER_EXPECTED_HASH = "CHECKSUM_NOT_YET_KNOWN";
-		if (TOKENIZER_EXPECTED_HASH !== "CHECKSUM_NOT_YET_KNOWN") {
+		if (!process.env.SIA_SKIP_CHECKSUM) {
+			const TOKENIZER_EXPECTED_HASH = "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0";
 			verifyModelChecksum(tokenizerPath, TOKENIZER_EXPECTED_HASH);
-		} else {
-			console.warn(
-				"[warn] Tokenizer checksum not configured — skipping integrity verification. " +
-					"Set the real SHA-256 hash in download-model.ts to enable verification.",
-			);
 		}
 	}
 
