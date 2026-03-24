@@ -23,6 +23,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
+import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
 import { truncateResponse } from "@/mcp/truncate";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
@@ -140,6 +141,8 @@ export const SiaDoctorInput = z.object({
 		.optional(),
 });
 
+export const SiaSyncStatusInput = z.object({});
+
 export const SiaUpgradeInput = z.object({
 	target_version: z.string().optional(),
 	dry_run: z.boolean().optional(),
@@ -166,6 +169,7 @@ export const TOOL_NAMES = [
 	"sia_stats",
 	"sia_doctor",
 	"sia_upgrade",
+	"sia_sync_status",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -744,6 +748,20 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				],
 				isError: true,
 			};
+		},
+	);
+
+	// --- sia_sync_status ---------------------------------------------------
+	server.registerTool(
+		"sia_sync_status",
+		{
+			description: "Check team sync configuration and connection status",
+			inputSchema: SiaSyncStatusInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async () => {
+			const result = await handleSiaSyncStatus();
+			return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 		},
 	);
 
