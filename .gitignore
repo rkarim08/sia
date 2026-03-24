@@ -5,7 +5,7 @@ dist/
 ~/.sia/
 docs/superpowers/
 plans/
-CLAUDE.md
+# CLAUDE.md — no longer ignored; plugin behavioral spec must be committed
 AGENTS.md
 sia-native/target/
 sia-native/*.node
