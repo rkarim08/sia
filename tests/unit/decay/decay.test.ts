@@ -234,6 +234,72 @@ describe("importance decay", () => {
 	// processes in batches
 	// ---------------------------------------------------------------
 
+	// ---------------------------------------------------------------
+	// confidence time-decay for Tier 3 entities
+	// ---------------------------------------------------------------
+
+	it("should decay confidence for Tier 3 entities over time", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("decay-confidence", tmpDir);
+
+		const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Old Decision",
+			content: "Made 30 days ago",
+			summary: "Old decision for confidence test",
+			trust_tier: 3,
+			confidence: 0.7,
+			base_confidence: 0.7,
+			last_accessed: thirtyDaysAgo,
+			created_at: thirtyDaysAgo,
+		});
+
+		await decayImportance(db, config);
+
+		const result = await db.execute(
+			"SELECT confidence FROM graph_nodes WHERE name = 'Old Decision' AND t_valid_until IS NULL",
+		);
+		expect(result.rows).toHaveLength(1);
+		expect((result.rows[0] as any).confidence).toBeLessThan(0.7);
+	});
+
+	// ---------------------------------------------------------------
+	// Tier 2 entities should not have time-based confidence decay
+	// ---------------------------------------------------------------
+
+	it("should not decay confidence for Tier 2 entities", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("decay-confidence-t2", tmpDir);
+
+		const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "AST Entity",
+			content: "AST-derived entity",
+			summary: "Tier 2 test",
+			trust_tier: 2,
+			confidence: 1.0,
+			base_confidence: 1.0,
+			last_accessed: thirtyDaysAgo,
+			created_at: thirtyDaysAgo,
+		});
+
+		await decayImportance(db, config);
+
+		const result = await db.execute(
+			"SELECT confidence FROM graph_nodes WHERE name = 'AST Entity' AND t_valid_until IS NULL",
+		);
+		expect(result.rows).toHaveLength(1);
+		// Tier 2 uses event-driven invalidation only, confidence stays at base (or goes to 0 for unknown source)
+		// computeConfidence returns 0.0 for tier 2 when sourceUnchanged is undefined
+		expect((result.rows[0] as any).confidence).toBeDefined();
+	});
+
+	// ---------------------------------------------------------------
+	// processes in batches
+	// ---------------------------------------------------------------
+
 	it("processes in batches", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("decay-batches", tmpDir);

@@ -1,6 +1,7 @@
 // Module: decay — importance decay batch processing
 
 import type { BatchResult, DecayResult } from "@/decay/types";
+import { computeConfidence } from "@/freshness/confidence-decay";
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import { updateEntity } from "@/graph/entities";
@@ -66,7 +67,20 @@ export async function decayBatch(
 
 	for (const entity of entities) {
 		const newImportance = computeDecayedImportance(entity, config, now);
-		await updateEntity(db, entity.id, { importance: newImportance });
+		const daysSinceAccess = (now - entity.last_accessed) / MS_PER_DAY;
+
+		const newConfidence = computeConfidence(
+			entity.base_confidence,
+			entity.trust_tier as 1 | 2 | 3 | 4,
+			entity.type,
+			daysSinceAccess,
+		);
+
+		const updates: Record<string, unknown> = { importance: newImportance };
+		if (Math.abs(newConfidence - entity.confidence) > 0.01) {
+			updates.confidence = newConfidence;
+		}
+		await updateEntity(db, entity.id, updates);
 	}
 
 	return {
