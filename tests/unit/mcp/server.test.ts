@@ -43,17 +43,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(16);
+		expect(Object.keys(registered)).toHaveLength(17);
 	});
 
-	it("registers all 16 tools", () => {
+	it("registers all 17 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(16);
+		expect(registeredNames).toHaveLength(17);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -77,6 +77,7 @@ describe("createMcpServer", () => {
 			"sia_stats",
 			"sia_doctor",
 			"sia_upgrade",
+			"sia_sync_status",
 		]);
 	});
 });

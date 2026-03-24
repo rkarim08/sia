@@ -1,4 +1,4 @@
-// Module: server — MCP server with 16 tool registrations
+// Module: server — MCP server registering all Sia tool handlers
 //
 // Read-heavy against graph.db. Write paths: session_flags (sia_flag),
 // graph entities/edges (sia_note), sandbox results (sia_execute*).
@@ -23,6 +23,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
+import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
 import { truncateResponse } from "@/mcp/truncate";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
@@ -140,6 +141,8 @@ export const SiaDoctorInput = z.object({
 		.optional(),
 });
 
+export const SiaSyncStatusInput = z.object({});
+
 export const SiaUpgradeInput = z.object({
 	target_version: z.string().optional(),
 	dry_run: z.boolean().optional(),
@@ -166,6 +169,7 @@ export const TOOL_NAMES = [
 	"sia_stats",
 	"sia_doctor",
 	"sia_upgrade",
+	"sia_sync_status",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -221,7 +225,7 @@ async function safeToolCall<T>(
 // ---------------------------------------------------------------------------
 
 export function createMcpServer(deps?: McpServerDeps): McpServer {
-	const server = new McpServer({ name: "sia", version: "0.2.0" });
+	const server = new McpServer({ name: "sia", version: "0.1.0" });
 	// workingMemoryTokenBudget is token-denominated; multiply by ~4 to approximate
 	// a character budget for JSON truncation (1 token ≈ 4 chars in JSON output).
 	const maxChars = deps ? deps.config.workingMemoryTokenBudget * 4 : undefined;
@@ -743,6 +747,23 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					},
 				],
 				isError: true,
+			};
+		},
+	);
+
+	// --- sia_sync_status ---------------------------------------------------
+	server.registerTool(
+		"sia_sync_status",
+		{
+			description: "Check team sync configuration and connection status",
+			inputSchema: SiaSyncStatusInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async () => {
+			const result = await handleSiaSyncStatus();
+			return {
+				content: [{ type: "text" as const, text: JSON.stringify(result) }],
+				isError: result.status === "error" ? true : undefined,
 			};
 		},
 	);
