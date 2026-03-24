@@ -125,6 +125,41 @@ export async function generateQaReport(
 	sections.push(`| Overall risk | **${risk.label}** (score: ${risk.score}) |`);
 	sections.push("");
 
+	// High-Risk Areas
+	sections.push("## High-Risk Areas\n");
+	if (bugs.length === 0 && recentEntities.length === 0) {
+		sections.push("*No risk areas identified — no bugs or recent changes.*\n");
+	} else {
+		// Group bugs by file path to identify risky areas
+		const areaMap = new Map<string, { bugs: number; recent: number; edges: number }>();
+		for (const bug of bugs) {
+			const area = bug.file_paths && bug.file_paths !== "[]" ? bug.file_paths : "Unknown";
+			const entry = areaMap.get(area) ?? { bugs: 0, recent: 0, edges: 0 };
+			entry.bugs++;
+			entry.edges += bug.edge_count || 0;
+			if (bug.created_at >= since) entry.recent++;
+			areaMap.set(area, entry);
+		}
+
+		if (areaMap.size > 0) {
+			const sorted = [...areaMap.entries()].sort((a, b) => {
+				const riskA = riskLevel(a[1].bugs, a[1].recent, a[1].edges);
+				const riskB = riskLevel(b[1].bugs, b[1].recent, b[1].edges);
+				return riskB.score - riskA.score;
+			});
+
+			sections.push("| Area | Bugs | Recent Changes | Risk |");
+			sections.push("|---|---|---|---|");
+			for (const [area, data] of sorted) {
+				const r = riskLevel(data.bugs, data.recent, data.edges);
+				sections.push(`| ${area} | ${data.bugs} | ${data.recent} | **${r.label}** (${r.score}) |`);
+			}
+			sections.push("");
+		} else {
+			sections.push("*No bug-affected areas found.*\n");
+		}
+	}
+
 	// Bug Activity
 	sections.push("## Bug Activity\n");
 	if (bugs.length === 0) {
