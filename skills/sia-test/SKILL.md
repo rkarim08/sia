@@ -34,6 +34,8 @@ From the results:
 - **Known bugs** → write tests that cover these edge cases
 - **File entities** → understand the actual API surface to test against
 
+**For common anti-patterns to avoid:** See [testing-anti-patterns.md](testing-anti-patterns.md)
+
 ### RED — Write Failing Test (enhanced)
 
 Write the test following discovered conventions. Include edge cases from known Bug history.
