@@ -40,6 +40,8 @@ Commands:
   disable-flagging     Disable mid-session flagging
   tour                 Guided walkthrough of the knowledge graph
   qa-report            Generate QA testing intelligence report
+  pm-report            Generate PM reports (sprint, decisions, risks)
+  lead-report          Tech lead reports (drift, knowledge-map, compliance)
   server               Manage MCP server (start, stop, status)
 
 Options:
@@ -382,6 +384,11 @@ async function main(): Promise<void> {
 		case "qa-report": {
 			const { runQaReport } = await import("@/cli/commands/qa-report");
 			await runQaReport(rest);
+			return;
+		}
+		case "pm-report": {
+			const { runPmReport } = await import("@/cli/commands/pm-report");
+			await runPmReport(rest);
 			return;
 		}
 		case "server": {
