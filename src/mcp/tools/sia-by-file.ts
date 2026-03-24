@@ -3,6 +3,7 @@
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
+import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaByFileInput } from "@/mcp/server";
 import type { WorkspaceDeps } from "@/mcp/tools/sia-search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
@@ -39,7 +40,8 @@ export async function handleSiaByFile(
 			siaHome: workspaceDeps.siaHome,
 			limit,
 		});
-		return { entities: result.entities as unknown as Entity[] };
+		const annotated = await annotateFreshness(result.entities as unknown as Record<string, unknown>[], db);
+		return { entities: annotated as unknown as Entity[] };
 	}
 
 	// --- Exact match ---
@@ -54,7 +56,8 @@ export async function handleSiaByFile(
 	);
 
 	if (exactResult.rows.length > 0) {
-		return { entities: exactResult.rows as unknown as Entity[] };
+		const annotated = await annotateFreshness(exactResult.rows as unknown as Record<string, unknown>[], db);
+		return { entities: annotated as unknown as Entity[] };
 	}
 
 	// --- Filename stem fallback ---
@@ -72,5 +75,6 @@ export async function handleSiaByFile(
 		[filename, limit],
 	);
 
-	return { entities: stemResult.rows as unknown as Entity[] };
+	const annotated = await annotateFreshness(stemResult.rows as unknown as Record<string, unknown>[], db);
+	return { entities: annotated as unknown as Entity[] };
 }

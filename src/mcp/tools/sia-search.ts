@@ -6,6 +6,7 @@
 import type { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaSearchInput } from "@/mcp/server";
 import { hybridSearch } from "@/retrieval/search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
@@ -76,7 +77,7 @@ export async function handleSiaSearch(
 			node_types: input.node_types,
 			package_path: input.package_path,
 		});
-		return result.entities;
+		return (await annotateFreshness(result.entities as unknown as Record<string, unknown>[], db)) as unknown as SiaSearchResult[];
 	}
 
 	// Compute effective limit
@@ -94,5 +95,5 @@ export async function handleSiaSearch(
 		includeProvenance: input.include_provenance,
 	});
 
-	return searchResult.results;
+	return (await annotateFreshness(searchResult.results as unknown as Record<string, unknown>[], db)) as unknown as SiaSearchResult[];
 }

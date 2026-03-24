@@ -5,6 +5,7 @@ import { getOrCreateLevel1Summary } from "@/community/raptor";
 import type { SiaDb } from "@/graph/db-interface";
 import type { EdgeRow } from "@/graph/edges";
 import type { Entity } from "@/graph/entities";
+import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaExpandInput } from "@/mcp/server";
 
 /** Result shape for sia_expand. */
@@ -141,9 +142,13 @@ export async function handleSiaExpand(
 		}
 	}
 
+	const allEntities = [rootEntity, ...neighbors];
+	const annotated = await annotateFreshness(allEntities as unknown as Record<string, unknown>[], db);
+	const [annotatedRoot, ...annotatedNeighbors] = annotated;
+
 	return {
-		entity: rootEntity,
-		neighbors,
+		entity: annotatedRoot as unknown as Entity,
+		neighbors: annotatedNeighbors as unknown as Entity[],
 		edges: dedupedEdges.slice(0, MAX_EDGES),
 		edge_count: totalEdgeCount,
 	};
