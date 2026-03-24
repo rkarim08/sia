@@ -220,12 +220,17 @@ export async function runLeadReport(args: string[]): Promise<void> {
 	let type: LeadReportOptions["type"] = "drift";
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === "--type" && args[i + 1]) {
-			const val = args[i + 1];
+			const val = args[++i];
 			if (val === "drift" || val === "knowledge-map" || val === "compliance") {
 				type = val;
 			} else {
 				console.error(`Unknown report type: ${val}. Use: drift, knowledge-map, compliance`);
 				return;
+			}
+		} else if (!args[i].startsWith("--")) {
+			const val = args[i];
+			if (val === "drift" || val === "knowledge-map" || val === "compliance") {
+				type = val;
 			}
 		}
 	}

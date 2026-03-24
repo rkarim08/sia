@@ -384,15 +384,15 @@ export async function runPmReport(args: string[]): Promise<void> {
 				console.error(`Unknown report type: ${t}. Use sprint, decisions, or risks.`);
 				return;
 			}
-		}
-		if (args[i] === "--since" && args[i + 1]) {
+		} else if (args[i] === "--since" && args[i + 1]) {
 			since = new Date(args[++i]).getTime();
-		}
-		if (args[i] === "--until" && args[i + 1]) {
+		} else if (args[i] === "--until" && args[i + 1]) {
 			until = new Date(args[++i]).getTime();
-		}
-		if (args[i] === "--output" && args[i + 1]) {
+		} else if (args[i] === "--output" && args[i + 1]) {
 			outputPath = args[++i];
+		} else if (!args[i].startsWith("--")) {
+			const t = args[i];
+			if (t === "sprint" || t === "decisions" || t === "risks") type = t;
 		}
 	}
 

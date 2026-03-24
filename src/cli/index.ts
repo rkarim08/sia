@@ -255,7 +255,14 @@ async function main(): Promise<void> {
 			const { exportToFile, exportGraph } = await import("@/cli/commands/export");
 			const db = await openDb();
 			try {
-				const outputPath = rest[0];
+				let outputPath: string | undefined;
+				for (let i = 0; i < rest.length; i++) {
+					if (rest[i] === "--output" && rest[i + 1]) {
+						outputPath = rest[++i];
+					} else if (!rest[i].startsWith("--")) {
+						outputPath = rest[i];
+					}
+				}
 				if (outputPath) {
 					const path = await exportToFile(db, outputPath);
 					console.log(`Exported to: ${path}`);
@@ -307,7 +314,11 @@ async function main(): Promise<void> {
 					console.log("Conflict resolved.");
 				} else {
 					const conflicts = await listConflicts(db);
-					console.log(JSON.stringify(conflicts, null, 2));
+					if (Object.keys(conflicts).length === 0) {
+						console.log("No conflicts found.");
+					} else {
+						console.log(JSON.stringify(conflicts, null, 2));
+					}
 				}
 			} finally {
 				await db.close();
