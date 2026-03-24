@@ -1,17 +1,23 @@
 ---
 name: sia-plan
-description: Write implementation plans with SIA's knowledge of module topology, architectural constraints, and project conventions — produces context-rich plans instead of zero-context plans
+description: Writes implementation plans using SIA's knowledge of module topology, architectural constraints, and project conventions. Use when creating multi-step implementation plans or breaking down specs into tasks.
 ---
 
 # SIA-Enhanced Plan Writing
 
-Write implementation plans informed by SIA's knowledge graph. This improves upon standard plan writing by pre-loading architectural constraints, module boundaries, and conventions so plans respect the existing codebase structure.
+Write implementation plans pre-loaded with architectural constraints, module boundaries, and conventions from SIA's knowledge graph.
 
-## What SIA Adds
+## Checklist
 
-Standard plan writing says "assume the engineer has zero context." SIA-enhanced planning provides that context from the graph — conventions, module topology, past patterns, and known constraints.
+```
+- [ ] Step 0: Load graph context — community structure, decisions, conventions
+- [ ] Step 1: Scope check — use community boundaries to find natural split points
+- [ ] Step 2: File structure — sia_by_file for each file to understand dependencies
+- [ ] Step 3: Task definition — embed graph context (conventions, dependencies, known bugs) per task
+- [ ] Step 4-6: Standard plan writing, review, handoff
+```
 
-## Enhanced Workflow
+## Workflow
 
 ### Step 0 — Load Graph Context (NEW)
 

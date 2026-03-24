@@ -1,20 +1,25 @@
 ---
 name: sia-review-respond
-description: Respond to code review feedback with SIA's knowledge of past architectural decisions, usage patterns for YAGNI checks, and conflict detection against established conventions
+description: Responds to code review feedback using SIA's knowledge of past decisions, usage patterns for YAGNI checks, and conflict detection. Use when receiving PR feedback, review comments, or suggestions that may conflict with established conventions.
 ---
 
 # SIA-Enhanced Code Review Response
 
-Respond to code review feedback informed by the project's decision history and conventions.
+Respond to code review feedback grounded in SIA's decision history, usage edges (YAGNI checks), and convention records — argue from the graph, not from memory.
 
-## What SIA Adds
+## Checklist
 
-Standard review receiving says "verify against codebase reality." SIA-enhanced responding also:
-- **Checks past decisions** — does the feedback contradict an established architectural choice?
-- **YAGNI via usage edges** — is a suggested feature actually connected to consumers?
-- **Recalls rationale** — WHY was the current implementation chosen? (SIA remembers across sessions)
+```
+- [ ] Step 1: Read all feedback without reacting
+- [ ] Step 2: Restate each item in your own words
+- [ ] Step 3: Query SIA for decisions/conventions related to each feedback item
+- [ ] Step 4: Evaluate — YAGNI via backlinks, conflict check via decision search
+- [ ] Step 5: Respond with graph citations
+- [ ] Step 6: Implement accepted items one at a time, test each
+- [ ] Post: Capture new decisions or convention changes to graph
+```
 
-## Enhanced Workflow
+## Workflow
 
 ### Step 1 — Read Feedback (same as standard)
 

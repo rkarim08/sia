@@ -1,22 +1,22 @@
 ---
 name: sia-debug-workflow
-description: Systematic debugging enhanced with SIA's temporal knowledge graph — traces root cause through time, surfaces known bugs in the area, and finds past solutions. Uses sia_at_time to pinpoint when things broke.
+description: Debugs systematically using SIA's temporal knowledge graph — traces root cause through time, surfaces known bugs, and finds past solutions. Use when encountering bugs, errors, test failures, or unexpected behavior.
 ---
 
 # SIA-Enhanced Systematic Debugging
 
-Debug methodically with SIA's temporal knowledge graph. This improves upon standard systematic debugging by adding temporal investigation ("when did it break?"), known bug history, and cross-session debugging memory.
+Debug methodically with SIA's temporal knowledge graph — adds temporal investigation ("when did it break?"), known bug history, and cross-session memory to standard debugging.
 
-## What SIA Adds
+## Checklist
 
-Standard debugging explores the current code state. SIA-enhanced debugging also:
-- **Queries temporal history** — `sia_at_time` shows the graph state before the bug existed
-- **Surfaces known bugs** — checks if this bug (or similar) was seen before
-- **Recalls past solutions** — finds solutions that fixed related bugs
-- **Maps causal chains** — traces dependencies to find upstream root causes
-- **Remembers across sessions** — a bug investigated yesterday has context today
+```
+- [ ] Phase 1: Query SIA for known bugs/solutions, run sia_at_time, check affected files
+- [ ] Phase 2: Expand dependency chain, find working patterns in same community
+- [ ] Phase 3: Form hypothesis, test minimally, verify
+- [ ] Phase 4: Fix, capture Bug + Solution to graph, check for recurring pattern
+```
 
-## Enhanced 4-Phase Workflow
+## 4-Phase Workflow
 
 ### Phase 1 — Root Cause Investigation (ENHANCED)
 

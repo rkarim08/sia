@@ -1,20 +1,22 @@
 ---
 name: sia-dispatch
-description: Dispatch parallel agents with SIA's community detection for independence assessment and auto-extracted subgraph context per agent — ensures agents work on truly independent domains
+description: Dispatches parallel agents using SIA's community detection for independence verification and auto-extracted subgraph context per agent. Use when facing 2+ independent tasks, parallelizing work, or dispatching subagents.
 ---
 
 # SIA-Enhanced Parallel Agent Dispatch
 
-Dispatch parallel agents with graph-powered independence assessment and rich per-agent context.
+Dispatch parallel agents with graph-powered independence verification and rich per-agent context extraction.
 
-## What SIA Adds
+## Checklist
 
-Standard dispatch relies on judgment to determine if tasks are independent. SIA-enhanced dispatch:
-- **Uses community detection** to formally determine component independence
-- **Auto-extracts relevant subgraph** per agent so each gets rich, focused context
-- **Checks dependency edges** to verify no shared state between domains
+```
+- [ ] Step 1: Query sia_community, verify domains are in different communities
+- [ ] Step 2: For each agent — extract conventions, bugs, dependencies from graph
+- [ ] Step 3: Dispatch agents with graph context in task descriptions
+- [ ] Step 4: After integration — sia_expand to verify no cross-domain breakage
+```
 
-## Enhanced Workflow
+## Workflow
 
 ### Step 1 — Identify Independent Domains (ENHANCED)
 

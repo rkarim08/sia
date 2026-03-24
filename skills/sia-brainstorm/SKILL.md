@@ -1,6 +1,6 @@
 ---
 name: sia-brainstorm
-description: Brainstorm features with SIA's knowledge graph context — surfaces past decisions, rejected alternatives, and architectural constraints before proposing approaches. Enhances the brainstorming workflow with cross-session memory.
+description: Brainstorms features using SIA's knowledge graph — surfaces past decisions, rejected alternatives, and architectural constraints before proposing approaches. Use when starting any creative work, designing features, or modifying behavior.
 ---
 
 # SIA-Enhanced Brainstorming

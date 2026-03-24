@@ -1,20 +1,22 @@
 ---
 name: sia-execute-plan
-description: Execute implementation plans with SIA's staleness detection, per-task convention checks, and session resumption — catches when plans are outdated and provides per-task context
+description: Executes implementation plans with SIA's staleness detection, per-task convention checks, and session resumption. Use when following a written implementation plan, resuming plan execution, or running through task checklists.
 ---
 
 # SIA-Enhanced Plan Execution
 
-Execute plans with graph-powered staleness detection and per-task context injection.
+Execute plans with staleness detection, per-task convention injection, and session resumption from SIA's knowledge graph.
 
-## What SIA Adds
+## Checklist
 
-Standard plan execution follows steps exactly. SIA-enhanced execution also:
-- **Detects stale plans** — checks if files referenced in the plan changed since it was written
-- **Injects per-task context** — queries the graph for conventions and constraints relevant to each task
-- **Supports session resumption** — if execution is interrupted, SIA remembers where you left off
+```
+- [ ] Step 0: Staleness check — sia_by_file for each plan-referenced file
+- [ ] Step 1: Load and review plan, cross-reference against graph
+- [ ] Step 2: Per-task execution with convention queries
+- [ ] Step 3: Invoke sia-finish for branch completion
+```
 
-## Enhanced Workflow
+## Workflow
 
 ### Step 0 — Staleness Check (NEW)
 

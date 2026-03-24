@@ -1,20 +1,23 @@
 ---
 name: sia-test
-description: Test-driven development enhanced with SIA's knowledge of test conventions, known edge cases, past test failures, and interface contracts from the knowledge graph
+description: Guides test-driven development using SIA's knowledge of test conventions, known edge cases, and past failures. Use when implementing features or fixes with TDD, writing tests, or establishing test patterns.
 ---
 
 # SIA-Enhanced Test-Driven Development
 
-Write tests informed by SIA's knowledge graph. This improves upon standard TDD by surfacing how this codebase tests things, what edge cases have caused bugs before, and what the actual interface contracts are.
+TDD informed by SIA's knowledge graph — surfaces this project's test conventions, known edge cases from past bugs, and actual interface contracts before writing the first test.
 
-## What SIA Adds
+## Checklist
 
-Standard TDD says "write one minimal failing test." SIA-enhanced TDD first checks:
-- **How does this codebase write tests?** — test conventions, patterns, helper utilities
-- **What edge cases have failed before?** — past Bug entities in the same area
-- **What's the actual interface?** — entity contracts from the graph, not guessed APIs
+```
+- [ ] Before RED: Query SIA for test conventions, known bugs, file entities
+- [ ] RED: Write failing test following discovered conventions + known edge cases
+- [ ] GREEN: Minimal code to pass (YAGNI)
+- [ ] REFACTOR: Check consumers via sia_expand before refactoring
+- [ ] Capture: Note new edge cases or test conventions to graph
+```
 
-## Enhanced Red-Green-Refactor
+## Red-Green-Refactor
 
 ### Before RED — SIA Context Query (NEW)
 

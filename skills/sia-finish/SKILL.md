@@ -1,20 +1,23 @@
 ---
 name: sia-finish
-description: Finish a development branch with SIA — generates semantic PR summaries from the knowledge graph, captures branch decisions, and updates the graph post-merge
+description: Finishes development branches using SIA — generates semantic PR summaries from the knowledge graph, captures branch decisions, and updates the graph post-merge. Use when implementation is complete, all tests pass, and the branch is ready for merge or PR.
 ---
 
 # SIA-Enhanced Branch Finishing
 
-Finish a development branch with graph-powered PR summaries and post-merge knowledge capture.
+Finish a development branch with graph-powered semantic PR summaries and post-merge knowledge capture.
 
-## What SIA Adds
+## Checklist
 
-Standard branch finishing generates PR descriptions from git diff. SIA-enhanced finishing also:
-- **Generates semantic PR summaries** from captured Decision/Convention/Bug entities on this branch
-- **Captures branch knowledge** before merge — all decisions made during the branch's lifetime
-- **Updates the graph** post-merge — marks branch-specific snapshots for cleanup
+```
+- [ ] Step 0: Query SIA for branch decisions/conventions/bugs
+- [ ] Step 1: Verify tests pass (hard gate)
+- [ ] Step 2-3: Determine base branch, present options (merge/PR/cleanup)
+- [ ] Step 4: Create PR with Knowledge Summary section from graph entities
+- [ ] Post-merge: Capture branch summary to graph, prune snapshots
+```
 
-## Enhanced Workflow
+## Workflow
 
 ### Step 0 — Branch Knowledge Summary (NEW)
 

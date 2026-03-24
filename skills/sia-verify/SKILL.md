@@ -1,20 +1,21 @@
 ---
 name: sia-verify
-description: Verify work is complete using SIA's knowledge of area-specific requirements, past verification failures, and known gotchas — evidence before assertions
+description: Verifies work completeness using SIA's knowledge of area-specific requirements, past verification failures, and known gotchas. Use when about to claim work is done, before committing, or before creating PRs.
 ---
 
 # SIA-Enhanced Verification
 
-Verify that work is truly complete, informed by SIA's knowledge of what's gone wrong before in this area.
+Verify work is truly complete — queries SIA for area-specific requirements, past verification failures, and known gotchas before running checks. Evidence before assertions.
 
-## What SIA Adds
+## Checklist
 
-Standard verification says "run tests and check the output." SIA-enhanced verification also:
-- **Checks area-specific requirements** — some modules need integration tests, not just unit tests
-- **Surfaces known gotchas** — past bugs that affect this area
-- **Recalls verification history** — what verifications have failed before for this codebase
+```
+- [ ] Step 0: Query SIA for area-specific verification requirements and known bugs
+- [ ] Step 1-5: IDENTIFY → RUN → READ → VERIFY → CLAIM (gate function)
+- [ ] Post: Capture any new verification requirements to graph
+```
 
-## Enhanced Verification
+## Workflow
 
 ### Step 0 — SIA Requirements Query (NEW)
 
