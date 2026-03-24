@@ -244,6 +244,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Semantic search across the Sia knowledge graph",
 			inputSchema: SiaSearchInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -271,6 +272,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Retrieve knowledge graph nodes associated with a file",
 			inputSchema: SiaByFileInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -294,6 +296,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Expand an entity's neighbourhood in the knowledge graph",
 			inputSchema: SiaExpandInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -317,6 +320,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Retrieve community-level summaries from the knowledge graph",
 			inputSchema: SiaCommunityInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -344,6 +348,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Query the knowledge graph at a point in time",
 			inputSchema: SiaAtTimeInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -367,6 +372,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Flag current session for human review (writes to session_flags only)",
 			inputSchema: SiaFlagInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -398,6 +404,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Find all incoming edges (backlinks) to a knowledge graph node",
 			inputSchema: SiaBacklinksInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -425,6 +432,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Create a developer-authored knowledge entry in the graph",
 			inputSchema: SiaNoteInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -448,6 +456,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Execute code in an isolated sandbox",
 			inputSchema: SiaExecuteInput.shape,
+			annotations: { readOnlyHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -499,6 +508,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Execute an existing file in a sandbox subprocess",
 			inputSchema: SiaExecuteFileInput.shape,
+			annotations: { readOnlyHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -550,6 +560,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Index markdown/text content by chunking and scanning for entity references",
 			inputSchema: SiaIndexInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -591,6 +602,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Execute multiple operations in one call with precedes edges",
 			inputSchema: SiaBatchExecuteInput.shape,
+			annotations: { readOnlyHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -644,6 +656,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Fetch a URL, convert to markdown, and index via contentTypeChunker",
 			inputSchema: SiaFetchAndIndexInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -685,6 +698,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Return graph metrics: node/edge counts by type, optional session stats",
 			inputSchema: SiaStatsInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -712,6 +726,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Run diagnostic checks on the Sia installation",
 			inputSchema: SiaDoctorInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			if (deps) {
@@ -735,6 +750,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Self-update Sia to the latest version",
 			inputSchema: SiaUpgradeInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: false },
 		},
 		async (args) => {
 			if (deps) {
@@ -782,6 +798,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Parse a file with tree-sitter and extract symbols, imports, or call relationships",
 			inputSchema: SiaAstQueryInput.shape,
+			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
 			return safeToolCall("sia_ast_query", () => handleSiaAstQuery(args as any), maxChars);

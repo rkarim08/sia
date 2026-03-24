@@ -81,6 +81,28 @@ describe("createMcpServer", () => {
 			"sia_ast_query",
 		]);
 	});
+	it("all tools have annotations with readOnlyHint", () => {
+		const server = createMcpServer(mockDeps);
+		const registered = (server as unknown as { _registeredTools: Record<string, { annotations?: { readOnlyHint?: boolean } }> })
+			._registeredTools;
+
+		const readOnlyTools = [
+			"sia_search", "sia_by_file", "sia_expand", "sia_community",
+			"sia_at_time", "sia_backlinks", "sia_stats", "sia_doctor",
+			"sia_sync_status", "sia_ast_query",
+		];
+		const writeTools = [
+			"sia_flag", "sia_note", "sia_execute", "sia_execute_file",
+			"sia_index", "sia_batch_execute", "sia_fetch_and_index", "sia_upgrade",
+		];
+
+		for (const name of readOnlyTools) {
+			expect(registered[name]?.annotations?.readOnlyHint, `${name} should be readOnly`).toBe(true);
+		}
+		for (const name of writeTools) {
+			expect(registered[name]?.annotations?.readOnlyHint, `${name} should not be readOnly`).toBe(false);
+		}
+	});
 });
 
 // ---------------------------------------------------------------------------
