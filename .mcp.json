@@ -1,8 +1,8 @@
 {
 	"mcpServers": {
 		"sia": {
-			"command": "bun",
-			"args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/start-mcp.ts"],
+			"command": "bash",
+			"args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start-mcp.sh"],
 			"env": {
 				"SIA_HOME": "${CLAUDE_PLUGIN_DATA}",
 				"CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}",

@@ -7,6 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 
+source "$PLUGIN_ROOT/scripts/ensure-runtime.sh" "$PLUGIN_ROOT"
+
 SIA_LOG_DIR="${CLAUDE_PLUGIN_DATA:-${HOME}/.sia}/logs"
 mkdir -p "$SIA_LOG_DIR"
 
