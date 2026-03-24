@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseHookPayload, resolveRepoHash } from "@/capture/hook";
 
@@ -90,9 +91,15 @@ describe("capture/hook", () => {
 		const hash2 = resolveRepoHash(".");
 
 		expect(hash1).toBe(hash2);
+	});
 
-		// Verify it matches a manual computation
-		const expected = createHash("sha256").update(realpathSync(".")).digest("hex");
-		expect(hash1).toBe(expected);
+	// ---------------------------------------------------------------
+	// resolveRepoHash produces same hash for subdirectories of same repo
+	// ---------------------------------------------------------------
+
+	it("resolveRepoHash produces same hash for a subdirectory of the same repo", () => {
+		const hash1 = resolveRepoHash(process.cwd());
+		const hash2 = resolveRepoHash(join(process.cwd(), "src"));
+		expect(hash1).toBe(hash2);
 	});
 });
