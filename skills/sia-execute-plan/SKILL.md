@@ -3,6 +3,27 @@ name: sia-execute-plan
 description: Executes implementation plans with SIA's staleness detection, per-task convention checks, and session resumption. Use when following a written implementation plan, resuming plan execution, or running through task checklists.
 ---
 
+## Invariants
+
+> These rules have NO exceptions. Executing a stale plan wastes more time than checking.
+>
+> 1. YOU MUST run the staleness check before executing any task. If a plan-referenced
+>    file has been modified after the plan was written, STOP and alert the developer.
+>    Do NOT proceed with a stale plan without explicit developer approval.
+> 2. YOU MUST query SIA for conventions before each task. "The plan already says how
+>    to do it" is not an excuse — conventions may have changed since the plan was written.
+> 3. YOU MUST NOT invoke sia-finish until ALL plan tasks are complete and verified.
+>    Partial completion is not completion.
+
+## Red Flags — If You Think Any of These, STOP
+
+| Thought | Why It's Wrong |
+|---------|---------------|
+| "The plan is recent, I can skip the staleness check" | Plans go stale faster than you expect. The check takes seconds; a stale-plan bug takes hours. |
+| "The plan already specifies conventions" | Conventions evolve. The graph is current; the plan may not be. |
+| "I'll finish the remaining tasks later" | sia-finish on a partial plan creates a misleading PR. Complete ALL tasks first. |
+| "This task is simple enough to skip the convention query" | Simple tasks done wrong compound into complex problems. Always query. |
+
 # SIA-Enhanced Plan Execution
 
 Execute plans with staleness detection, per-task convention injection, and session resumption from SIA's knowledge graph.
@@ -10,10 +31,10 @@ Execute plans with staleness detection, per-task convention injection, and sessi
 ## Checklist
 
 ```
-- [ ] Step 0: Staleness check — sia_by_file for each plan-referenced file
-- [ ] Step 1: Load and review plan, cross-reference against graph
-- [ ] Step 2: Per-task execution with convention queries
-- [ ] Step 3: Invoke sia-finish for branch completion
+- [ ] Step 0: YOU MUST run staleness check — sia_by_file for each plan-referenced file. If any file changed since plan creation, STOP and alert. No exceptions.
+- [ ] Step 1: Load and review plan, cross-reference against current graph state. Flag any contradictions.
+- [ ] Step 2: For EACH task, YOU MUST query SIA for area conventions before starting. A task executed without this query may violate project standards.
+- [ ] Step 3: Invoke sia-finish ONLY after ALL tasks are complete and verified. Partial completion is not completion.
 ```
 
 ## Workflow

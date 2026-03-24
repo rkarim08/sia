@@ -3,6 +3,28 @@ name: sia-debug-workflow
 description: Debugs systematically using SIA's temporal knowledge graph — traces root cause through time, surfaces known bugs, and finds past solutions. Use when encountering bugs, errors, test failures, or unexpected behavior.
 ---
 
+## Invariants
+
+> These rules have NO exceptions. A debug session that violates them is incomplete.
+>
+> 1. YOU MUST query `sia_search` for known bugs BEFORE investigating. "I already
+>    know the cause" is the #1 reason developers re-debug solved problems.
+> 2. YOU MUST capture both a Bug entity AND a Solution entity after fixing.
+>    A fix without graph capture is an incomplete session. STOP and capture
+>    before moving on.
+> 3. If a Bug+Solution pair already exists in the graph, STOP investigating
+>    and apply the known fix. Do not re-derive what's already known.
+
+## Red Flags — If You Think Any of These, STOP
+
+| Thought | Why It's Wrong |
+|---------|---------------|
+| "I already know the root cause" | You know A root cause. The graph may know THE root cause — and it may be different. Query first. |
+| "This is a quick fix, I don't need the temporal query" | Quick fixes that skip temporal investigation are how regressions get re-introduced. |
+| "The bug is obvious from the stack trace" | Stack traces show symptoms, not causes. The graph shows causal history. |
+| "I'll capture the bug after I fix it" | If you forget (and you will), the next developer re-debugs from scratch. Capture NOW. |
+| "This bug isn't important enough to record" | Every bug is important enough. Future-you will thank present-you. |
+
 # SIA-Enhanced Systematic Debugging
 
 Debug methodically with SIA's temporal knowledge graph — adds temporal investigation ("when did it break?"), known bug history, and cross-session memory to standard debugging.
@@ -10,10 +32,10 @@ Debug methodically with SIA's temporal knowledge graph — adds temporal investi
 ## Checklist
 
 ```
-- [ ] Phase 1: Query SIA for known bugs/solutions, run sia_at_time, check affected files
-- [ ] Phase 2: Expand dependency chain, find working patterns in same community
-- [ ] Phase 3: Form hypothesis, test minimally, verify
-- [ ] Phase 4: Fix, capture Bug + Solution to graph, check for recurring pattern
+- [ ] Phase 1: YOU MUST query SIA for known bugs/solutions BEFORE investigating. If a match exists, apply it — do not re-derive. Run sia_at_time. Check affected files.
+- [ ] Phase 2: Expand dependency chain with sia_expand. Find working patterns in the same community. Do NOT skip this — the bug may originate upstream.
+- [ ] Phase 3: Form ONE hypothesis, test minimally, verify. Do not shotgun multiple changes.
+- [ ] Phase 4: Fix, then YOU MUST capture both Bug AND Solution to graph. A debug session without sia_note calls for both is INCOMPLETE.
 ```
 
 ## 4-Phase Workflow

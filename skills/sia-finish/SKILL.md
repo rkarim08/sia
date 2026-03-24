@@ -3,6 +3,29 @@ name: sia-finish
 description: Finishes development branches using SIA — generates semantic PR summaries from the knowledge graph, captures branch decisions, and updates the graph post-merge. Use when implementation is complete, all tests pass, and the branch is ready for merge or PR.
 ---
 
+## Invariants
+
+> These rules have NO exceptions. A PR without knowledge context is a missed opportunity.
+>
+> 1. YOU MUST query SIA for branch decisions before creating the PR. "I remember
+>    what I did" is not sufficient — the graph contains entities from sessions
+>    you may not recall.
+> 2. NEVER create a PR without a Knowledge Captured section. If the branch truly
+>    captured zero entities, state explicitly: "No decisions, conventions, or bugs
+>    were captured during this branch." An empty omission is not acceptable.
+> 3. YOU MUST call `sia_note` after merge to capture the branch summary.
+>    A merge without post-merge capture is incomplete.
+
+## Red Flags — If You Think Any of These, STOP
+
+| Thought | Why It's Wrong |
+|---------|---------------|
+| "This PR is too small for a knowledge section" | Small PRs with undocumented decisions are how institutional knowledge is lost. |
+| "The PR description already explains everything" | PR descriptions are not queryable by future sessions. The graph is. Capture anyway. |
+| "I'll add the knowledge section later" | You won't. Do it now. |
+| "Tests passed, so I can skip the SIA query" | Tests verify correctness, not knowledge. The SIA query surfaces decisions worth documenting. |
+| "No decisions were made on this branch" | Every branch makes decisions — even "keep the existing approach" is a decision worth noting. |
+
 # SIA-Enhanced Branch Finishing
 
 Finish a development branch with graph-powered semantic PR summaries and post-merge knowledge capture.
@@ -10,11 +33,11 @@ Finish a development branch with graph-powered semantic PR summaries and post-me
 ## Checklist
 
 ```
-- [ ] Step 0: Query SIA for branch decisions/conventions/bugs
-- [ ] Step 1: Verify tests pass (hard gate)
-- [ ] Step 2-3: Determine base branch, present options (merge/PR/cleanup)
-- [ ] Step 4: Create PR with Knowledge Summary section from graph entities
-- [ ] Post-merge: Capture branch summary to graph, prune snapshots
+- [ ] Step 0: YOU MUST query SIA for branch decisions/conventions/bugs before creating any PR. No exceptions.
+- [ ] Step 1: Hard gate — tests MUST pass. A PR with failing tests is not ready. Period.
+- [ ] Steps 2-3: Determine base branch, present options (merge/PR/cleanup)
+- [ ] Step 4: Create PR with Knowledge Summary section from graph entities. NEVER omit this section.
+- [ ] Post-merge: YOU MUST capture branch summary to graph via sia_note. A merge without this call is incomplete.
 ```
 
 ## Workflow

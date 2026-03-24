@@ -3,6 +3,30 @@ name: sia-verify
 description: Verifies work completeness using SIA's knowledge of area-specific requirements, past verification failures, and known gotchas. Use when about to claim work is done, before committing, or before creating PRs.
 ---
 
+## Invariants
+
+> These rules have NO exceptions. A "done" claim without evidence is a FAILURE.
+>
+> 1. YOU MUST run a verification command and read its FULL output before claiming
+>    ANY work is done. "I'm confident it works" is NEVER sufficient.
+> 2. If SIA surfaces area-specific verification requirements, you MUST verify
+>    EACH ONE explicitly. Running only `bun run test` is not enough if the area
+>    also requires typecheck, lint, or integration tests.
+> 3. A claim of completion without a corresponding command output in the
+>    conversation is a FAILED verification. There is no such thing as
+>    "obviously correct."
+
+## Red Flags — If You Think Any of These, STOP
+
+| Thought | Why It's Wrong |
+|---------|---------------|
+| "The change is too small to verify" | Small changes cause the largest regressions. Verify. |
+| "I already tested this mentally" | Mental testing catches ~30% of issues. Run the command. |
+| "The CI will catch any problems" | CI runs after you commit. Catch it NOW. |
+| "I ran a similar test earlier" | Earlier tests tested earlier code. This is different code. Run again. |
+| "The tests are flaky, so a failure doesn't mean anything" | Re-run. If it fails twice, investigate. Do NOT claim success on a failing test. |
+| "Just this once, I'll skip the SIA query" | The SIA query is how you discover area-specific requirements you don't know about. Never skip. |
+
 # SIA-Enhanced Verification
 
 Verify work is truly complete — queries SIA for area-specific requirements, past verification failures, and known gotchas before running checks. Evidence before assertions.
@@ -10,9 +34,9 @@ Verify work is truly complete — queries SIA for area-specific requirements, pa
 ## Checklist
 
 ```
-- [ ] Step 0: Query SIA for area-specific verification requirements and known bugs
-- [ ] Step 1-5: IDENTIFY → RUN → READ → VERIFY → CLAIM (gate function)
-- [ ] Post: Capture any new verification requirements to graph
+- [ ] Step 0: YOU MUST query SIA for area-specific verification requirements and known bugs. Without this, you will miss verification steps.
+- [ ] Steps 1-5: IDENTIFY command → RUN fully → READ full output → VERIFY it confirms claim → ONLY THEN claim done. Skipping ANY step is a failed verification.
+- [ ] Post: Capture any new verification requirements to graph. A verification that discovers new requirements but doesn't capture them leaves the next developer blind.
 ```
 
 ## Workflow
