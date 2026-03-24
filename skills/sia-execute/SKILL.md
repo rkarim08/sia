@@ -31,7 +31,7 @@ Parameters:
 - **code** (required): The code to execute
 - **language** (optional): Runtime language (supports 14+ runtimes)
 - **intent** (optional): Description of what the code should do
-- **timeout** (optional): Execution timeout in ms (default: 30000)
+- **timeout** (optional): Execution timeout in ms (default: 30s, configurable via `sandboxTimeoutMs`)
 - **env** (optional): Environment variables to pass
 
 ### sia_execute_file — Run an existing file

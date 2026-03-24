@@ -105,5 +105,5 @@ claude --plugin-dir /path/to/sia
 
 ## Data Storage
 
-- **Per-project:** Graph database in `~/.sia/{repo-hash}/`
+- **Per-project:** Graph database in `~/.sia/repos/{repo-hash}/`
 - **Plugin-global:** Configuration and models in `$CLAUDE_PLUGIN_DATA/`
