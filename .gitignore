@@ -3,7 +3,7 @@ dist/
 .DS_Store
 *.log
 ~/.sia/
-docs/superpowers/
+docs/
 plans/
 # CLAUDE.md — no longer ignored; plugin behavioral spec must be committed
 AGENTS.md
