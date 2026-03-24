@@ -245,3 +245,91 @@ describe("handleBash — structured test failure Bug entities", () => {
 		expect(testBugs.length).toBe(1);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// handleEdit — enhanced knowledge extraction
+// ---------------------------------------------------------------------------
+
+describe("handleEdit — enhanced knowledge extraction", () => {
+	let tmpDir: string;
+	let db: SiaDb | undefined;
+
+	afterEach(async () => {
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
+		if (tmpDir) {
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("should create EditEvent AND code entities from new_string", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edit-enhanced", tmpDir);
+
+		const newContent = `export function calculateTotal(items: Item[]): number {
+	return items.reduce((sum, item) => sum + item.price, 0);
+}`;
+
+		const handler = createPostToolUseHandler(db);
+		const event: HookEvent = {
+			session_id: "test",
+			transcript_path: "",
+			cwd: process.cwd(),
+			hook_event_name: "PostToolUse",
+			tool_name: "Edit",
+			tool_input: {
+				file_path: "src/cart/totals.ts",
+				old_string: "// placeholder",
+				new_string: newContent,
+			},
+		};
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		// Should have created more than just the EditEvent
+		expect(result.nodes_created).toBeGreaterThan(1);
+
+		// EditEvent entity should exist
+		const { rows: editRows } = await db.execute(
+			"SELECT * FROM graph_nodes WHERE kind = 'EditEvent'",
+		);
+		expect(editRows.length).toBe(1);
+
+		// TrackA code entity should exist for the exported function
+		const { rows: codeRows } = await db.execute(
+			"SELECT * FROM graph_nodes WHERE extraction_method = 'hook:post-tool-use:track-a'",
+		);
+		expect(codeRows.length).toBeGreaterThanOrEqual(1);
+		expect((codeRows[0] as Record<string, unknown>).name).toBe("calculateTotal");
+	});
+
+	it("should still create EditEvent even if new_string has no extractable entities", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edit-no-extract", tmpDir);
+
+		const handler = createPostToolUseHandler(db);
+		const event: HookEvent = {
+			session_id: "test",
+			transcript_path: "",
+			cwd: process.cwd(),
+			hook_event_name: "PostToolUse",
+			tool_name: "Edit",
+			tool_input: {
+				file_path: "config.json",
+				old_string: '"port": 3000',
+				new_string: '"port": 8080',
+			},
+		};
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.nodes_created).toBeGreaterThanOrEqual(1);
+
+		const { rows } = await db.execute(
+			"SELECT * FROM graph_nodes WHERE kind = 'EditEvent'",
+		);
+		expect(rows.length).toBe(1);
+	});
+});

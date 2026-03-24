@@ -188,8 +188,11 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		return { status: "skipped", nodes_created: 0 };
 	}
 
+	let nodesCreated = 0;
+
 	const editContent = oldStr && newStr ? `--- ${oldStr}\n+++ ${newStr}` : "edit";
 
+	// 1. Always create the EditEvent entity (existing behavior)
 	await insertEntity(db, {
 		type: "CodeEntity",
 		name: `Edit: ${basename(filePath)}`,
@@ -200,8 +203,53 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		source_episode: event.session_id,
 		kind: "EditEvent",
 	});
+	nodesCreated++;
 
-	return { status: "processed", nodes_created: 1 };
+	// 2. Extract structural code entities from new_string via TrackA (best-effort)
+	if (newStr) {
+		try {
+			const trackAFacts = extractTrackA(newStr, filePath);
+			for (const fact of trackAFacts) {
+				await insertEntity(db, {
+					type: fact.type,
+					name: fact.name,
+					content: fact.content,
+					summary: fact.summary,
+					tags: JSON.stringify(fact.tags),
+					file_paths: JSON.stringify(fact.file_paths),
+					trust_tier: fact.trust_tier,
+					confidence: fact.confidence,
+					extraction_method: "hook:post-tool-use:track-a",
+					source_episode: event.session_id,
+				});
+				nodesCreated++;
+			}
+		} catch {
+			// Best-effort — don't block EditEvent creation
+		}
+
+		// 3. Detect knowledge patterns in new_string (best-effort)
+		try {
+			const patterns = detectKnowledgePatterns(newStr);
+			for (const p of patterns) {
+				await insertEntity(db, {
+					type: p.type,
+					name: `${p.type}: ${p.content.slice(0, 60)}`,
+					content: p.content,
+					summary: `${p.type} detected in ${basename(filePath)}`,
+					confidence: p.confidence,
+					file_paths: JSON.stringify([filePath]),
+					extraction_method: "hook:post-tool-use:pattern",
+					source_episode: event.session_id,
+				});
+				nodesCreated++;
+			}
+		} catch {
+			// Best-effort — don't block EditEvent creation
+		}
+	}
+
+	return { status: "processed", nodes_created: nodesCreated };
 }
 
 async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
