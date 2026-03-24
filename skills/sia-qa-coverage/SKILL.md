@@ -1,6 +1,6 @@
 ---
 name: sia-qa-coverage
-description: Analyze test coverage gaps using SIA's knowledge graph — finds code areas with bugs but no tests, modules with high change velocity but low test coverage
+description: Analyzes test coverage gaps using SIA's knowledge graph — finds buggy areas without tests and high-churn modules with low coverage. Use when planning test improvements or before releases.
 ---
 
 # SIA QA Coverage Analysis

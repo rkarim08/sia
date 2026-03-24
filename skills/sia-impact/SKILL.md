@@ -1,6 +1,6 @@
 ---
 name: sia-impact
-description: Analyze the impact of a planned code change before making it — maps dependencies, callers, importers, and downstream effects using the knowledge graph
+description: Analyzes the impact of a planned code change — maps dependencies, callers, importers, and downstream effects using the knowledge graph. Use before refactoring, renaming, or modifying shared code.
 ---
 
 # SIA Impact Analysis

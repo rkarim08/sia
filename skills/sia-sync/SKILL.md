@@ -1,6 +1,6 @@
 ---
 name: sia-sync
-description: Manually push or pull SIA knowledge to/from the team sync server — use when you want to share or receive knowledge immediately
+description: Pushes or pulls SIA knowledge to/from the team sync server. Use when sharing knowledge with teammates, syncing after a long offline period, or receiving others' captured knowledge.
 ---
 
 # SIA Manual Sync

@@ -1,6 +1,6 @@
 ---
 name: sia-qa-flaky
-description: Track flaky test patterns using SIA — finds tests that appear as both Bug and Solution entities (failed then passed), recurring test failures, and intermittent issues
+description: Tracks flaky test patterns using SIA — finds tests that fail intermittently and recurring test failures. Use when investigating test instability or prioritizing test reliability work.
 ---
 
 # SIA Flaky Test Tracker

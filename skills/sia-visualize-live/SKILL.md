@@ -1,6 +1,6 @@
 ---
 name: sia-visualize-live
-description: Launch an interactive browser-based knowledge graph visualizer — explore entities, dependencies, communities, and temporal history in your browser
+description: Launches an interactive browser-based knowledge graph visualizer for exploring entities, dependencies, and communities. Use when the user wants to visually explore the graph or understand module relationships.
 ---
 
 # SIA Live Visualizer

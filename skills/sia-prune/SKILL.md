@@ -1,6 +1,6 @@
 ---
 name: sia-prune
-description: Remove archived entities from the SIA knowledge graph — clean up decayed, irrelevant knowledge to reduce database size
+description: Removes archived entities from the SIA knowledge graph to reduce database size. Use when the graph grows large, after freshness reports show many stale entities, or for periodic maintenance.
 ---
 
 # SIA Prune

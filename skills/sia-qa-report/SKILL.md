@@ -1,6 +1,6 @@
 ---
 name: sia-qa-report
-description: Generate a QA-focused report from SIA — what changed since last test cycle, which areas are risky, what bugs were found and fixed, and recommended test priorities
+description: Generates a QA-focused report from SIA — changes since last test cycle, risky areas, and recommended test priorities. Use before QA cycles, for test planning, or risk-based testing decisions.
 ---
 
 # SIA QA Report

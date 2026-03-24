@@ -1,6 +1,6 @@
 ---
 name: sia-pm-sprint-summary
-description: Generate a sprint summary report from SIA — decisions made, bugs fixed, features delivered, and risks identified, written in plain language for project managers
+description: Generates a sprint summary report from SIA in plain language — decisions made, bugs fixed, features delivered. Use for sprint reviews, status updates, or project manager briefings.
 ---
 
 # SIA Sprint Summary

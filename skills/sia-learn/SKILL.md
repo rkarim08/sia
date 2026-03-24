@@ -1,6 +1,6 @@
 ---
 name: sia-learn
-description: Build or refresh SIA's complete knowledge graph — indexes code with tree-sitter, ingests markdown docs, detects communities, and reports what was learned
+description: Builds or refreshes SIA's complete knowledge graph — indexes code with tree-sitter, ingests docs, and detects communities. Use after major codebase changes, initial setup, or when the graph needs a full refresh.
 ---
 
 # SIA Learn

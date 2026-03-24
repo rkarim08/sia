@@ -1,6 +1,6 @@
 ---
 name: sia-lead-knowledge-map
-description: Generate a knowledge distribution map — shows which modules have knowledge coverage, where knowledge is concentrated in one person, and where there are gaps
+description: Generates a knowledge distribution map showing module coverage and gaps. Use for identifying bus-factor risks, planning knowledge sharing, or onboarding prioritization.
 ---
 
 # SIA Knowledge Distribution Map

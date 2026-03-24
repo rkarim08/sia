@@ -1,6 +1,6 @@
 ---
 name: sia-install
-description: Initialize SIA persistent memory in the current project — creates databases, registers repo, configures hooks
+description: Initializes SIA persistent memory in the current project — creates databases, registers repo, and configures hooks. Use for first-time SIA setup in a new project or repository.
 ---
 
 # SIA Install

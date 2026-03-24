@@ -1,6 +1,6 @@
 ---
 name: sia-lead-compliance
-description: Audit convention compliance across the entire codebase — checks every known convention against current code and reports compliance percentage and specific violations
+description: Audits convention compliance across the codebase — checks every known convention against current code and reports violations. Use for code quality audits, tech lead reviews, or enforcing team standards.
 ---
 
 # SIA Convention Compliance Audit

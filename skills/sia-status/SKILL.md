@@ -1,6 +1,6 @@
 ---
 name: sia-status
-description: Show SIA knowledge graph health — entity counts by type and tier, edges, communities, conflicts, and capture rate
+description: Shows SIA knowledge graph health — entity counts by type and tier, conflicts, and capture rate. Use for quick health checks, monitoring, or when the user asks about SIA status.
 ---
 
 # SIA Status

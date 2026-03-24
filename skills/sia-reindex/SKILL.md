@@ -1,6 +1,6 @@
 ---
 name: sia-reindex
-description: Re-index the repository with tree-sitter to update the SIA knowledge graph with current code structure
+description: Re-indexes the repository with tree-sitter to update SIA's knowledge graph with current code structure. Use after significant refactoring, file renames, or when code entities seem out of date.
 ---
 
 # SIA Reindex

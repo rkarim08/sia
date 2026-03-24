@@ -1,6 +1,6 @@
 ---
 name: sia-stats
-description: Show SIA knowledge graph statistics — entity counts, edge counts, community structure, database sizes
+description: Shows SIA knowledge graph statistics — entity counts, edges, communities, and database sizes. Use when checking graph health, monitoring growth, or diagnosing capacity issues.
 ---
 
 # SIA Stats

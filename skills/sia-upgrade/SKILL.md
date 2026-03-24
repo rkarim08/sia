@@ -1,6 +1,6 @@
 ---
 name: sia-upgrade
-description: Self-update SIA to the latest version — supports npm, git, and binary upgrade strategies
+description: Self-updates SIA to the latest version via npm, git, or binary strategies. Use when a new SIA version is available or when the user asks to upgrade.
 ---
 
 # SIA Upgrade

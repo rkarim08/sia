@@ -1,6 +1,6 @@
 ---
 name: sia-lead-drift-report
-description: Generate an architecture drift report — compares current codebase against captured decisions and conventions, flags where the team has diverged from intended design
+description: Generates an architecture drift report — compares current codebase against captured decisions and conventions. Use when reviewing architectural health, during retrospectives, or checking for design divergence.
 ---
 
 # SIA Architecture Drift Report

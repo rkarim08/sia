@@ -1,6 +1,6 @@
 ---
 name: sia-export-import
-description: Export and import SIA knowledge graphs as portable JSON — backup, migrate, or share project knowledge
+description: Exports and imports SIA knowledge graphs as portable JSON for backup, migration, or sharing. Use when backing up the graph, migrating to a new machine, or sharing knowledge between projects.
 ---
 
 # SIA Export & Import

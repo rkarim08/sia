@@ -1,6 +1,6 @@
 ---
 name: sia-pm-risk-dashboard
-description: Generate a technical risk dashboard from SIA — recurring bugs, conflicting decisions, fragile modules, and stale documentation scored by business impact
+description: Generates a technical risk dashboard from SIA — recurring bugs, conflicting decisions, fragile modules, scored by impact. Use for risk assessments, sprint planning, or identifying areas needing attention.
 ---
 
 # SIA Risk Dashboard

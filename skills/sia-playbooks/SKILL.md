@@ -1,6 +1,6 @@
 ---
 name: sia-playbooks
-description: Load SIA task-specific playbooks for regression analysis, feature development, code review, or project orientation — called automatically by CLAUDE.md behavioral directives
+description: Loads SIA task-specific playbooks for regression analysis, feature development, code review, or orientation. Called automatically by CLAUDE.md behavioral directives after task classification.
 ---
 
 # SIA Task Playbooks

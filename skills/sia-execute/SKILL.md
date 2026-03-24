@@ -1,6 +1,6 @@
 ---
 name: sia-execute
-description: Execute code in SIA's isolated sandbox environment with automatic knowledge capture and context-aware execution
+description: Executes code in SIA's isolated sandbox environment with automatic knowledge capture. Use when running code snippets, testing expressions, or executing scripts with SIA context.
 ---
 
 # SIA Execute

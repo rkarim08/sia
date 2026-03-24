@@ -1,6 +1,6 @@
 ---
 name: sia-conflicts
-description: List and resolve knowledge conflicts in the SIA graph — when multiple entities contradict each other
+description: Lists and resolves knowledge conflicts in the SIA graph where multiple entities contradict each other. Use when conflict_group_id appears in results, or when the user asks about contradictions in captured knowledge.
 ---
 
 # SIA Conflicts

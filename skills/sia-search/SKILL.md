@@ -1,6 +1,6 @@
 ---
 name: sia-search
-description: Search SIA's knowledge graph for project knowledge — decisions, conventions, bugs, code patterns, architecture
+description: Searches SIA's knowledge graph for project knowledge — decisions, conventions, bugs, patterns, and architecture. Use when looking up past decisions, finding conventions, or querying project history.
 ---
 
 # SIA Search

@@ -1,6 +1,6 @@
 ---
 name: sia-setup
-description: Guided first-time SIA setup — detects your project, configures the knowledge graph, indexes code and docs, and gives you a tour of what was discovered
+description: Guides first-time SIA setup — detects the project, configures the knowledge graph, indexes code and docs, and runs a tour. Use when setting up SIA for the first time in a new project.
 ---
 
 # SIA First-Time Setup

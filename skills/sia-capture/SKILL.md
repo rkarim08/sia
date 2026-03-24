@@ -1,6 +1,6 @@
 ---
 name: sia-capture
-description: Guided knowledge capture session — walks through noting decisions, conventions, bugs, and solutions from recent work into SIA's graph
+description: Guides knowledge capture sessions — walks through noting decisions, conventions, bugs, and solutions from recent work into SIA's graph. Use when finishing a coding session, after making architectural decisions, or when the user asks to capture knowledge.
 ---
 
 # SIA Knowledge Capture

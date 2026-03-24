@@ -1,6 +1,6 @@
 ---
 name: sia-export-knowledge
-description: Export the knowledge graph as a human-readable markdown document — decisions, conventions, bugs, solutions, and architecture for team sharing and onboarding
+description: Exports the knowledge graph as a human-readable markdown document covering decisions, conventions, bugs, and architecture. Use for team onboarding, documentation generation, or sharing knowledge outside SIA.
 ---
 
 # SIA Knowledge Export

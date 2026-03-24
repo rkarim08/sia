@@ -1,6 +1,6 @@
 ---
 name: sia-history
-description: Explore how the knowledge graph evolved over time — show recent decisions, conventions, bugs, and solutions with temporal filtering
+description: Explores how the knowledge graph evolved over time with temporal filtering. Use when reviewing recent decisions, tracking knowledge evolution, or investigating when something was captured.
 ---
 
 # SIA History

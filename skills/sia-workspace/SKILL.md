@@ -1,6 +1,6 @@
 ---
 name: sia-workspace
-description: Manage SIA workspaces for cross-repo knowledge sharing — create workspaces, add repos, detect API contracts
+description: Manages SIA workspaces for cross-repo knowledge sharing — creating workspaces, adding repos, and detecting API contracts. Use when working across multiple repositories or setting up shared knowledge.
 ---
 
 # SIA Workspace

@@ -1,6 +1,6 @@
 ---
 name: sia-team
-description: Manage SIA team sync — join a self-hosted sync server, check sync status, or leave the team. Enables cross-developer knowledge sharing.
+description: Manages SIA team sync — joining servers, checking status, or leaving teams. Use when setting up team knowledge sharing, checking sync health, or managing team membership.
 ---
 
 # SIA Team Sync Management

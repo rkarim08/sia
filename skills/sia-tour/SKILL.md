@@ -1,6 +1,6 @@
 ---
 name: sia-tour
-description: Interactive guided tour of the knowledge graph — walks through architecture, decisions, conventions, known issues, and documentation
+description: Provides an interactive guided tour of the knowledge graph — architecture, decisions, conventions, and known issues. Use for onboarding, exploring what SIA knows, or getting oriented in a new project.
 ---
 
 # SIA Graph Tour

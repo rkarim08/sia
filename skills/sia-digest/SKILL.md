@@ -1,6 +1,6 @@
 ---
 name: sia-digest
-description: Generate a daily knowledge digest summarizing recent decisions, bugs, conventions, and changes captured by SIA
+description: Generates a daily knowledge digest summarizing recent decisions, bugs, conventions, and changes captured by SIA. Use at the start of a session, for daily standups, or when the user asks what changed recently.
 ---
 
 # SIA Digest

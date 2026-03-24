@@ -1,6 +1,6 @@
 ---
 name: sia-freshness
-description: Generate a freshness report for the SIA knowledge graph — identify stale, rotten, and fresh entities
+description: Generates a freshness report for the SIA knowledge graph — identifies stale, rotten, and fresh entities. Use when checking knowledge quality, before pruning, or when results seem outdated.
 ---
 
 # SIA Freshness

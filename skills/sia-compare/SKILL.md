@@ -1,6 +1,6 @@
 ---
 name: sia-compare
-description: Compare the knowledge graph state between two time points — shows what was added, invalidated, and archived
+description: Compares knowledge graph state between two time points — shows what was added, invalidated, and archived. Use when investigating what changed in the graph, reviewing temporal diffs, or debugging knowledge evolution.
 ---
 
 # SIA Compare

@@ -1,6 +1,6 @@
 ---
 name: sia-doctor
-description: Run SIA system health diagnostics — check databases, providers, tree-sitter, embeddings, and connectivity
+description: Runs SIA system health diagnostics — checks databases, providers, tree-sitter, embeddings, and connectivity. Use when SIA tools return errors, knowledge seems missing, or the user reports SIA issues.
 ---
 
 # SIA Doctor
