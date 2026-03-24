@@ -109,7 +109,7 @@ describe("session-resume CRUD", () => {
 		await saveSubgraph(db!, sessionId, '{"v":1}', null, 0);
 		await saveSubgraph(db!, sessionId, '{"v":2}', null, 0);
 
-		const result = await db?.execute(
+		const result = await db!.execute(
 			"SELECT COUNT(*) as cnt FROM session_resume WHERE session_id = ?",
 			[sessionId],
 		);
