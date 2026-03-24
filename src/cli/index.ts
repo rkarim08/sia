@@ -241,6 +241,11 @@ async function main(): Promise<void> {
 			}
 			return;
 		}
+		case "export-knowledge": {
+			const { runExportKnowledge } = await import("@/cli/commands/export-knowledge");
+			await runExportKnowledge(rest);
+			return;
+		}
 		case "export": {
 			const { exportToFile, exportGraph } = await import("@/cli/commands/export");
 			const db = await openDb();
