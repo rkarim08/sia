@@ -7,7 +7,7 @@ const ROOT = resolve(__dirname, "../..");
 describe("project scaffold", () => {
 	it("has package.json with correct name", async () => {
 		const pkg = await import(resolve(ROOT, "package.json"));
-		expect(pkg.name).toBe("sia");
+		expect(pkg.name).toBe("@rkarim08/sia");
 		expect(pkg.version).toBe("1.0.0");
 	});
 
