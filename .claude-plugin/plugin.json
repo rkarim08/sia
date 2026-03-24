@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
   "author": {
-    "name": "SpiderRock"
+    "name": "Ramez Karim"
   }
 }
