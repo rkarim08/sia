@@ -39,6 +39,7 @@ Commands:
   enable-flagging      Enable mid-session flagging
   disable-flagging     Disable mid-session flagging
   tour                 Guided walkthrough of the knowledge graph
+  qa-report            Generate QA testing intelligence report
   server               Manage MCP server (start, stop, status)
 
 Options:
@@ -376,6 +377,11 @@ async function main(): Promise<void> {
 		case "tour": {
 			const { runTour } = await import("@/cli/commands/tour");
 			await runTour(rest);
+			return;
+		}
+		case "qa-report": {
+			const { runQaReport } = await import("@/cli/commands/qa-report");
+			await runQaReport(rest);
 			return;
 		}
 		case "server": {
