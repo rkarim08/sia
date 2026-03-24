@@ -117,7 +117,7 @@ export async function generateTour(db: SiaDb): Promise<TourResult> {
 export function formatTour(tour: TourResult): string {
 	const lines: string[] = [];
 	lines.push("=== SIA Knowledge Graph Tour ===\n");
-	lines.push(`Total: ${tour.totalEntities} graph_nodes, ${tour.totalEdges} edges\n`);
+	lines.push(`Total: ${tour.totalEntities} entities, ${tour.totalEdges} edges\n`);
 
 	for (const section of tour.sections) {
 		lines.push(`--- ${section.title} ---`);
