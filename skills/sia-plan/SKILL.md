@@ -59,6 +59,8 @@ For each task, include relevant graph context in the task description:
 
 ### Step 4-6 — Standard plan writing, review, handoff
 
+**After writing the plan:** Dispatch plan reviewer subagent — see [plan-reviewer-prompt.md](plan-reviewer-prompt.md)
+
 Follow the standard plan document format, review loop, and execution handoff.
 
 ## Key Principle
