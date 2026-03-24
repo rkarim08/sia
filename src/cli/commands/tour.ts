@@ -34,7 +34,10 @@ export async function generateTour(db: SiaDb): Promise<TourResult> {
 	);
 	if ((communities.rows as any[]).length > 0) {
 		const content = (communities.rows as any[])
-			.map((c) => `- **${c.summary?.slice(0, 100) || "Unnamed community"}** (${c.member_count} members)`)
+			.map(
+				(c) =>
+					`- **${c.summary?.slice(0, 100) || "Unnamed community"}** (${c.member_count} members)`,
+			)
 			.join("\n");
 		sections.push({
 			title: "Architecture Overview",
@@ -101,9 +104,7 @@ export async function generateTour(db: SiaDb): Promise<TourResult> {
 		 ORDER BY importance DESC LIMIT 10`,
 	);
 	if ((docs.rows as any[]).length > 0) {
-		const content = (docs.rows as any[])
-			.map((d) => `- ${d.name}`)
-			.join("\n");
+		const content = (docs.rows as any[]).map((d) => `- ${d.name}`).join("\n");
 		sections.push({
 			title: "Ingested Documentation",
 			content: `${(docs.rows as any[]).length} docs in the knowledge graph:\n\n${content}`,

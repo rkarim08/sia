@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Mock all dependencies before import
@@ -42,9 +42,9 @@ vi.mock("@/knowledge/ingest", () => ({
 }));
 
 vi.mock("@/knowledge/external-refs", () => ({
-	detectExternalRefs: vi.fn().mockReturnValue([
-		{ url: "https://notion.so/page", service: "notion", lineNumber: 5 },
-	]),
+	detectExternalRefs: vi
+		.fn()
+		.mockReturnValue([{ url: "https://notion.so/page", service: "notion", lineNumber: 5 }]),
 }));
 
 vi.mock("@/community/leiden", () => ({
@@ -83,7 +83,7 @@ vi.mock("@/graph/semantic-db", () => ({
 	}),
 }));
 
-import { siaLearn, type LearnOptions } from "@/cli/commands/learn";
+import { siaLearn } from "@/cli/commands/learn";
 
 describe("siaLearn orchestrator", () => {
 	let tmpDir: string;
@@ -106,10 +106,10 @@ describe("siaLearn orchestrator", () => {
 
 		const result = await siaLearn({ cwd: tmpDir, verbosity: "quiet" });
 		expect(result).toBeDefined();
-		expect(result!.phasesCompleted).toContain(0);
-		expect(result!.phasesCompleted).toContain(1);
-		expect(result!.phasesCompleted).toContain(2);
-		expect(result!.phasesCompleted).toContain(3);
+		expect(result?.phasesCompleted).toContain(0);
+		expect(result?.phasesCompleted).toContain(1);
+		expect(result?.phasesCompleted).toContain(2);
+		expect(result?.phasesCompleted).toContain(3);
 	});
 
 	it("should call siaInstall in phase 0", async () => {

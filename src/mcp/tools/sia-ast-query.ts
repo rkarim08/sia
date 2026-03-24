@@ -151,7 +151,7 @@ export async function handleSiaAstQuery(input: SiaAstQueryInput): Promise<SiaAst
 	const maxResults = input.max_results ?? MAX_RESULTS;
 
 	// Prevent path traversal outside the project directory
-	if (!filePath.startsWith(cwd + "/") && filePath !== cwd) {
+	if (!filePath.startsWith(`${cwd}/`) && filePath !== cwd) {
 		return { file_path: input.file_path, error: "Path must be within the project directory" };
 	}
 

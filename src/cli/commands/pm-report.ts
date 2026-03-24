@@ -101,10 +101,15 @@ async function generateSprintSummary(db: SiaDb, since: number, until: number): P
 
 	// Executive summary
 	const parts: string[] = [];
-	if (decisions.length > 0) parts.push(`${decisions.length} decision${decisions.length === 1 ? "" : "s"} made`);
+	if (decisions.length > 0)
+		parts.push(`${decisions.length} decision${decisions.length === 1 ? "" : "s"} made`);
 	if (bugs.length > 0) parts.push(`${bugs.length} bug${bugs.length === 1 ? "" : "s"} found`);
-	if (solutions.length > 0) parts.push(`${solutions.length} fix${solutions.length === 1 ? "" : "es"} applied`);
-	if (conventions.length > 0) parts.push(`${conventions.length} convention${conventions.length === 1 ? "" : "s"} established`);
+	if (solutions.length > 0)
+		parts.push(`${solutions.length} fix${solutions.length === 1 ? "" : "es"} applied`);
+	if (conventions.length > 0)
+		parts.push(
+			`${conventions.length} convention${conventions.length === 1 ? "" : "s"} established`,
+		);
 	sections.push(`**Overview:** ${parts.join(", ")}.`);
 	sections.push("");
 
@@ -113,7 +118,9 @@ async function generateSprintSummary(db: SiaDb, since: number, until: number): P
 		sections.push("## Key Decisions");
 		sections.push("");
 		for (const d of decisions) {
-			sections.push(`- **${d.name}** (${formatDate(d.created_at)}) — ${d.summary ?? d.content.slice(0, 120)}`);
+			sections.push(
+				`- **${d.name}** (${formatDate(d.created_at)}) — ${d.summary ?? d.content.slice(0, 120)}`,
+			);
 		}
 		sections.push("");
 	}
@@ -123,7 +130,9 @@ async function generateSprintSummary(db: SiaDb, since: number, until: number): P
 		sections.push("## Bugs Found");
 		sections.push("");
 		for (const b of bugs) {
-			sections.push(`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 120)}`);
+			sections.push(
+				`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 120)}`,
+			);
 		}
 		sections.push("");
 	}
@@ -133,7 +142,9 @@ async function generateSprintSummary(db: SiaDb, since: number, until: number): P
 		sections.push("## Solutions Applied");
 		sections.push("");
 		for (const s of solutions) {
-			sections.push(`- **${s.name}** (${formatDate(s.created_at)}) — ${s.summary ?? s.content.slice(0, 120)}`);
+			sections.push(
+				`- **${s.name}** (${formatDate(s.created_at)}) — ${s.summary ?? s.content.slice(0, 120)}`,
+			);
 		}
 		sections.push("");
 	}
@@ -188,7 +199,9 @@ async function generateDecisionLog(db: SiaDb, since?: number): Promise<string> {
 	const sections: string[] = [];
 	sections.push("# Decision Log");
 	sections.push("");
-	sections.push(`*${decisions.length} decision${decisions.length === 1 ? "" : "s"} captured${since ? ` since ${formatDate(since)}` : ""}*`);
+	sections.push(
+		`*${decisions.length} decision${decisions.length === 1 ? "" : "s"} captured${since ? ` since ${formatDate(since)}` : ""}*`,
+	);
 	sections.push("");
 
 	for (let i = 0; i < decisions.length; i++) {
@@ -196,7 +209,9 @@ async function generateDecisionLog(db: SiaDb, since?: number): Promise<string> {
 		sections.push(`## ${i + 1}. ${d.name}`);
 		sections.push("");
 		sections.push(`- **Date:** ${formatDate(d.created_at)}`);
-		sections.push(`- **Trust:** ${d.trust_tier === 1 ? "Verified" : d.trust_tier === 2 ? "Code-derived" : "Inferred"}`);
+		sections.push(
+			`- **Trust:** ${d.trust_tier === 1 ? "Verified" : d.trust_tier === 2 ? "Code-derived" : "Inferred"}`,
+		);
 		if (d.file_paths && d.file_paths !== "[]") {
 			sections.push(`- **Files:** ${d.file_paths}`);
 		}
@@ -255,7 +270,9 @@ async function generateRiskDashboard(db: SiaDb): Promise<string> {
 			sections.push(`### Recurring bugs: ${filePath}`);
 			sections.push(`${fileBugs.length} bugs in the same area:`);
 			for (const b of fileBugs) {
-				sections.push(`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 100)}`);
+				sections.push(
+					`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 100)}`,
+				);
 			}
 			sections.push("");
 		}
@@ -279,7 +296,9 @@ async function generateRiskDashboard(db: SiaDb): Promise<string> {
 		sections.push(`### Stale conventions (${staleConventions.length})`);
 		sections.push("Conventions older than 30 days that may need review:");
 		for (const c of staleConventions) {
-			sections.push(`- **${c.name}** (${formatDate(c.created_at)}) — ${c.summary ?? c.content.slice(0, 100)}`);
+			sections.push(
+				`- **${c.name}** (${formatDate(c.created_at)}) — ${c.summary ?? c.content.slice(0, 100)}`,
+			);
 		}
 		sections.push("");
 	}
@@ -300,7 +319,9 @@ async function generateRiskDashboard(db: SiaDb): Promise<string> {
 		sections.push("## All Bugs");
 		sections.push("");
 		for (const b of nonRecurringBugs) {
-			sections.push(`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 100)}`);
+			sections.push(
+				`- **${b.name}** (${formatDate(b.created_at)}) — ${b.summary ?? b.content.slice(0, 100)}`,
+			);
 		}
 		sections.push("");
 	}

@@ -22,7 +22,11 @@ const TYPE_COLORS: Record<string, string> = {
 
 const CATEGORY_LABELS: Array<{ label: string; color: string; types: string[] }> = [
 	{ label: "Structural", color: "#4A90D9", types: ["FileNode", "CodeEntity", "PackageNode"] },
-	{ label: "Semantic", color: "#5DB85D", types: ["Decision", "Convention", "Bug", "Solution", "Concept"] },
+	{
+		label: "Semantic",
+		color: "#5DB85D",
+		types: ["Decision", "Convention", "Bug", "Solution", "Concept"],
+	},
 	{ label: "Community", color: "#9B59B6", types: ["Community"] },
 	{ label: "Content", color: "#E67E22", types: ["ContentChunk"] },
 	{ label: "Other", color: "#95A5A6", types: ["Dependency"] },
@@ -31,7 +35,11 @@ const CATEGORY_LABELS: Array<{ label: string; color: string; types: string[] }> 
 const DEFAULT_COLOR = "#95A5A6";
 
 function escapeHtml(s: string): string {
-	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 /**

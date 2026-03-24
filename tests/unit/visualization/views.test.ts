@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { SubgraphData } from "@/visualization/subgraph-extract";
+import {
+	type CommunityData,
+	generateCommunityClusterHtml,
+} from "@/visualization/views/community-clusters";
+import { generateDependencyMapHtml } from "@/visualization/views/dependency-map";
 import { generateGraphExplorerHtml } from "@/visualization/views/graph-explorer";
 import { generateTimelineHtml, type TimelineEvent } from "@/visualization/views/timeline";
-import { generateDependencyMapHtml } from "@/visualization/views/dependency-map";
-import { generateCommunityClusterHtml, type CommunityData } from "@/visualization/views/community-clusters";
-import type { SubgraphData } from "@/visualization/subgraph-extract";
 
 function makeTestData(nodeCount = 3): SubgraphData {
 	const nodes = Array.from({ length: nodeCount }, (_, i) => ({
@@ -12,7 +15,7 @@ function makeTestData(nodeCount = 3): SubgraphData {
 		name: `Test Node ${i}`,
 		summary: `Summary for node ${i}`,
 		importance: 0.5 + i * 0.1,
-		trustTier: (i % 4) + 1 as 1 | 2 | 3 | 4,
+		trustTier: ((i % 4) + 1) as 1 | 2 | 3 | 4,
 	}));
 	const edges =
 		nodeCount >= 2
@@ -153,9 +156,30 @@ describe("timeline view", () => {
 function makeDepsData(): SubgraphData {
 	return {
 		nodes: [
-			{ id: "f1", type: "FileNode", name: "src/index.ts", summary: "Entry point", importance: 0.9, trustTier: 2 },
-			{ id: "f2", type: "FileNode", name: "src/utils.ts", summary: "Utilities", importance: 0.7, trustTier: 2 },
-			{ id: "f3", type: "FileNode", name: "src/db.ts", summary: "Database", importance: 0.8, trustTier: 2 },
+			{
+				id: "f1",
+				type: "FileNode",
+				name: "src/index.ts",
+				summary: "Entry point",
+				importance: 0.9,
+				trustTier: 2,
+			},
+			{
+				id: "f2",
+				type: "FileNode",
+				name: "src/utils.ts",
+				summary: "Utilities",
+				importance: 0.7,
+				trustTier: 2,
+			},
+			{
+				id: "f3",
+				type: "FileNode",
+				name: "src/db.ts",
+				summary: "Database",
+				importance: 0.8,
+				trustTier: 2,
+			},
 		],
 		edges: [
 			{ id: "e1", from_id: "f1", to_id: "f2", type: "imports", weight: 1 },

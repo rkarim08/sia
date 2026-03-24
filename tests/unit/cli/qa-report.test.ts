@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -29,9 +29,27 @@ describe("sia qa-report", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("qa-test", tmpDir);
 
-		await insertEntity(db, { type: "Bug", name: "Payment race condition", content: "Concurrent writes fail", summary: "Race condition in payment processing", trust_tier: 2 });
-		await insertEntity(db, { type: "Solution", name: "Add mutex", content: "Fixed with lock", summary: "Mutex lock fix for race condition", trust_tier: 1 });
-		await insertEntity(db, { type: "Decision", name: "Use Stripe", content: "Payment provider choice", summary: "Chose Stripe as payment provider", trust_tier: 1 });
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Payment race condition",
+			content: "Concurrent writes fail",
+			summary: "Race condition in payment processing",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "Solution",
+			name: "Add mutex",
+			content: "Fixed with lock",
+			summary: "Mutex lock fix for race condition",
+			trust_tier: 1,
+		});
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Use Stripe",
+			content: "Payment provider choice",
+			summary: "Chose Stripe as payment provider",
+			trust_tier: 1,
+		});
 
 		const { generateQaReport } = await import("@/cli/commands/qa-report");
 		const report = await generateQaReport(db, { since: Date.now() - 86400000 * 30 });
@@ -55,9 +73,27 @@ describe("sia qa-report", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("qa-bugs", tmpDir);
 
-		await insertEntity(db, { type: "Bug", name: "Auth timeout", content: "Login times out after 30s", summary: "Auth timeout bug", trust_tier: 2 });
-		await insertEntity(db, { type: "Bug", name: "API 500 error", content: "Null pointer in handler", summary: "API null pointer", trust_tier: 2 });
-		await insertEntity(db, { type: "Solution", name: "Fix null check", content: "Added null guard", summary: "Null guard fix", trust_tier: 1 });
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Auth timeout",
+			content: "Login times out after 30s",
+			summary: "Auth timeout bug",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "Bug",
+			name: "API 500 error",
+			content: "Null pointer in handler",
+			summary: "API null pointer",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "Solution",
+			name: "Fix null check",
+			content: "Added null guard",
+			summary: "Null guard fix",
+			trust_tier: 1,
+		});
 
 		const { generateQaReport } = await import("@/cli/commands/qa-report");
 		const report = await generateQaReport(db, { since: Date.now() - 86400000 * 30 });
@@ -71,7 +107,13 @@ describe("sia qa-report", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("qa-recs", tmpDir);
 
-		await insertEntity(db, { type: "Bug", name: "Cache invalidation race", content: "Stale cache served after write", summary: "Cache race condition", trust_tier: 2 });
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Cache invalidation race",
+			content: "Stale cache served after write",
+			summary: "Cache race condition",
+			trust_tier: 2,
+		});
 
 		const { generateQaReport } = await import("@/cli/commands/qa-report");
 		const report = await generateQaReport(db, { since: Date.now() - 86400000 * 30 });

@@ -128,7 +128,9 @@ export function formatHealth(health: GraphHealth): string {
 	lines.push(`Total entities:  ${health.totalEntities}`);
 	lines.push(`Total edges:     ${health.totalEdges}`);
 	lines.push(`Communities:     ${health.totalCommunities}`);
-	lines.push(`Conflicts:       ${health.conflictGroups} group${health.conflictGroups !== 1 ? "s" : ""}`);
+	lines.push(
+		`Conflicts:       ${health.conflictGroups} group${health.conflictGroups !== 1 ? "s" : ""}`,
+	);
 	lines.push(`Archived:        ${health.archivedEntities}`);
 	lines.push(`Recent (24h):    ${health.recentEntities24h}`);
 

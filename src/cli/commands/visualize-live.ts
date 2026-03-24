@@ -1,17 +1,17 @@
 // Module: visualize-live — CLI command to start interactive browser visualizer
 
-import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve, join } from "node:path";
 import { spawn } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { SiaDb } from "@/graph/db-interface";
-import { extractSubgraph, type ExtractOpts } from "@/visualization/subgraph-extract";
+import { type ExtractOpts, extractSubgraph } from "@/visualization/subgraph-extract";
+import {
+	type CommunityData,
+	generateCommunityClusterHtml,
+} from "@/visualization/views/community-clusters";
+import { generateDependencyMapHtml } from "@/visualization/views/dependency-map";
 import { generateGraphExplorerHtml } from "@/visualization/views/graph-explorer";
 import { generateTimelineHtml } from "@/visualization/views/timeline";
-import { generateDependencyMapHtml } from "@/visualization/views/dependency-map";
-import {
-	generateCommunityClusterHtml,
-	type CommunityData,
-} from "@/visualization/views/community-clusters";
 
 export type ViewType = "graph" | "timeline" | "deps" | "communities";
 
@@ -132,10 +132,14 @@ export async function runVisualizeLive(db: SiaDb, args: string[]): Promise<void>
 
 	// Start the viz server
 	const serverScript = resolve(__dirname, "../../scripts/viz-server.ts");
-	const child = spawn("bun", ["run", serverScript, "--screen-dir", screenDir, "--port", String(port)], {
-		stdio: "pipe",
-		detached: true,
-	});
+	const child = spawn(
+		"bun",
+		["run", serverScript, "--screen-dir", screenDir, "--port", String(port)],
+		{
+			stdio: "pipe",
+			detached: true,
+		},
+	);
 
 	child.stdout?.on("data", (data: Buffer) => {
 		const msg = data.toString().trim();

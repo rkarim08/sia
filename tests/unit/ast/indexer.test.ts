@@ -195,10 +195,7 @@ describe("indexRepository", () => {
 
 	it("should create edges from proposed_relationships", async () => {
 		// Create two files — one imports from the other
-		writeFileSync(
-			join(repoRoot, "utils.ts"),
-			`export function helper() { return 1; }\n`,
-		);
+		writeFileSync(join(repoRoot, "utils.ts"), `export function helper() { return 1; }\n`);
 		writeFileSync(
 			join(repoRoot, "main.ts"),
 			`import { helper } from "./utils";\nexport function run() { return helper(); }\n`,

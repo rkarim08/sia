@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 describe("sia history", () => {
 	let tmpDir: string;
@@ -31,11 +31,17 @@ describe("sia history", () => {
 		const weekAgo = now - 604800000;
 
 		await insertEntity(db, {
-			type: "Decision", name: "Recent Decision", content: "test", summary: "test",
+			type: "Decision",
+			name: "Recent Decision",
+			content: "test",
+			summary: "test",
 			created_at: dayAgo,
 		});
 		await insertEntity(db, {
-			type: "Convention", name: "Old Convention", content: "test", summary: "test",
+			type: "Convention",
+			name: "Old Convention",
+			content: "test",
+			summary: "test",
 			created_at: weekAgo,
 		});
 

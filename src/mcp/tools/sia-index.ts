@@ -94,7 +94,9 @@ export async function handleSiaIndex(
 						});
 						referenceCount++;
 					} catch (edgeErr) {
-						console.error(`[sia-index] edge insert failed for ${chunkNodeId}->${entityId}: ${(edgeErr as Error).message}`);
+						console.error(
+							`[sia-index] edge insert failed for ${chunkNodeId}->${entityId}: ${(edgeErr as Error).message}`,
+						);
 					}
 				}
 			}

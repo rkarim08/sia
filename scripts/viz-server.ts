@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 // SIA Graph Visualizer — Live browser companion server
 //
 // Watches a directory for HTML files and serves the newest one.
@@ -6,17 +7,17 @@
 //
 // Usage: bun run scripts/viz-server.ts --screen-dir <dir> [--port <port>]
 
-import { createServer } from "node:http";
 import {
+	appendFileSync,
 	existsSync,
 	mkdirSync,
 	readdirSync,
 	readFileSync,
 	statSync,
 	writeFileSync,
-	appendFileSync,
 } from "node:fs";
-import { join, extname } from "node:path";
+import { createServer } from "node:http";
+import { extname, join } from "node:path";
 
 // Frame template with SIA branding
 export const FRAME_TEMPLATE = `<!DOCTYPE html>
@@ -85,7 +86,7 @@ export function startServer(screenDir: string, port: number): void {
 			const chunks: Buffer[] = [];
 			req.on("data", (c) => chunks.push(c));
 			req.on("end", () => {
-				appendFileSync(join(screenDir, ".events"), Buffer.concat(chunks).toString() + "\n");
+				appendFileSync(join(screenDir, ".events"), `${Buffer.concat(chunks).toString()}\n`);
 				res.writeHead(200);
 				res.end("ok");
 			});

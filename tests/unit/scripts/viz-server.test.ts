@@ -1,12 +1,8 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import {
-	getNewestHtml,
-	buildFrameHtml,
-	FRAME_TEMPLATE,
-} from "../../../scripts/viz-server";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { buildFrameHtml, FRAME_TEMPLATE, getNewestHtml } from "../../../scripts/viz-server";
 
 describe("viz-server", () => {
 	let screenDir: string;

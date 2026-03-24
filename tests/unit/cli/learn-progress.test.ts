@@ -1,14 +1,14 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+	deleteProgress,
 	type LearnProgress,
 	readProgress,
-	writeProgress,
-	deleteProgress,
 	runWithRetry,
+	writeProgress,
 } from "@/cli/learn-progress";
 
 describe("learn-progress", () => {
@@ -42,14 +42,11 @@ describe("learn-progress", () => {
 				total_files: 1000,
 				last_checkpoint_at: Date.now(),
 			};
-			writeFileSync(
-				join(tmpDir, ".sia-learn-progress.json"),
-				JSON.stringify(progress),
-			);
+			writeFileSync(join(tmpDir, ".sia-learn-progress.json"), JSON.stringify(progress));
 			const result = readProgress(tmpDir);
 			expect(result).not.toBeNull();
-			expect(result!.repo_hash).toBe("abc123");
-			expect(result!.phases_completed).toEqual([0, 1]);
+			expect(result?.repo_hash).toBe("abc123");
+			expect(result?.phases_completed).toEqual([0, 1]);
 		});
 	});
 

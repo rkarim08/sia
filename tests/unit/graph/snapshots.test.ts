@@ -385,10 +385,10 @@ describe("branch snapshots", () => {
 		await createBranchSnapshot(db, "old-branch", "abc1");
 
 		// Manually backdate the updated_at to 30 days ago
-		await db.execute(
-			"UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?",
-			[Date.now() - 30 * 24 * 60 * 60 * 1000, "old-branch"],
-		);
+		await db.execute("UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?", [
+			Date.now() - 30 * 24 * 60 * 60 * 1000,
+			"old-branch",
+		]);
 
 		const gc = await gcBranchSnapshots(db, 7);
 		expect(gc).toBe(1);
@@ -510,10 +510,10 @@ describe("branch snapshots", () => {
 		await createBranchSnapshot(db, "recent-branch", "abc2");
 
 		// Backdate only the old one
-		await db.execute(
-			"UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?",
-			[Date.now() - 30 * 24 * 60 * 60 * 1000, "old-branch"],
-		);
+		await db.execute("UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?", [
+			Date.now() - 30 * 24 * 60 * 60 * 1000,
+			"old-branch",
+		]);
 
 		const gc = await gcBranchSnapshots(db, 7);
 		expect(gc).toBe(1);

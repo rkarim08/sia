@@ -42,7 +42,11 @@ async function main() {
 					const resume = await loadSubgraph(db, event.session_id);
 					if (resume) {
 						const subgraph = JSON.parse(resume.subgraph_json);
-						const entities = subgraph.entities as Array<{ name: string; summary: string; type: string }>;
+						const entities = subgraph.entities as Array<{
+							name: string;
+							summary: string;
+							type: string;
+						}>;
 						if (entities.length > 0) {
 							formatted += "\n## Previous Session Context\n";
 							formatted += "These entities were active in your previous session:\n\n";

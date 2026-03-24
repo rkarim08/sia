@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -34,13 +34,49 @@ describe("sia pm-report — sprint summary", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("pm-sprint", tmpDir);
 
-		await insertEntity(db, { type: "Decision", name: "Use Redis for caching", content: "Chose Redis over Memcached for richer data structures", summary: "Redis decision", trust_tier: 1, kind: "Decision", created_at: daysAgo(5) });
-		await insertEntity(db, { type: "Bug", name: "Login timeout on Safari", content: "Safari blocks third-party cookies causing session loss", summary: "Safari login bug", trust_tier: 2, kind: "Bug", created_at: daysAgo(3) });
-		await insertEntity(db, { type: "Solution", name: "Switch to first-party cookies", content: "Moved session storage to first-party cookies", summary: "Cookie fix", trust_tier: 1, kind: "Solution", created_at: daysAgo(2) });
-		await insertEntity(db, { type: "Convention", name: "Error codes enum", content: "All API errors must use the ErrorCode enum", summary: "Error code convention", trust_tier: 1, kind: "Convention", created_at: daysAgo(1) });
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Use Redis for caching",
+			content: "Chose Redis over Memcached for richer data structures",
+			summary: "Redis decision",
+			trust_tier: 1,
+			kind: "Decision",
+			created_at: daysAgo(5),
+		});
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Login timeout on Safari",
+			content: "Safari blocks third-party cookies causing session loss",
+			summary: "Safari login bug",
+			trust_tier: 2,
+			kind: "Bug",
+			created_at: daysAgo(3),
+		});
+		await insertEntity(db, {
+			type: "Solution",
+			name: "Switch to first-party cookies",
+			content: "Moved session storage to first-party cookies",
+			summary: "Cookie fix",
+			trust_tier: 1,
+			kind: "Solution",
+			created_at: daysAgo(2),
+		});
+		await insertEntity(db, {
+			type: "Convention",
+			name: "Error codes enum",
+			content: "All API errors must use the ErrorCode enum",
+			summary: "Error code convention",
+			trust_tier: 1,
+			kind: "Convention",
+			created_at: daysAgo(1),
+		});
 
 		const { generatePmReport } = await import("@/cli/commands/pm-report");
-		const markdown = await generatePmReport(db, { type: "sprint", since: daysAgo(7), until: Date.now() });
+		const markdown = await generatePmReport(db, {
+			type: "sprint",
+			since: daysAgo(7),
+			until: Date.now(),
+		});
 
 		expect(markdown).toContain("Sprint Summary");
 		expect(markdown).toContain("Key Decisions");
@@ -57,11 +93,29 @@ describe("sia pm-report — sprint summary", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("pm-sprint-filter", tmpDir);
 
-		await insertEntity(db, { type: "Decision", name: "Recent decision", content: "Made recently", summary: "s", trust_tier: 1, created_at: daysAgo(2) });
-		await insertEntity(db, { type: "Decision", name: "Old decision", content: "Made long ago", summary: "s", trust_tier: 1, created_at: daysAgo(30) });
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Recent decision",
+			content: "Made recently",
+			summary: "s",
+			trust_tier: 1,
+			created_at: daysAgo(2),
+		});
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Old decision",
+			content: "Made long ago",
+			summary: "s",
+			trust_tier: 1,
+			created_at: daysAgo(30),
+		});
 
 		const { generatePmReport } = await import("@/cli/commands/pm-report");
-		const markdown = await generatePmReport(db, { type: "sprint", since: daysAgo(7), until: Date.now() });
+		const markdown = await generatePmReport(db, {
+			type: "sprint",
+			since: daysAgo(7),
+			until: Date.now(),
+		});
 
 		expect(markdown).toContain("Recent decision");
 		expect(markdown).not.toContain("Old decision");
@@ -72,7 +126,11 @@ describe("sia pm-report — sprint summary", () => {
 		db = openGraphDb("pm-sprint-empty", tmpDir);
 
 		const { generatePmReport } = await import("@/cli/commands/pm-report");
-		const markdown = await generatePmReport(db, { type: "sprint", since: daysAgo(14), until: Date.now() });
+		const markdown = await generatePmReport(db, {
+			type: "sprint",
+			since: daysAgo(14),
+			until: Date.now(),
+		});
 
 		expect(markdown).toContain("Sprint Summary");
 		expect(markdown).toContain("No activity");
@@ -95,8 +153,22 @@ describe("sia pm-report — decision log", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("pm-decisions", tmpDir);
 
-		await insertEntity(db, { type: "Decision", name: "Adopt TypeScript", content: "Migrating from JS to TS for type safety", summary: "TS migration", trust_tier: 1, created_at: daysAgo(10) });
-		await insertEntity(db, { type: "Decision", name: "Use Vitest", content: "Chose Vitest over Jest for speed", summary: "Test framework", trust_tier: 1, created_at: daysAgo(5) });
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Adopt TypeScript",
+			content: "Migrating from JS to TS for type safety",
+			summary: "TS migration",
+			trust_tier: 1,
+			created_at: daysAgo(10),
+		});
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Use Vitest",
+			content: "Chose Vitest over Jest for speed",
+			summary: "Test framework",
+			trust_tier: 1,
+			created_at: daysAgo(5),
+		});
 
 		const { generatePmReport } = await import("@/cli/commands/pm-report");
 		const markdown = await generatePmReport(db, { type: "decisions", since: daysAgo(14) });
@@ -139,10 +211,33 @@ describe("sia pm-report — risk dashboard", () => {
 		db = openGraphDb("pm-risks", tmpDir);
 
 		// Recurring bugs in same area = critical risk
-		await insertEntity(db, { type: "Bug", name: "Payment timeout", content: "Payments timing out under load", summary: "Payment bug 1", trust_tier: 2, file_paths: '["src/payments/charge.ts"]', created_at: daysAgo(5) });
-		await insertEntity(db, { type: "Bug", name: "Payment duplicate charge", content: "Duplicate charges on retry", summary: "Payment bug 2", trust_tier: 2, file_paths: '["src/payments/charge.ts"]', created_at: daysAgo(2) });
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Payment timeout",
+			content: "Payments timing out under load",
+			summary: "Payment bug 1",
+			trust_tier: 2,
+			file_paths: '["src/payments/charge.ts"]',
+			created_at: daysAgo(5),
+		});
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Payment duplicate charge",
+			content: "Duplicate charges on retry",
+			summary: "Payment bug 2",
+			trust_tier: 2,
+			file_paths: '["src/payments/charge.ts"]',
+			created_at: daysAgo(2),
+		});
 		// Stale convention = moderate risk
-		await insertEntity(db, { type: "Convention", name: "Use callbacks", content: "All async code uses callbacks", summary: "Callback convention", trust_tier: 1, created_at: daysAgo(60) });
+		await insertEntity(db, {
+			type: "Convention",
+			name: "Use callbacks",
+			content: "All async code uses callbacks",
+			summary: "Callback convention",
+			trust_tier: 1,
+			created_at: daysAgo(60),
+		});
 
 		const { generatePmReport } = await import("@/cli/commands/pm-report");
 		const markdown = await generatePmReport(db, { type: "risks" });

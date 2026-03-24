@@ -18,7 +18,11 @@ const TYPE_COLORS: Record<string, string> = {
 const DEFAULT_COLOR = "#95A5A6";
 
 function escapeHtml(s: string): string {
-	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
 }
 
 /**
@@ -28,9 +32,7 @@ export function generateDependencyMapHtml(
 	data: SubgraphData,
 	opts?: { rootFile?: string },
 ): string {
-	const pageTitle = opts?.rootFile
-		? `Dependencies: ${opts.rootFile}`
-		: "SIA Dependency Map";
+	const pageTitle = opts?.rootFile ? `Dependencies: ${opts.rootFile}` : "SIA Dependency Map";
 	const nodesJson = JSON.stringify(data.nodes);
 	const edgesJson = JSON.stringify(data.edges);
 	const typeColorsJson = JSON.stringify(TYPE_COLORS);

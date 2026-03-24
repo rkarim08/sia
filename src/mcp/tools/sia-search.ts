@@ -77,7 +77,10 @@ export async function handleSiaSearch(
 			node_types: input.node_types,
 			package_path: input.package_path,
 		});
-		return (await annotateFreshness(result.entities as unknown as Record<string, unknown>[], db)) as unknown as SiaSearchResult[];
+		return (await annotateFreshness(
+			result.entities as unknown as Record<string, unknown>[],
+			db,
+		)) as unknown as SiaSearchResult[];
 	}
 
 	// Compute effective limit
@@ -95,5 +98,8 @@ export async function handleSiaSearch(
 		includeProvenance: input.include_provenance,
 	});
 
-	return (await annotateFreshness(searchResult.results as unknown as Record<string, unknown>[], db)) as unknown as SiaSearchResult[];
+	return (await annotateFreshness(
+		searchResult.results as unknown as Record<string, unknown>[],
+		db,
+	)) as unknown as SiaSearchResult[];
 }

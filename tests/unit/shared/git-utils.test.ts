@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-	resolveWorktreeRoot,
-	isWorktree,
 	currentBranch,
-	previousBranch,
 	currentCommit,
-	resolveProjectGraphDir,
 	getChangedFiles,
+	isWorktree,
+	previousBranch,
+	resolveProjectGraphDir,
+	resolveWorktreeRoot,
 } from "@/shared/git-utils";
 
 describe("git-utils", () => {
@@ -15,7 +15,7 @@ describe("git-utils", () => {
 			const root = resolveWorktreeRoot();
 			expect(root).toBeTruthy();
 			expect(typeof root).toBe("string");
-			expect(root!.length).toBeGreaterThan(0);
+			expect(root?.length).toBeGreaterThan(0);
 		});
 
 		it("should return null for non-git directories", () => {

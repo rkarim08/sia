@@ -11,14 +11,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
-import { resolveSiaHome, getConfig } from "@/shared/config";
 import {
+	deleteProgress,
 	type LearnProgress,
 	readProgress,
-	writeProgress,
-	deleteProgress,
 	runWithRetry,
+	writeProgress,
 } from "@/cli/learn-progress";
+import { getConfig, resolveSiaHome } from "@/shared/config";
 
 export type Verbosity = "verbose" | "quiet" | "interactive";
 
@@ -78,7 +78,10 @@ export async function siaLearn(opts: LearnOptions = {}): Promise<LearnResult | n
 		const repoHash = resolveRepoHash(cwd);
 		if (existingProgress.repo_hash === repoHash) {
 			phasesToSkip = new Set(existingProgress.phases_completed);
-			log(verbosity, `[sia-learn] Resuming — phases ${[...phasesToSkip].join(", ")} already complete`);
+			log(
+				verbosity,
+				`[sia-learn] Resuming — phases ${[...phasesToSkip].join(", ")} already complete`,
+			);
 		}
 	}
 
@@ -186,10 +189,7 @@ export async function siaLearn(opts: LearnOptions = {}): Promise<LearnResult | n
 								 LIMIT 1`,
 								[`%${doc.relativePath}%`],
 							);
-							if (
-								existing.rows.length > 0 &&
-								(existing.rows[0] as any).updated_at >= fileMtime
-							) {
+							if (existing.rows.length > 0 && (existing.rows[0] as any).updated_at >= fileMtime) {
 								continue; // Skip unchanged file
 							}
 						}
@@ -243,22 +243,19 @@ export async function siaLearn(opts: LearnOptions = {}): Promise<LearnResult | n
 		// --- Phase 3: Community detection + summarization ---
 		if (!phasesToSkip.has(3)) {
 			log(verbosity, "[sia-learn] Phase 3: Detecting communities...");
-			const communityResult = await runWithRetry(
-				"Phase 3: Community detection",
-				async () => {
-					const { detectCommunities } = await import("@/community/leiden");
-					const { summarizeCommunities } = await import("@/community/summarize");
+			const communityResult = await runWithRetry("Phase 3: Community detection", async () => {
+				const { detectCommunities } = await import("@/community/leiden");
+				const { summarizeCommunities } = await import("@/community/summarize");
 
-					const detectionResult = await detectCommunities(db);
+				const detectionResult = await detectCommunities(db);
 
-					// Summarize if we have communities
-					if (detectionResult.totalCommunities > 0) {
-						await summarizeCommunities(db, { airGapped: config.airGapped ?? false });
-					}
+				// Summarize if we have communities
+				if (detectionResult.totalCommunities > 0) {
+					await summarizeCommunities(db, { airGapped: config.airGapped ?? false });
+				}
 
-					return detectionResult;
-				},
-			);
+				return detectionResult;
+			});
 
 			if (communityResult) {
 				result.communities = communityResult.totalCommunities;
@@ -284,10 +281,14 @@ export async function siaLearn(opts: LearnOptions = {}): Promise<LearnResult | n
 			const { createBranchSnapshot } = await import("@/graph/snapshots");
 			const { execFileSync } = await import("node:child_process");
 			const branch = execFileSync("git", ["branch", "--show-current"], {
-				cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"],
+				cwd,
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "pipe"],
 			}).trim();
 			const commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
-				cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"],
+				cwd,
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "pipe"],
 			}).trim();
 			if (branch) {
 				await createBranchSnapshot(db, branch, commit);

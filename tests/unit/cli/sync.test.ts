@@ -44,7 +44,12 @@ function mockSyncModules() {
 function mockConfigEnabled() {
 	vi.doMock("@/shared/config", () => ({
 		getConfig: vi.fn().mockReturnValue({
-			sync: { enabled: true, serverUrl: "http://localhost:8080", developerId: "dev-1", syncInterval: 30 },
+			sync: {
+				enabled: true,
+				serverUrl: "http://localhost:8080",
+				developerId: "dev-1",
+				syncInterval: 30,
+			},
 		}),
 		resolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
 		SIA_HOME: "/tmp/sia-test",
@@ -177,7 +182,9 @@ describe("sia sync CLI", () => {
 			pushChanges: vi.fn().mockRejectedValue(new Error("fetch failed: ECONNREFUSED")),
 		}));
 		vi.doMock("@/sync/pull", () => ({
-			pullChanges: vi.fn().mockResolvedValue({ entitiesReceived: 0, edgesReceived: 0, vssRefreshed: 0 }),
+			pullChanges: vi
+				.fn()
+				.mockResolvedValue({ entitiesReceived: 0, edgesReceived: 0, vssRefreshed: 0 }),
 		}));
 		vi.doMock("@/sync/client", () => ({
 			createSiaDb: vi.fn().mockResolvedValue({
@@ -201,7 +208,9 @@ describe("sia sync CLI", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		await expect(runSync(["push"])).rejects.toThrow("process.exit");
 		expect(exitSpy).toHaveBeenCalledWith(1);
-		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Sync failed: fetch failed: ECONNREFUSED"));
+		expect(errorSpy).toHaveBeenCalledWith(
+			expect.stringContaining("Sync failed: fetch failed: ECONNREFUSED"),
+		);
 	});
 
 	it("should print help with --help flag", async () => {

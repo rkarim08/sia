@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 describe("sia tour", () => {
 	let tmpDir: string;
@@ -26,9 +26,24 @@ describe("sia tour", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("tour-test", tmpDir);
 
-		await insertEntity(db, { type: "Decision", name: "D1", content: "test decision", summary: "test decision" });
-		await insertEntity(db, { type: "Convention", name: "C1", content: "test convention", summary: "test convention" });
-		await insertEntity(db, { type: "CodeEntity", name: "E1", content: "function foo()", summary: "function foo" });
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D1",
+			content: "test decision",
+			summary: "test decision",
+		});
+		await insertEntity(db, {
+			type: "Convention",
+			name: "C1",
+			content: "test convention",
+			summary: "test convention",
+		});
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "E1",
+			content: "function foo()",
+			summary: "function foo",
+		});
 
 		const { generateTour } = await import("@/cli/commands/tour");
 		const tour = await generateTour(db);

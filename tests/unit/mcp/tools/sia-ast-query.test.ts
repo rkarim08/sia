@@ -263,7 +263,7 @@ describe("handleSiaAstQuery", () => {
 		// Tree-sitter may not be available in test env — if so, expect graceful fallback
 		if (!result.error) {
 			expect(result.symbols).toBeDefined();
-			expect(result.symbols!.length).toBeGreaterThan(0);
+			expect(result.symbols?.length).toBeGreaterThan(0);
 		}
 	});
 
@@ -306,7 +306,7 @@ describe("handleSiaAstQuery", () => {
 		expect(result.file_path).toBe("src/mcp/server.ts");
 		if (!result.error) {
 			expect(result.imports).toBeDefined();
-			expect(result.imports!.length).toBeGreaterThan(0);
+			expect(result.imports?.length).toBeGreaterThan(0);
 		}
 	});
 

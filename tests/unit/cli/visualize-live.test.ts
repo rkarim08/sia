@@ -31,10 +31,14 @@ describe("visualize-live CLI", () => {
 
 		it("parses multiple flags together", () => {
 			const opts = parseVisualizeLiveArgs([
-				"--view", "deps",
-				"--port", "9000",
-				"--scope", "src/graph",
-				"--max-nodes", "50",
+				"--view",
+				"deps",
+				"--port",
+				"9000",
+				"--scope",
+				"src/graph",
+				"--max-nodes",
+				"50",
 			]);
 			expect(opts.view).toBe("deps");
 			expect(opts.port).toBe(9000);

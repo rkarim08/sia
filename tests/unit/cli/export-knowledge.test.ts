@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -29,11 +29,41 @@ describe("sia export-knowledge", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("export-test", tmpDir);
 
-		await insertEntity(db, { type: "Decision", name: "Use SQLite", content: "Chose SQLite for embedded storage", summary: "SQLite decision", trust_tier: 1 });
-		await insertEntity(db, { type: "Convention", name: "Async/await everywhere", content: "All DB calls use async/await", summary: "Async convention", trust_tier: 1 });
-		await insertEntity(db, { type: "Bug", name: "Race condition in cache", content: "Two threads writing simultaneously", summary: "Cache race condition", trust_tier: 2 });
-		await insertEntity(db, { type: "Solution", name: "Add mutex lock", content: "Fixed with a simple lock", summary: "Mutex fix", trust_tier: 1 });
-		await insertEntity(db, { type: "Concept", name: "Bi-temporal model", content: "Entities carry 4 timestamps", summary: "Temporal model", trust_tier: 1 });
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Use SQLite",
+			content: "Chose SQLite for embedded storage",
+			summary: "SQLite decision",
+			trust_tier: 1,
+		});
+		await insertEntity(db, {
+			type: "Convention",
+			name: "Async/await everywhere",
+			content: "All DB calls use async/await",
+			summary: "Async convention",
+			trust_tier: 1,
+		});
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Race condition in cache",
+			content: "Two threads writing simultaneously",
+			summary: "Cache race condition",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "Solution",
+			name: "Add mutex lock",
+			content: "Fixed with a simple lock",
+			summary: "Mutex fix",
+			trust_tier: 1,
+		});
+		await insertEntity(db, {
+			type: "Concept",
+			name: "Bi-temporal model",
+			content: "Entities carry 4 timestamps",
+			summary: "Temporal model",
+			trust_tier: 1,
+		});
 
 		const { generateKnowledgeDocument } = await import("@/cli/commands/export-knowledge");
 		const markdown = await generateKnowledgeDocument(db, { projectName: "Test Project" });

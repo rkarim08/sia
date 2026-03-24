@@ -30,7 +30,11 @@ function formatDate(ms: number): string {
 	return new Date(ms).toISOString().split("T")[0];
 }
 
-function riskLevel(bugCount: number, recentCount: number, edgeCount: number): { label: string; score: number } {
+function riskLevel(
+	bugCount: number,
+	recentCount: number,
+	edgeCount: number,
+): { label: string; score: number } {
 	// Weighted score: bug density 40%, change velocity 35%, dependency fan-out 25%
 	const bugScore = Math.min(bugCount * 20, 100);
 	const changeScore = Math.min(recentCount * 15, 100);
@@ -42,10 +46,7 @@ function riskLevel(bugCount: number, recentCount: number, edgeCount: number): { 
 	return { label: "LOW", score };
 }
 
-export async function generateQaReport(
-	db: SiaDb,
-	opts: QaReportOptions = {},
-): Promise<string> {
+export async function generateQaReport(db: SiaDb, opts: QaReportOptions = {}): Promise<string> {
 	const since = opts.since ?? Date.now() - 86400000 * 14; // default: 14 days
 
 	// Query all active entities
@@ -109,7 +110,9 @@ export async function generateQaReport(
 
 	// Header
 	sections.push("# QA Report");
-	sections.push(`\n*Generated on ${formatDate(Date.now())} | Since: ${formatDate(since)} | ${totalEntities} total entities*\n`);
+	sections.push(
+		`\n*Generated on ${formatDate(Date.now())} | Since: ${formatDate(since)} | ${totalEntities} total entities*\n`,
+	);
 	sections.push("---\n");
 
 	// Summary
@@ -169,7 +172,8 @@ export async function generateQaReport(
 		sections.push(`|---|---|---|---|`);
 		for (const bug of bugs) {
 			const date = formatDate(bug.created_at);
-			const tier = bug.trust_tier === 1 ? "verified" : bug.trust_tier === 2 ? "code-derived" : "inferred";
+			const tier =
+				bug.trust_tier === 1 ? "verified" : bug.trust_tier === 2 ? "code-derived" : "inferred";
 			const files = bug.file_paths && bug.file_paths !== "[]" ? bug.file_paths : "—";
 			sections.push(`| ${bug.name} | ${date} | ${tier} | ${files} |`);
 		}
@@ -224,7 +228,9 @@ export async function generateQaReport(
 		sections.push(`- Areas with bugs but no corresponding solutions may indicate coverage gaps`);
 		const unresolvedCount = bugs.length - solutions.length;
 		if (unresolvedCount > 0) {
-			sections.push(`- **${unresolvedCount} bugs without matching solutions** — potential untested areas`);
+			sections.push(
+				`- **${unresolvedCount} bugs without matching solutions** — potential untested areas`,
+			);
 		}
 	} else if (codeCount === 0) {
 		sections.push("*No code entities indexed yet — run `/sia-learn` for coverage analysis.*");

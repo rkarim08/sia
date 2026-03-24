@@ -210,9 +210,7 @@ export async function createBranchSnapshot(
 	const { rows: nodes } = await db.execute(
 		"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
 	);
-	const { rows: edges } = await db.execute(
-		"SELECT * FROM graph_edges WHERE t_valid_until IS NULL",
-	);
+	const { rows: edges } = await db.execute("SELECT * FROM graph_edges WHERE t_valid_until IS NULL");
 
 	const snapshotData = JSON.stringify({ nodes, edges });
 	const now = Date.now();
@@ -237,10 +235,7 @@ export async function createBranchSnapshot(
  * Deletes all current nodes/edges, then re-inserts from the snapshot.
  * Returns true if a snapshot was found and restored, false otherwise.
  */
-export async function restoreBranchSnapshot(
-	db: SiaDb,
-	branchName: string,
-): Promise<boolean> {
+export async function restoreBranchSnapshot(db: SiaDb, branchName: string): Promise<boolean> {
 	const { rows } = await db.execute(
 		"SELECT snapshot_data FROM branch_snapshots WHERE branch_name = ?",
 		[branchName],
@@ -306,15 +301,10 @@ export async function listBranchSnapshots(db: SiaDb): Promise<BranchSnapshot[]> 
  * Prune snapshots for specific branches (e.g., deleted branches).
  * Returns the number of snapshots deleted.
  */
-export async function pruneBranchSnapshots(
-	db: SiaDb,
-	branchNames: string[],
-): Promise<number> {
+export async function pruneBranchSnapshots(db: SiaDb, branchNames: string[]): Promise<number> {
 	if (branchNames.length === 0) return 0;
 
-	const { rows: before } = await db.execute(
-		"SELECT COUNT(*) as cnt FROM branch_snapshots",
-	);
+	const { rows: before } = await db.execute("SELECT COUNT(*) as cnt FROM branch_snapshots");
 
 	const placeholders = branchNames.map(() => "?").join(", ");
 	await db.execute(
@@ -322,9 +312,7 @@ export async function pruneBranchSnapshots(
 		branchNames,
 	);
 
-	const { rows: after } = await db.execute(
-		"SELECT COUNT(*) as cnt FROM branch_snapshots",
-	);
+	const { rows: after } = await db.execute("SELECT COUNT(*) as cnt FROM branch_snapshots");
 
 	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
 	if (deleted > 0) {
@@ -337,24 +325,14 @@ export async function pruneBranchSnapshots(
  * Garbage-collect branch snapshots older than ttlDays.
  * Returns the number of snapshots deleted.
  */
-export async function gcBranchSnapshots(
-	db: SiaDb,
-	ttlDays: number,
-): Promise<number> {
+export async function gcBranchSnapshots(db: SiaDb, ttlDays: number): Promise<number> {
 	const cutoff = Date.now() - ttlDays * 24 * 60 * 60 * 1000;
 
-	const { rows: before } = await db.execute(
-		"SELECT COUNT(*) as cnt FROM branch_snapshots",
-	);
+	const { rows: before } = await db.execute("SELECT COUNT(*) as cnt FROM branch_snapshots");
 
-	await db.execute(
-		"DELETE FROM branch_snapshots WHERE updated_at < ?",
-		[cutoff],
-	);
+	await db.execute("DELETE FROM branch_snapshots WHERE updated_at < ?", [cutoff]);
 
-	const { rows: after } = await db.execute(
-		"SELECT COUNT(*) as cnt FROM branch_snapshots",
-	);
+	const { rows: after } = await db.execute("SELECT COUNT(*) as cnt FROM branch_snapshots");
 
 	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
 	if (deleted > 0) {

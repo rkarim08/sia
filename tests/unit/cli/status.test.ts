@@ -57,9 +57,27 @@ describe("status — getGraphHealth", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("status-by-tier", tmpDir);
 
-		await insertEntity(db, { type: "CodeEntity", name: "t2a", content: "c", summary: "s", trust_tier: 2 });
-		await insertEntity(db, { type: "CodeEntity", name: "t2b", content: "c", summary: "s", trust_tier: 2 });
-		await insertEntity(db, { type: "Decision", name: "t1", content: "c", summary: "s", trust_tier: 1 });
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "t2a",
+			content: "c",
+			summary: "s",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "t2b",
+			content: "c",
+			summary: "s",
+			trust_tier: 2,
+		});
+		await insertEntity(db, {
+			type: "Decision",
+			name: "t1",
+			content: "c",
+			summary: "s",
+			trust_tier: 1,
+		});
 
 		const health = await getGraphHealth(db);
 		expect(health.byTier).toEqual({ 1: 1, 2: 2 });
@@ -77,20 +95,20 @@ describe("status — getGraphHealth", () => {
 			summary: "s",
 		});
 		// Manually set conflict_group_id
-		await db.execute(
-			"UPDATE graph_nodes SET conflict_group_id = ? WHERE name = ?",
-			[groupId, "conflict-a"],
-		);
+		await db.execute("UPDATE graph_nodes SET conflict_group_id = ? WHERE name = ?", [
+			groupId,
+			"conflict-a",
+		]);
 		await insertEntity(db, {
 			type: "Decision",
 			name: "conflict-b",
 			content: "c",
 			summary: "s",
 		});
-		await db.execute(
-			"UPDATE graph_nodes SET conflict_group_id = ? WHERE name = ?",
-			[groupId, "conflict-b"],
-		);
+		await db.execute("UPDATE graph_nodes SET conflict_group_id = ? WHERE name = ?", [
+			groupId,
+			"conflict-b",
+		]);
 
 		const health = await getGraphHealth(db);
 		expect(health.conflictGroups).toBe(1);
@@ -100,8 +118,18 @@ describe("status — getGraphHealth", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("status-edges", tmpDir);
 
-		const e1 = await insertEntity(db, { type: "CodeEntity", name: "a", content: "c", summary: "s" });
-		const e2 = await insertEntity(db, { type: "CodeEntity", name: "b", content: "c", summary: "s" });
+		const e1 = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "a",
+			content: "c",
+			summary: "s",
+		});
+		const e2 = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "b",
+			content: "c",
+			summary: "s",
+		});
 		await insertEdge(db, { from_id: e1.id, to_id: e2.id, type: "relates_to" });
 
 		const health = await getGraphHealth(db);

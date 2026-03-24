@@ -79,13 +79,20 @@ export function formatHistory(history: HistoryResult): string {
 	for (const entity of history.entities) {
 		const date = new Date(entity.created_at).toISOString().split("T")[0];
 		if (!byDate.has(date)) byDate.set(date, []);
-		byDate.get(date)!.push(entity);
+		byDate.get(date)?.push(entity);
 	}
 
 	for (const [date, entities] of byDate) {
 		lines.push(`--- ${date} (${entities.length} entities) ---`);
 		for (const e of entities) {
-			const tierLabel = e.trust_tier === 1 ? "user" : e.trust_tier === 2 ? "code" : e.trust_tier === 3 ? "llm" : "ext";
+			const tierLabel =
+				e.trust_tier === 1
+					? "user"
+					: e.trust_tier === 2
+						? "code"
+						: e.trust_tier === 3
+							? "llm"
+							: "ext";
 			lines.push(`  [${e.type}] ${e.name} (tier:${tierLabel})`);
 			if (e.summary) lines.push(`    ${e.summary.slice(0, 100)}`);
 		}

@@ -7,10 +7,7 @@
 
 import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
-import {
-	createBranchSnapshot,
-	restoreBranchSnapshot,
-} from "@/graph/snapshots";
+import { createBranchSnapshot, restoreBranchSnapshot } from "@/graph/snapshots";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
 import { currentBranch, currentCommit, previousBranch } from "@/shared/git-utils";
 

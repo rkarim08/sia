@@ -40,7 +40,10 @@ export async function handleSiaByFile(
 			siaHome: workspaceDeps.siaHome,
 			limit,
 		});
-		const annotated = await annotateFreshness(result.entities as unknown as Record<string, unknown>[], db);
+		const annotated = await annotateFreshness(
+			result.entities as unknown as Record<string, unknown>[],
+			db,
+		);
 		return { entities: annotated as unknown as Entity[] };
 	}
 
@@ -56,7 +59,10 @@ export async function handleSiaByFile(
 	);
 
 	if (exactResult.rows.length > 0) {
-		const annotated = await annotateFreshness(exactResult.rows as unknown as Record<string, unknown>[], db);
+		const annotated = await annotateFreshness(
+			exactResult.rows as unknown as Record<string, unknown>[],
+			db,
+		);
 		return { entities: annotated as unknown as Entity[] };
 	}
 
@@ -75,6 +81,9 @@ export async function handleSiaByFile(
 		[filename, limit],
 	);
 
-	const annotated = await annotateFreshness(stemResult.rows as unknown as Record<string, unknown>[], db);
+	const annotated = await annotateFreshness(
+		stemResult.rows as unknown as Record<string, unknown>[],
+		db,
+	);
 	return { entities: annotated as unknown as Entity[] };
 }

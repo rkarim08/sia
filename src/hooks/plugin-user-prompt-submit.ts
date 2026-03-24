@@ -26,10 +26,14 @@ async function main() {
 		try {
 			const config = getConfig();
 			const prompt = (event.tool_input?.prompt as string) ?? "";
-			const result = await handleUserPromptSubmit(db, {
-				session_id: event.session_id,
-				prompt,
-			}, config);
+			const result = await handleUserPromptSubmit(
+				db,
+				{
+					session_id: event.session_id,
+					prompt,
+				},
+				config,
+			);
 			process.stdout.write(JSON.stringify(result));
 		} finally {
 			await db.close();

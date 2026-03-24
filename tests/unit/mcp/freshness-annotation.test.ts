@@ -15,9 +15,7 @@ describe("freshness annotation", () => {
 	});
 
 	it("should pass through entities with no file_paths", async () => {
-		const entities = [
-			{ id: "1", name: "concept", file_paths: null, trust_tier: 1 },
-		];
+		const entities = [{ id: "1", name: "concept", file_paths: null, trust_tier: 1 }];
 		const annotated = await annotateFreshness(entities, null);
 		expect(annotated[0].freshness).toBe("unknown");
 	});

@@ -1,8 +1,8 @@
 {
-  "name": "sia",
-  "version": "1.0.0",
-  "description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
-  "author": {
-    "name": "Ramez Karim"
-  }
+	"name": "sia",
+	"version": "1.0.0",
+	"description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
+	"author": {
+		"name": "Ramez Karim"
+	}
 }

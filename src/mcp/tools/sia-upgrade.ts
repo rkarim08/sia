@@ -96,7 +96,9 @@ export class GitUpdateStrategy implements UpdateStrategy {
 		if (result.status === 0 && result.stdout) {
 			return result.stdout.trim();
 		}
-		console.error(`[sia-upgrade] Failed to read version: ${result.stderr?.trim() ?? "git rev-parse failed"}`);
+		console.error(
+			`[sia-upgrade] Failed to read version: ${result.stderr?.trim() ?? "git rev-parse failed"}`,
+		);
 		return "unknown";
 	}
 

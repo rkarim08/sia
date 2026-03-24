@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -28,13 +28,15 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-drift-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Decision", name: "All DB access through SiaDb",
+				type: "Decision",
+				name: "All DB access through SiaDb",
 				content: "All database access must go through SiaDb interface",
 				summary: "DB access convention",
 				file_paths: JSON.stringify(["src/graph/db-interface.ts"]),
 			});
 			await insertEntity(db, {
-				type: "Convention", name: "Error handlers return JSON",
+				type: "Convention",
+				name: "Error handlers return JSON",
 				content: "All error handlers must return structured JSON",
 				summary: "Error handling convention",
 				file_paths: JSON.stringify(["src/api/errors.ts"]),
@@ -56,12 +58,16 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-drift-archived-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Decision", name: "Active Decision",
-				content: "active", summary: "active",
+				type: "Decision",
+				name: "Active Decision",
+				content: "active",
+				summary: "active",
 			});
 			const archived = await insertEntity(db, {
-				type: "Decision", name: "Archived Decision",
-				content: "archived", summary: "archived",
+				type: "Decision",
+				name: "Archived Decision",
+				content: "archived",
+				summary: "archived",
 			});
 			const { archiveEntity } = await import("@/graph/entities");
 			await archiveEntity(db, archived.id);
@@ -82,19 +88,31 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-kmap-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Decision", name: "Dec 1", content: "d", summary: "d",
+				type: "Decision",
+				name: "Dec 1",
+				content: "d",
+				summary: "d",
 				created_by: "alice",
 			});
 			await insertEntity(db, {
-				type: "Decision", name: "Dec 2", content: "d", summary: "d",
+				type: "Decision",
+				name: "Dec 2",
+				content: "d",
+				summary: "d",
 				created_by: "alice",
 			});
 			await insertEntity(db, {
-				type: "Convention", name: "Conv 1", content: "c", summary: "c",
+				type: "Convention",
+				name: "Conv 1",
+				content: "c",
+				summary: "c",
 				created_by: "bob",
 			});
 			await insertEntity(db, {
-				type: "Bug", name: "Bug 1", content: "b", summary: "b",
+				type: "Bug",
+				name: "Bug 1",
+				content: "b",
+				summary: "b",
 				created_by: "alice",
 			});
 
@@ -118,7 +136,10 @@ describe("sia lead-report", () => {
 			// All entities from one person = bus factor risk
 			for (let i = 0; i < 5; i++) {
 				await insertEntity(db, {
-					type: "Decision", name: `Dec ${i}`, content: "d", summary: "d",
+					type: "Decision",
+					name: `Dec ${i}`,
+					content: "d",
+					summary: "d",
 					created_by: "alice",
 				});
 			}
@@ -139,13 +160,15 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-compliance-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Convention", name: "Use SiaDb for all DB access",
+				type: "Convention",
+				name: "Use SiaDb for all DB access",
 				content: "All database access must go through SiaDb",
 				summary: "DB convention",
 				file_paths: JSON.stringify(["src/graph/db-interface.ts"]),
 			});
 			await insertEntity(db, {
-				type: "Convention", name: "Tests use temp dirs",
+				type: "Convention",
+				name: "Tests use temp dirs",
 				content: "All tests must use temporary directories",
 				summary: "Test convention",
 			});
@@ -167,8 +190,10 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-format-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Decision", name: "Use REST not GraphQL",
-				content: "We chose REST for simplicity", summary: "API decision",
+				type: "Decision",
+				name: "Use REST not GraphQL",
+				content: "We chose REST for simplicity",
+				summary: "API decision",
 				file_paths: JSON.stringify(["src/api/routes.ts"]),
 			});
 
@@ -185,7 +210,10 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-format-kmap-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Decision", name: "Dec 1", content: "d", summary: "d",
+				type: "Decision",
+				name: "Dec 1",
+				content: "d",
+				summary: "d",
 				created_by: "alice",
 			});
 
@@ -202,8 +230,10 @@ describe("sia lead-report", () => {
 			db = openGraphDb("lead-format-compliance-test", tmpDir);
 
 			await insertEntity(db, {
-				type: "Convention", name: "Error JSON convention",
-				content: "Errors return JSON", summary: "errors",
+				type: "Convention",
+				name: "Error JSON convention",
+				content: "Errors return JSON",
+				summary: "errors",
 			});
 
 			const { generateLeadReport, formatLeadReport } = await import("@/cli/commands/lead-report");

@@ -143,7 +143,10 @@ export async function handleSiaExpand(
 	}
 
 	const allEntities = [rootEntity, ...neighbors];
-	const annotated = await annotateFreshness(allEntities as unknown as Record<string, unknown>[], db);
+	const annotated = await annotateFreshness(
+		allEntities as unknown as Record<string, unknown>[],
+		db,
+	);
 	const [annotatedRoot, ...annotatedNeighbors] = annotated;
 
 	return {

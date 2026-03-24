@@ -6,10 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import {
-	createPostToolUseHandler,
-	parseTestFailures,
-} from "@/hooks/handlers/post-tool-use";
+import { createPostToolUseHandler, parseTestFailures } from "@/hooks/handlers/post-tool-use";
 import type { HookEvent } from "@/hooks/types";
 
 function makeTmp(): string {
@@ -327,9 +324,7 @@ describe("handleEdit — enhanced knowledge extraction", () => {
 		expect(result.status).toBe("processed");
 		expect(result.nodes_created).toBeGreaterThanOrEqual(1);
 
-		const { rows } = await db.execute(
-			"SELECT * FROM graph_nodes WHERE kind = 'EditEvent'",
-		);
+		const { rows } = await db.execute("SELECT * FROM graph_nodes WHERE kind = 'EditEvent'");
 		expect(rows.length).toBe(1);
 	});
 });

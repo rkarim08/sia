@@ -44,13 +44,7 @@ async function main() {
 					timestamp: Date.now(),
 				};
 
-				await saveSubgraph(
-					db,
-					event.session_id,
-					JSON.stringify(subgraph),
-					null,
-					0,
-				);
+				await saveSubgraph(db, event.session_id, JSON.stringify(subgraph), null, 0);
 				process.stderr.write("sia: saved session subgraph for resume\n");
 			} catch (err) {
 				process.stderr.write(`sia: session save failed (non-fatal): ${err}\n`);

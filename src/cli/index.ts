@@ -271,7 +271,7 @@ async function main(): Promise<void> {
 		case "import": {
 			const { importFromFile } = await import("@/cli/commands/import");
 			const filePath = rest[0];
-			const mode = rest.includes("--replace") ? "replace" as const : "merge" as const;
+			const mode = rest.includes("--replace") ? ("replace" as const) : ("merge" as const);
 			if (!filePath) {
 				console.error("Usage: sia import <file> [--replace]");
 				return;

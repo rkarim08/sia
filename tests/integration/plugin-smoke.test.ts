@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "../..");
 
@@ -68,12 +68,7 @@ describe("plugin smoke test", () => {
 	});
 
 	it("should have agent definitions", () => {
-		const agents = [
-			"sia-code-reviewer",
-			"sia-orientation",
-			"sia-regression",
-			"sia-feature",
-		];
+		const agents = ["sia-code-reviewer", "sia-orientation", "sia-regression", "sia-feature"];
 		for (const agent of agents) {
 			const path = join(ROOT, `agents/${agent}.md`);
 			expect(existsSync(path), `Missing agent: ${agent}`).toBe(true);

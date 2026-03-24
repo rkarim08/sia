@@ -1,11 +1,11 @@
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { insertEntity } from "@/graph/entities";
+import { openGraphDb } from "@/graph/semantic-db";
 
 describe("sia compare", () => {
 	let tmpDir: string;
@@ -31,12 +31,18 @@ describe("sia compare", () => {
 
 		// Entity created before t1
 		await insertEntity(db, {
-			type: "Decision", name: "Old Decision", content: "before", summary: "before",
+			type: "Decision",
+			name: "Old Decision",
+			content: "before",
+			summary: "before",
 			created_at: t1 - 1000,
 		});
 		// Entity created between t1 and t2
 		await insertEntity(db, {
-			type: "Convention", name: "New Convention", content: "after", summary: "after",
+			type: "Convention",
+			name: "New Convention",
+			content: "after",
+			summary: "after",
 			created_at: t1 + 1000,
 		});
 
