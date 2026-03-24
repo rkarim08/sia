@@ -3,6 +3,7 @@ name: sia-feature
 description: Assists with feature development using SIA's knowledge graph for architectural context, dependency awareness, and convention compliance
 model: sonnet
 color: green
+tools: Read, Grep, Glob, Bash
 whenToUse: |
   Use when implementing a new feature and need to understand the surrounding architecture, dependencies, and conventions.
 

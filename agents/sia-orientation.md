@@ -3,6 +3,7 @@ name: sia-orientation
 description: Onboards developers to a project using SIA's knowledge graph — explains architecture, conventions, key decisions, and known issues
 model: sonnet
 color: blue
+tools: Read, Grep, Glob, Bash
 whenToUse: |
   Use when a developer is new to a project, needs architectural overview, or asks questions about project structure, history, or conventions.
 

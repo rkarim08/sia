@@ -3,6 +3,7 @@ name: sia-code-reviewer
 description: Reviews code changes using SIA's knowledge graph for historical context, convention enforcement, and regression detection
 model: sonnet
 color: cyan
+tools: Read, Grep, Glob, Bash
 whenToUse: |
   Use when reviewing code changes, pull requests, or diffs. This agent retrieves project conventions, past decisions, and known bugs from SIA's knowledge graph to provide context-aware code review.
 
