@@ -44,17 +44,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(18);
+		expect(Object.keys(registered)).toHaveLength(21);
 	});
 
-	it("registers all 18 tools", () => {
+	it("registers all 21 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(18);
+		expect(registeredNames).toHaveLength(21);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -80,6 +80,9 @@ describe("createMcpServer", () => {
 			"sia_upgrade",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_snapshot_list",
+			"sia_snapshot_restore",
+			"sia_snapshot_prune",
 		]);
 	});
 	it("all tools have annotations with readOnlyHint", () => {
@@ -101,6 +104,7 @@ describe("createMcpServer", () => {
 			"sia_doctor",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_snapshot_list",
 		];
 		const writeTools = [
 			"sia_flag",
@@ -111,6 +115,8 @@ describe("createMcpServer", () => {
 			"sia_batch_execute",
 			"sia_fetch_and_index",
 			"sia_upgrade",
+			"sia_snapshot_restore",
+			"sia_snapshot_prune",
 		];
 
 		for (const name of readOnlyTools) {

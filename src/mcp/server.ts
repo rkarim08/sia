@@ -158,6 +158,16 @@ export const SiaAstQueryInput = z.object({
 	max_results: z.number().optional(),
 });
 
+export const SiaSnapshotListInput = z.object({});
+
+export const SiaSnapshotRestoreInput = z.object({
+	branch_name: z.string(),
+});
+
+export const SiaSnapshotPruneInput = z.object({
+	branch_names: z.array(z.string()),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -181,6 +191,9 @@ export const TOOL_NAMES = [
 	"sia_upgrade",
 	"sia_sync_status",
 	"sia_ast_query",
+	"sia_snapshot_list",
+	"sia_snapshot_restore",
+	"sia_snapshot_prune",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -809,6 +822,108 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
 				],
 				isError: result.error ? true : undefined,
+			};
+		},
+	);
+
+	// --- sia_snapshot_list --------------------------------------------------
+	server.registerTool(
+		"sia_snapshot_list",
+		{
+			description: "List all branch-keyed graph snapshots",
+			inputSchema: SiaSnapshotListInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async () => {
+			if (deps) {
+				return safeToolCall(
+					"sia_snapshot_list",
+					async () => {
+						const { listBranchSnapshots } = await import("@/graph/snapshots");
+						const snapshots = await listBranchSnapshots(deps.graphDb);
+						return snapshots.map((s) => ({
+							branch_name: s.branch_name,
+							commit_hash: s.commit_hash,
+							node_count: s.node_count,
+							edge_count: s.edge_count,
+							updated_at: s.updated_at,
+						}));
+					},
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- sia_snapshot_restore -----------------------------------------------
+	server.registerTool(
+		"sia_snapshot_restore",
+		{
+			description: "Restore the knowledge graph from a branch snapshot",
+			inputSchema: SiaSnapshotRestoreInput.shape,
+			annotations: { readOnlyHint: false },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_snapshot_restore",
+					async () => {
+						const { restoreBranchSnapshot } = await import("@/graph/snapshots");
+						const restored = await restoreBranchSnapshot(deps.graphDb, args.branch_name);
+						return { restored, branch_name: args.branch_name };
+					},
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- sia_snapshot_prune -------------------------------------------------
+	server.registerTool(
+		"sia_snapshot_prune",
+		{
+			description: "Remove branch snapshots for specified branches",
+			inputSchema: SiaSnapshotPruneInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_snapshot_prune",
+					async () => {
+						const { pruneBranchSnapshots } = await import("@/graph/snapshots");
+						const pruned = await pruneBranchSnapshots(deps.graphDb, args.branch_names);
+						return { pruned, branch_names: args.branch_names };
+					},
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
