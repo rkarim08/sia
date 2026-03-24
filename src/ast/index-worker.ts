@@ -99,7 +99,6 @@ async function setupWorkerHandler() {
 // Only activate when loaded as a worker — detected synchronously via require().
 // This avoids top-level await which breaks in Node/Vitest ESM context.
 try {
-	// biome-ignore lint/style/noCommaOperator: require needed for sync check in ESM
 	const wt = require("node:worker_threads") as typeof import("node:worker_threads");
 	if (!wt.isMainThread) {
 		setupWorkerHandler();

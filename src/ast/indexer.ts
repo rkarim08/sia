@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { parseFileWithRetry } from "@/ast/index-worker";
 import type { WorkerResult } from "@/ast/index-worker";
+import { parseFileWithRetry } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
 import type { CandidateFact } from "@/capture/types";
@@ -67,11 +67,7 @@ interface FlushResult {
  * Uses a single IN-clause SELECT for dedup, then INSERT/UPDATE per entry.
  * Returns both count of new entities and their IDs for edge creation.
  */
-async function flushBatch(
-	db: SiaDb,
-	batch: PendingFact[],
-	dryRun: boolean,
-): Promise<FlushResult> {
+async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Promise<FlushResult> {
 	if (batch.length === 0 || dryRun) return { created: 0, insertedIds: [] };
 
 	// Batch dedup: single query with IN clause
