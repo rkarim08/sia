@@ -1,6 +1,6 @@
 ---
 name: sia-orientation
-description: Onboards developers to a project using SIA's knowledge graph — explains architecture, conventions, key decisions, and known issues
+description: Answers specific architecture questions using SIA's graph — "why was X chosen?", "how does Y work?", "what are the conventions for Z?". Quick, focused Q&A for developers who need a single answer, not a full onboarding session.
 model: sonnet
 color: blue
 tools: Read, Grep, Glob, Bash
