@@ -101,6 +101,16 @@ sia_search({ query: "bugs <area>", node_types: ["Bug"], limit: 10 })
 > 2. Test expired token handling (Bug: 401 instead of redirect, fixed 2026-03-12)
 > 3. Test large file upload >100MB (Bug: timeout at 50MB, fixed 2026-03-08)
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Key Principle
 
 **Test what changed and what broke before.** SIA's Bug history is a goldmine of test cases. Every past bug should have a corresponding test.

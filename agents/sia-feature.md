@@ -101,6 +101,16 @@ sia_flag({ reason: "<decision summary>" })
 
 If flagging is disabled, skip this step — the session-end capture will record the decision automatically, though with lower precision.
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Tool Budget
 
 This agent uses 3 tool calls in the standard case: `sia_community` (1) + `sia_search` (2) + `sia_by_file` (3). The optional Step 4 `sia_expand` pushes the count to 4, permitted only when genuinely necessary.

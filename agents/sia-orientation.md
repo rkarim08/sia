@@ -84,6 +84,16 @@ Synthesise all retrieved summaries and decisions into a coherent narrative. Do N
 
 Never call `sia_community` as a fallback for a failed `sia_search` — they serve different purposes.
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Tool Budget
 
 This agent uses 3 tool calls: `sia_community(level=2)` (1) + `sia_community(level=1)` (2) + `sia_search` (3). No `sia_expand` is needed — community summaries already contain synthesised relationship context.

@@ -71,6 +71,16 @@ Produce a structured review with sections that distinguish:
 - **Sia-unaware patterns** (worth noting) — patterns not yet captured as conventions
 - **Developer discretion** — items where no convention applies
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Tool Budget
 
 This agent uses 1 + N tool calls: `sia_search` (1) + `sia_by_file` once per changed file (N). The per-file calls are permitted by the review exception — they do not count against the 3-tool limit.

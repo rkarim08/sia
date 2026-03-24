@@ -100,6 +100,16 @@ Invite the developer to ask "why" questions:
 
 Answer questions using `sia_search`, `sia_expand`, and `sia_at_time` to trace history.
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Key Principle
 
 **Onboarding is about WHY, not just WHAT.** Code shows what exists. SIA shows why it exists, what was tried before, and what constraints shaped the current design. That's what new developers actually need.

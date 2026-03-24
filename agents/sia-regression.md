@@ -97,6 +97,16 @@ If the root cause is non-obvious and flagging is enabled:
 sia_flag({ reason: "Root cause: <description>" })
 ```
 
+### Final Step — Knowledge Capture
+
+Record significant findings to the knowledge graph:
+
+- Decisions discovered: `sia_note({ kind: "Decision", name: "...", content: "..." })`
+- Conventions identified: `sia_note({ kind: "Convention", name: "...", content: "..." })`
+- Bugs found: `sia_note({ kind: "Bug", name: "...", content: "..." })`
+
+Only capture findings that a future developer would want to know. Skip trivial observations.
+
 ## Tool Budget
 
 This agent uses up to 4 tool calls: `sia_search` (1) + conditional `sia_expand` (2) + `sia_at_time` (3) + one narrowed `sia_at_time` if truncated (4). If no causal entity is found in Step 1, skip `sia_expand` and stay within 3 calls.
