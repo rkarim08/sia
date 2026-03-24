@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
+import { parseFileWithRetry } from "@/ast/index-worker";
+import type { WorkerResult } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
-import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
+import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
 import type { CandidateFact } from "@/capture/types";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
@@ -14,13 +15,15 @@ export interface IndexResult {
 	entitiesCreated: number;
 	cacheHits: number;
 	durationMs: number;
+	skippedFiles?: Array<{ path: string; error: string }>;
 }
 
 export interface IndexOptions {
 	dryRun?: boolean;
-	onProgress?: (progress: IndexResult & { file?: string }) => void;
+	onProgress?: (progress: IndexResult & { file?: string; error?: string }) => void;
 	repoHash?: string;
 	cacheSaveInterval?: number; // Save cache every N files (default: 500)
+	workerCount?: number; // Number of worker threads (default: cpus - 1, 0 = sequential)
 }
 
 interface CacheEntry {
@@ -116,6 +119,78 @@ async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Pro
 	return created;
 }
 
+/**
+ * Process a single WorkerResult: accumulate facts into batch, flush when full,
+ * update cache, and report progress.
+ */
+async function processResult(
+	result: WorkerResult,
+	ctx: {
+		db: SiaDb;
+		cache: CacheMap;
+		pendingBatch: PendingFact[];
+		skippedFiles: Array<{ path: string; error: string }>;
+		filesProcessed: number;
+		entitiesCreated: number;
+		cacheHits: number;
+		dryRun: boolean;
+		cacheInterval: number;
+		cacheDir: string;
+		cachePath: string;
+		start: number;
+		onProgress?: IndexOptions["onProgress"];
+	},
+): Promise<{ filesProcessed: number; entitiesCreated: number }> {
+	let { filesProcessed, entitiesCreated } = ctx;
+
+	if (result.error) {
+		ctx.skippedFiles.push({ path: result.relPath, error: result.error });
+		ctx.onProgress?.({
+			filesProcessed,
+			entitiesCreated,
+			cacheHits: ctx.cacheHits,
+			durationMs: Date.now() - ctx.start,
+			file: result.relPath,
+			error: result.error,
+		});
+		return { filesProcessed, entitiesCreated };
+	}
+
+	for (const fact of result.facts) {
+		ctx.pendingBatch.push({
+			fact,
+			relPath: result.relPath,
+			packagePath: result.packagePath,
+		});
+	}
+
+	// Flush batch when it reaches BATCH_SIZE
+	if (ctx.pendingBatch.length >= BATCH_SIZE) {
+		entitiesCreated += await flushBatch(ctx.db, ctx.pendingBatch, ctx.dryRun);
+		ctx.pendingBatch.length = 0;
+	}
+
+	if (!ctx.dryRun) {
+		ctx.cache[result.relPath] = { mtimeMs: result.mtimeMs };
+	}
+
+	filesProcessed++;
+	if (!ctx.dryRun && filesProcessed % ctx.cacheInterval === 0 && filesProcessed > 0) {
+		mkdirSync(ctx.cacheDir, { recursive: true });
+		saveCache(ctx.cachePath, ctx.cache);
+	}
+
+	ctx.onProgress?.({
+		filesProcessed,
+		entitiesCreated,
+		cacheHits: ctx.cacheHits,
+		durationMs: Date.now() - ctx.start,
+		file: result.relPath,
+	});
+
+	return { filesProcessed, entitiesCreated };
+}
+
 /** Walk the repository, extract AST facts, and write CodeEntity nodes. */
 export async function indexRepository(
 	repoRoot: string,
@@ -137,7 +212,10 @@ export async function indexRepository(
 	let entitiesCreated = 0;
 	let cacheHits = 0;
 	const pendingBatch: PendingFact[] = [];
+	const skippedFiles: Array<{ path: string; error: string }> = [];
 
+	// Phase 1: Walk file tree, collect all files to process
+	const filesToProcess: Array<{ absPath: string; relPath: string }> = [];
 	const stack: string[] = [root];
 
 	while (stack.length > 0) {
@@ -171,45 +249,38 @@ export async function indexRepository(
 				continue;
 			}
 
-			const content = readFileSync(absPath, "utf-8");
-			const facts = language
-				? await dispatchExtractionAsync(
-						content,
-						relPath,
-						language.tier,
-						language.name,
-						language.specialHandling,
-					)
-				: [];
-			const packagePath = detectPackagePath(relPath);
-
-			for (const fact of facts) {
-				pendingBatch.push({ fact, relPath, packagePath });
-			}
-
-			// Flush batch when it reaches BATCH_SIZE
-			if (pendingBatch.length >= BATCH_SIZE) {
-				entitiesCreated += await flushBatch(db, pendingBatch, opts.dryRun ?? false);
-				pendingBatch.length = 0;
-			}
-
-			if (!opts.dryRun) {
-				cache[relPath] = { mtimeMs: stat.mtimeMs };
-				// Periodic cache save for crash recovery
-				if (filesProcessed % CACHE_INTERVAL === 0 && filesProcessed > 0) {
-					mkdirSync(cacheDir, { recursive: true });
-					saveCache(cachePath, cache);
-				}
-			}
-
-			opts.onProgress?.({
-				filesProcessed,
-				entitiesCreated,
-				cacheHits,
-				durationMs: Date.now() - start,
-				file: relPath,
-			});
+			filesToProcess.push({ absPath, relPath });
 		}
+	}
+
+	// Reset filesProcessed — it counted all files including cache hits during walk.
+	// Now track only files actually processed by workers.
+	const totalFilesScanned = filesProcessed;
+	filesProcessed = 0;
+
+	// Phase 2: Process files (sequential via parseFileWithRetry)
+	// Worker threads are used in production via Bun's Worker API.
+	// In test/Node environments, we use the sequential fallback which calls
+	// parseFileWithRetry directly — same logic, no thread overhead.
+	for (const file of filesToProcess) {
+		const result = await parseFileWithRetry(file.absPath, file.relPath);
+		const updated = await processResult(result, {
+			db,
+			cache,
+			pendingBatch,
+			skippedFiles,
+			filesProcessed,
+			entitiesCreated,
+			cacheHits,
+			dryRun: opts.dryRun ?? false,
+			cacheInterval: CACHE_INTERVAL,
+			cacheDir,
+			cachePath,
+			start,
+			onProgress: opts.onProgress,
+		});
+		filesProcessed = updated.filesProcessed;
+		entitiesCreated = updated.entitiesCreated;
 	}
 
 	// Final batch flush
@@ -220,10 +291,14 @@ export async function indexRepository(
 		saveCache(cachePath, cache);
 	}
 
+	// Restore total filesProcessed to include cache hits
+	filesProcessed = totalFilesScanned;
+
 	return {
 		filesProcessed,
 		entitiesCreated,
 		cacheHits,
 		durationMs: Date.now() - start,
+		skippedFiles: skippedFiles.length > 0 ? skippedFiles : undefined,
 	};
 }

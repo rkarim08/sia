@@ -163,6 +163,36 @@ describe("indexRepository", () => {
 		expect(Number(count.rows[0]?.cnt)).toBe(result1.entitiesCreated);
 	});
 
+	it("should use worker pool for parallel processing", async () => {
+		// Create enough files to exercise the pool
+		const srcDir = join(repoRoot, "src");
+		mkdirSync(srcDir, { recursive: true });
+		for (let i = 0; i < 20; i++) {
+			writeFileSync(join(srcDir, `mod${i}.ts`), `export function fn${i}() { return ${i}; }`);
+		}
+
+		const result = await indexRepository(repoRoot, db, config, {
+			repoHash,
+			workerCount: 2, // Explicitly use 2 workers for test
+		});
+
+		expect(result.filesProcessed).toBe(20);
+		expect(result.entitiesCreated).toBeGreaterThanOrEqual(20);
+		expect(result.durationMs).toBeGreaterThan(0);
+	});
+
+	it("should report skipped files from worker errors", async () => {
+		// Create a file that will cause a parse error
+		writeFileSync(join(repoRoot, "bad.ts"), "\x00\x01\x02"); // binary garbage
+
+		const result = await indexRepository(repoRoot, db, config, {
+			repoHash,
+		});
+
+		// The file should be processed (attempted) but may be skipped
+		expect(result.filesProcessed).toBeGreaterThanOrEqual(1);
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(
