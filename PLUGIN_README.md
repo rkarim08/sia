@@ -46,6 +46,20 @@ claude --plugin-dir /path/to/sia
 | `sia_execute_file` | Execute an existing file in a sandbox subprocess |
 | `sia_batch_execute` | Execute multiple operations in one call with precedes edges |
 
+#### AST & Code Analysis
+
+| Tool | Description |
+|---|---|
+| `sia_ast_query` | Run tree-sitter queries against source files for structural code analysis |
+
+#### Branch Snapshots
+
+| Tool | Description |
+|---|---|
+| `sia_snapshot_list` | List branch snapshots with timestamps and entity counts |
+| `sia_snapshot_restore` | Restore graph state from a branch snapshot |
+| `sia_snapshot_prune` | Remove snapshots for deleted or merged branches |
+
 #### Diagnostics & Maintenance
 
 | Tool | Description |
@@ -112,6 +126,7 @@ Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
 | Hook | Trigger | Purpose |
 |---|---|---|
 | **PostToolUse** | Write/Edit | Captures knowledge from file changes |
+| **PostToolUse** | Bash | Detects branch switches and saves/restores graph snapshots |
 | **Stop** | Session stop | Detects uncaptured knowledge patterns |
 | **SessionStart** | Session begin | Injects recent decisions/conventions as context |
 | **PreCompact** | Before compaction | Scans transcript tail for unextracted knowledge before context compaction |
