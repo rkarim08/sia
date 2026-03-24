@@ -179,12 +179,34 @@ async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 	return { status: "processed", nodes_created: nodesCreated };
 }
 
-async function handleRead(_db: SiaDb, _event: HookEvent): Promise<HookResponse> {
-	// Read events signal importance but don't create new entities.
-	// touchEntity requires a known entity id — we can't determine that from
-	// just a file path without a lookup. For now, record the access signal
-	// without a touch call. Future: look up FileNode by path and touch.
-	return { status: "processed", nodes_created: 0 };
+async function handleRead(db: SiaDb, event: HookEvent): Promise<HookResponse> {
+	const filePath = inputStr(event, "file_path");
+	if (!filePath) {
+		return { status: "processed", nodes_created: 0, context: [] };
+	}
+
+	const result = await db.execute(
+		`SELECT id, type, name, summary, kind, trust_tier, confidence
+		 FROM graph_nodes
+		 WHERE file_paths LIKE ?
+		   AND t_valid_until IS NULL
+		   AND archived_at IS NULL
+		 ORDER BY importance DESC
+		 LIMIT 5`,
+		[`%${filePath}%`],
+	);
+
+	const context = (result.rows as Array<Record<string, unknown>>).map((row) => ({
+		id: row.id,
+		type: row.type,
+		name: row.name,
+		summary: row.summary,
+		kind: row.kind,
+		trust_tier: row.trust_tier,
+		confidence: row.confidence,
+	}));
+
+	return { status: "processed", nodes_created: 0, context };
 }
 
 // ---------------------------------------------------------------------------
