@@ -67,7 +67,6 @@
 		"tree-sitter-ocaml": "^0.24.2",
 		"tree-sitter-php": "^0.24.2",
 		"tree-sitter-python": "^0.25.0",
-		"tree-sitter-r": "^0.0.1-security",
 		"tree-sitter-ruby": "^0.23.1",
 		"tree-sitter-rust": "^0.24.0",
 		"tree-sitter-scala": "^0.24.0",
