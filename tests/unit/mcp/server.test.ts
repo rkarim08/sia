@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	createMcpServer,
 	type McpServerDeps,
+	SiaAstQueryInput,
 	SiaAtTimeInput,
 	SiaByFileInput,
 	SiaCommunityInput,
@@ -43,17 +44,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(17);
+		expect(Object.keys(registered)).toHaveLength(18);
 	});
 
-	it("registers all 17 tools", () => {
+	it("registers all 18 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(17);
+		expect(registeredNames).toHaveLength(18);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -78,7 +79,48 @@ describe("createMcpServer", () => {
 			"sia_doctor",
 			"sia_upgrade",
 			"sia_sync_status",
+			"sia_ast_query",
 		]);
+	});
+	it("all tools have annotations with readOnlyHint", () => {
+		const server = createMcpServer(mockDeps);
+		const registered = (
+			server as unknown as {
+				_registeredTools: Record<string, { annotations?: { readOnlyHint?: boolean } }>;
+			}
+		)._registeredTools;
+
+		const readOnlyTools = [
+			"sia_search",
+			"sia_by_file",
+			"sia_expand",
+			"sia_community",
+			"sia_at_time",
+			"sia_backlinks",
+			"sia_stats",
+			"sia_doctor",
+			"sia_sync_status",
+			"sia_ast_query",
+		];
+		const writeTools = [
+			"sia_flag",
+			"sia_note",
+			"sia_execute",
+			"sia_execute_file",
+			"sia_index",
+			"sia_batch_execute",
+			"sia_fetch_and_index",
+			"sia_upgrade",
+		];
+
+		for (const name of readOnlyTools) {
+			expect(registered[name]?.annotations?.readOnlyHint, `${name} should be readOnly`).toBe(true);
+		}
+		for (const name of writeTools) {
+			expect(registered[name]?.annotations?.readOnlyHint, `${name} should not be readOnly`).toBe(
+				false,
+			);
+		}
 	});
 });
 
@@ -209,6 +251,44 @@ describe("SiaFlagInput", () => {
 
 	it("rejects missing reason", () => {
 		const result = SiaFlagInput.safeParse({});
+		expect(result.success).toBe(false);
+	});
+});
+
+describe("SiaAstQueryInput", () => {
+	it("accepts minimal valid input", () => {
+		const result = SiaAstQueryInput.safeParse({ file_path: "src/index.ts", query_type: "symbols" });
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts full input", () => {
+		const result = SiaAstQueryInput.safeParse({
+			file_path: "src/index.ts",
+			query_type: "imports",
+			max_results: 50,
+		});
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts all query types", () => {
+		for (const qt of ["symbols", "imports", "calls"]) {
+			const result = SiaAstQueryInput.safeParse({ file_path: "a.ts", query_type: qt });
+			expect(result.success).toBe(true);
+		}
+	});
+
+	it("rejects invalid query_type", () => {
+		const result = SiaAstQueryInput.safeParse({ file_path: "a.ts", query_type: "invalid" });
+		expect(result.success).toBe(false);
+	});
+
+	it("rejects missing file_path", () => {
+		const result = SiaAstQueryInput.safeParse({ query_type: "symbols" });
+		expect(result.success).toBe(false);
+	});
+
+	it("rejects missing query_type", () => {
+		const result = SiaAstQueryInput.safeParse({ file_path: "a.ts" });
 		expect(result.success).toBe(false);
 	});
 });
