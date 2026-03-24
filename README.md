@@ -456,7 +456,7 @@ Skills are slash commands providing structured workflows. Invoke them in Claude 
 | `/sia-prune` | Remove archived entities |
 | `/sia-upgrade` | Self-update SIA |
 
-### Development Workflow (Superpowers)
+### Development Workflow
 
 These nine skills augment standard development workflows with graph intelligence:
 
