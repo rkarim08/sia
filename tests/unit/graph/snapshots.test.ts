@@ -7,9 +7,14 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 import {
+	createBranchSnapshot,
 	createSnapshot,
 	findNearestSnapshot,
+	gcBranchSnapshots,
+	listBranchSnapshots,
 	listSnapshots,
+	pruneBranchSnapshots,
+	restoreBranchSnapshot,
 	restoreSnapshot,
 	type SnapshotData,
 } from "@/graph/snapshots";
@@ -243,5 +248,152 @@ describe("snapshot rollback", () => {
 		const latest = findNearestSnapshot(repoHash, future, tmpDir);
 		expect(latest).not.toBeNull();
 		expect(latest).toContain("2026-03-10.snapshot");
+	});
+});
+
+// ---------------------------------------------------------------
+// Branch snapshots
+// ---------------------------------------------------------------
+
+describe("branch snapshots", () => {
+	let tmpDir: string;
+	let db: SiaDb | undefined;
+
+	function makeTmp(): string {
+		const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
+		mkdirSync(dir, { recursive: true });
+		return dir;
+	}
+
+	afterEach(async () => {
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
+		if (tmpDir) {
+			rmSync(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("should create a branch snapshot", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-snap", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Test Decision",
+			content: "For branch snapshot testing",
+			summary: "Test decision",
+		});
+
+		await createBranchSnapshot(db, "main", "abc1234");
+		const snapshots = await listBranchSnapshots(db);
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0].branch_name).toBe("main");
+		expect(snapshots[0].commit_hash).toBe("abc1234");
+		expect(snapshots[0].node_count).toBe(1);
+	});
+
+	it("should restore a branch snapshot", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-restore", tmpDir);
+
+		await insertEntity(db, {
+			type: "Convention",
+			name: "Conv1",
+			content: "Rule 1",
+			summary: "Convention 1",
+		});
+		await createBranchSnapshot(db, "main", "abc1234");
+
+		// Add another entity after snapshot
+		await insertEntity(db, {
+			type: "Bug",
+			name: "Bug1",
+			content: "Something broken",
+			summary: "Bug report",
+		});
+
+		await restoreBranchSnapshot(db, "main");
+
+		const { rows: nodes } = await db.execute(
+			"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		);
+		expect(nodes).toHaveLength(1);
+		expect(nodes[0].name).toBe("Conv1");
+	});
+
+	it("should upsert branch snapshots", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-upsert", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D1",
+			content: "First",
+			summary: "First decision",
+		});
+		await createBranchSnapshot(db, "feature-x", "abc1");
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D2",
+			content: "Second",
+			summary: "Second decision",
+		});
+		await createBranchSnapshot(db, "feature-x", "abc2");
+
+		const snapshots = await listBranchSnapshots(db);
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0].commit_hash).toBe("abc2");
+		expect(snapshots[0].node_count).toBe(2);
+	});
+
+	it("should prune snapshots for deleted branches", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-prune", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D1",
+			content: "Test",
+			summary: "Test decision",
+		});
+		await createBranchSnapshot(db, "branch-a", "abc1");
+		await createBranchSnapshot(db, "branch-b", "abc2");
+		await createBranchSnapshot(db, "branch-c", "abc3");
+
+		// Prune only branch-b — it's the one NOT in the active list
+		const pruned = await pruneBranchSnapshots(db, ["branch-b"]);
+		expect(pruned).toBe(1);
+
+		const remaining = await listBranchSnapshots(db);
+		expect(remaining).toHaveLength(2);
+		expect(remaining.map((s) => s.branch_name).sort()).toEqual(["branch-a", "branch-c"]);
+	});
+
+	it("should garbage-collect old snapshots", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-gc", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D1",
+			content: "Test",
+			summary: "Test decision",
+		});
+		await createBranchSnapshot(db, "old-branch", "abc1");
+
+		// Manually backdate the updated_at to 30 days ago
+		await db.execute(
+			"UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?",
+			[Date.now() - 30 * 24 * 60 * 60 * 1000, "old-branch"],
+		);
+
+		const gc = await gcBranchSnapshots(db, 7);
+		expect(gc).toBe(1);
+
+		const remaining = await listBranchSnapshots(db);
+		expect(remaining).toHaveLength(0);
 	});
 });
