@@ -46,6 +46,8 @@ sia_by_file({ file_path: "<broken_file>" })
 
 Check for known issues, recent changes, and related entities.
 
+**For detailed temporal investigation guidance:** See [temporal-investigation.md](temporal-investigation.md)
+
 ### Phase 2 — Pattern Analysis (ENHANCED)
 
 **Standard steps:** Find working examples, compare, identify differences.
