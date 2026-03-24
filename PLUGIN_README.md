@@ -110,17 +110,32 @@ claude --plugin-dir /path/to/sia
 
 ### Subagents
 
-| Agent | Purpose | Can Run In Parallel |
+#### All Agents
+
+| Agent | Purpose | Category |
 |---|---|---|
-| `sia-code-reviewer` | Code review with graph context — convention enforcement, regression detection | Yes |
-| `sia-orientation` | Project onboarding — architecture, decisions, conventions, known issues | Yes |
-| `sia-regression` | Regression risk analysis — temporal investigation of what changed and when | Yes |
-| `sia-feature` | Feature development — architectural context, dependency and convention awareness | Yes |
-| `sia-debug` | Active bug investigation with temporal queries | Yes |
-| `sia-refactor` | Impact analysis via dependency graph + backlinks | Yes |
-| `sia-decision-reviewer` | Decision archaeology — surfaces past choices | Yes |
-| `sia-knowledge-capture` | Systematic session knowledge capture | No (end of session) |
-| `sia-security-audit` | Security review with paranoid mode | Yes |
+| **Before Coding** | | |
+| `sia-orientation` | Architecture overview | Onboarding |
+| `sia-onboarding` | Comprehensive new team member guide | Onboarding |
+| `sia-decision-reviewer` | Decision archaeology | Planning |
+| `sia-explain` | Explains SIA itself | Meta |
+| **During Coding** | | |
+| `sia-feature` | Feature dev with conventions | Development |
+| `sia-refactor` | Impact analysis via dependency graph | Development |
+| `sia-convention-enforcer` | Convention compliance check | Quality |
+| `sia-test-advisor` | Test strategy from past failures | Testing |
+| `sia-dependency-tracker` | Cross-repo dependency monitoring | Architecture |
+| **During Debugging** | | |
+| `sia-debug` | Active bug investigation | Debugging |
+| `sia-regression` | Proactive risk analysis | Prevention |
+| **During Review** | | |
+| `sia-code-reviewer` | Code review with graph context | Review |
+| `sia-security-audit` | Security review with paranoid mode | Security |
+| `sia-conflict-resolver` | Resolve contradicting knowledge | Quality |
+| **After Coding** | | |
+| `sia-knowledge-capture` | Systematic session capture | Capture |
+| `sia-changelog-writer` | Graph-powered release notes | Documentation |
+| `sia-migration` | Graph maintenance during refactors | Maintenance |
 
 All subagents primarily retrieve from the knowledge graph and can run simultaneously.
 The feature agent may flag decisions via `sia_flag` when flagging is enabled.
