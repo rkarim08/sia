@@ -4,13 +4,21 @@
 
 > *Sia was the Egyptian personification of perception, insight, and divine knowledge. She rode on the prow of Ra's solar barque and was said to write knowledge on the heart — the precise act of embedding structured understanding into a store that shapes all future reasoning.*
 
+Every time you close a Claude Code session, the agent forgets everything. Decisions made Monday are invisible Friday. Bugs analyzed last week get rediscovered from scratch. Conventions established over days must be re-explained. Across a month of daily development, this compounds into hours of lost effort — and across a team, the problem multiplies because each developer's agent independently rebuilds the same understanding.
+
+Sia captures knowledge from your sessions automatically and stores it in a local, bi-temporal knowledge graph. Between sessions, your agent retrieves only what is relevant. No explicit input. No server required. Everything runs locally.
+
 ---
 
 ## Why Sia?
 
-Every time you close a Claude Code session, the agent forgets everything. Decisions made Monday are invisible Friday. Bugs analyzed last week get rediscovered from scratch. Conventions established over days must be re-explained. Across a month of daily development, this represents hours of compounding lost effort — and across a team, the problem multiplies because each developer's agent independently rebuilds the same understanding of the same codebase.
+### The Problem: Agent Amnesia
 
-Sia solves this by capturing knowledge from your AI coding sessions automatically and storing it in a local, bi-temporal knowledge graph. Between sessions, your agent retrieves only what's relevant to the current task. No explicit input required. No server required. Everything runs locally.
+AI coding agents have no persistent memory. Each session starts from zero. The agent cannot recall why a decision was made, what was tried before, or what constraints the team has accumulated over months. Context windows are finite, and when they compact, even intra-session knowledge is lost.
+
+### The Solution: Persistent Knowledge Graph
+
+Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that captures decisions, bugs, conventions, patterns, and the structural dependency graph of your codebase. Knowledge flows in automatically via hooks and out automatically via MCP tools. The developer never needs to manage the graph explicitly.
 
 ### How Sia Differs from Existing Solutions
 
@@ -28,324 +36,198 @@ Sia solves this by capturing knowledge from your AI coding sessions automaticall
 | **Agent integration** | Injected at session start | MCP tool calls | None native; requires manual bridging | Native MCP server with 16 tools, automatic hook-based capture |
 | **Sandbox execution** | N/A | N/A | N/A | Isolated subprocess execution with context-aware output indexing |
 | **Session continuity** | Lost on compaction | Lost on compaction | N/A | Priority-weighted subgraph serialization survives context compaction |
-| **Knowledge authoring** | Developer writes manually | Developer writes manually | Developer writes manually (rich editor) | `sia_note` for deliberate knowledge entry + automatic dual-track capture |
+| **Knowledge authoring** | Developer writes manually | Developer writes manually | Developer writes manually (rich editor) | `sia_note` for deliberate entry + automatic dual-track capture |
 | **Multi-repo** | One file per repo, no cross-repo awareness | Single store, no repo concept | One vault, manual organization | Workspace model with cross-repo edges and API contract detection |
 | **Team sharing** | Copy-paste or shared file | Not supported | Git sync or Obsidian Sync ($) | Optional sync via self-hosted server with visibility controls |
 | **Security** | No write validation | No write validation | No trust model | 4-tier trust model, ontology enforcement, isolated staging area, paranoid mode, audit log with rollback |
 | **Scalability** | Collapses past ~50 entries | Linear degradation | Degrades past ~10K notes | SQLite-backed, tested to 50K nodes with sub-800ms retrieval |
 | **Capture method** | Developer writes manually | Developer writes manually | Developer writes manually | Automatic dual-track: deterministic AST + probabilistic LLM |
 | **Knowledge decay** | Manual cleanup | Manual cleanup | Manual cleanup | Automatic importance decay with configurable half-lives per node kind |
-| **Graph freshness** | Stale facts persist forever | No freshness model | No freshness model | Five-layer freshness engine: file-watcher → git-reconcile → stale-while-revalidate → confidence decay → deep validation |
-| **Visualization** | Not available | Not available | Graph view (built-in) | Interactive D3.js graph explorer (`npx sia graph`) |
+| **Graph freshness** | Stale facts persist forever | No freshness model | No freshness model | Five-layer freshness engine: file-watcher, git-reconcile, stale-while-revalidate, confidence decay, deep validation |
+| **Visualization** | Not available | Not available | Graph view (built-in) | Interactive D3.js graph explorer |
 | **Export** | N/A | N/A | Native markdown | Obsidian-compatible markdown vault export/import (round-trip) |
 | **Native performance** | N/A | N/A | N/A | Optional Rust module via NAPI-RS (AST diffing, PageRank, Leiden) with Wasm and TypeScript fallbacks |
-| **Knowledge capture** | N/A | N/A | N/A | Three-layer: hooks (real-time, $0) → CLAUDE.md directives (proactive, $0) → pluggable LLM fallback |
+| **Knowledge capture** | N/A | N/A | N/A | Three-layer: hooks (real-time, $0) + CLAUDE.md directives (proactive, $0) + pluggable LLM fallback |
 | **Cross-agent support** | Claude Code only | Claude Code only | N/A | Claude Code (native), Cursor, Cline (hook adapters), Windsurf/Aider (MCP-only fallback) |
 
-**The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration — the developer must bridge the gap manually. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans (connections, context, history) also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
+**The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
 
 ---
 
 ## Quick Start
 
-### Installation
+### Plugin Installation (Recommended)
+
+```bash
+claude plugin add sia
+```
+
+This registers all 16 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
+
+### Standalone Installation
 
 ```bash
 npx sia install
 ```
 
-This takes under three minutes and:
-1. Creates the `~/.sia/` directory structure
-2. Downloads the local embedding model (~90MB ONNX, runs on-device)
-3. Discovers and indexes repository documentation (AGENTS.md, CLAUDE.md, ADRs, README.md, etc.)
-4. Indexes your repository structure with Tree-sitter
-5. Generates a `CLAUDE.md` in your project with agent behavioral instructions
-6. Registers Sia as an MCP server for Claude Code with all 16 tools
-7. Installs hooks (PostToolUse, Stop, UserPromptSubmit, PreCompact, SessionStart)
+This takes under three minutes and creates the `~/.sia/` directory, downloads the embedding model (~90MB ONNX), indexes your repository, generates CLAUDE.md directives, and registers the MCP server.
 
-No knowledge of graph databases, embedding models, or knowledge representation required.
-
-### First Session
-
-After installation, just use Claude Code normally. Sia works in the background:
-
-- **During the session**: Claude Code calls Sia's MCP tools automatically to retrieve relevant context before acting on tasks. You'll see tool calls like `sia_search` and `sia_by_file` in your session. Every tool use, file edit, and command execution is recorded as an event node in the graph.
-- **Session continuity**: When Claude Code compacts context, Sia serializes a priority-weighted subgraph of the current session. When the session resumes, Sia rebuilds context from the graph — no knowledge is lost to compaction.
-- **After the session**: Sia's capture pipeline extracts knowledge from the session — decisions you made, bugs you found, conventions you established — and writes them to the graph.
-- **Next session**: When you start a new session, Claude Code queries Sia for context relevant to whatever you're working on. Decisions from last week surface automatically. You never re-explain.
-
-### What Gets Captured
-
-Sia uses a unified graph with a `kind` discriminator. Nodes fall into three categories:
-
-**Structural nodes** — the code backbone:
-
-| Kind | What It Represents | Example |
-|------|-------------------|---------|
-| **CodeSymbol** | Functions, classes, modules | `UserService.authenticate()` — handles JWT validation |
-| **FileNode** | Source files and documentation files | `src/auth/service.ts` |
-| **PackageNode** | Packages in monorepos | `packages/auth` |
-
-**Semantic nodes** — developer knowledge:
-
-| Kind | What It Captures | Example |
-|------|-----------------|---------|
-| **Concept** | Architectural ideas, patterns | "We use the repository pattern for all DB access" |
-| **Decision** | Choices with rationale and alternatives | "Chose Express over Fastify because of middleware ecosystem" |
-| **Bug** | Defects with symptoms and root cause | "Race condition in EventEmitter.on() — fires before DB ready" |
-| **Solution** | Fixes linked to the bugs they resolve | "Added await to init() — ensures DB connection before event binding" |
-| **Convention** | Project-specific rules | "All errors must extend AppBaseError" |
-| **Community** | Auto-discovered module clusters | "Authentication subsystem: UserService, JWTProvider, AuthMiddleware" |
-| **ContentChunk** | Indexed documentation sections, execution output | Heading-scoped chunks from ARCHITECTURE.md |
-
-**Event nodes** — session timeline:
-
-| Kind | What It Captures | Example |
-|------|-----------------|---------|
-| **SessionNode** | A Claude Code session | Session started at 10:30 AM, 45 events |
-| **EditEvent** | File modifications | Modified `src/auth/jwt.ts` lines 42-58 |
-| **ExecutionEvent** | Command/script runs | `bun run test` — 3 failures |
-| **ErrorEvent** | Errors encountered | TypeError: Cannot read property 'token' of undefined |
-| **GitEvent** | Git operations | Committed `fix: token refresh` on branch `auth-fix` |
-| **UserDecision** | Developer corrections | "Use Redis instead of Memcached" |
-| **UserPrompt** | Developer messages | Prompt with references to entities |
-| **TaskNode** | Logical task groupings | "Implement JWT refresh token flow" |
-
-### Verifying It Works
+### Build the Knowledge Graph
 
 ```bash
-# Check graph statistics
-npx sia stats
+/sia-learn                # Full build: install + index code + ingest docs + detect communities
+/sia-learn --incremental  # Update changed files only
+/sia-learn --force        # Full rebuild ignoring all caches
+```
 
-# Search the knowledge graph directly
-npx sia search "authentication architecture"
+### First-Run Wizard
 
-# View community summaries
-npx sia community
+```bash
+/sia-setup                # Guided setup: detect project, configure, learn, tour
+```
 
-# Health check — runtimes, hooks, model, graph integrity
-npx sia doctor
+### Verify It Works
 
-# Visualize the graph in your browser
-npx sia graph --open
+```bash
+sia stats                           # Graph statistics
+sia search "authentication"         # Search the knowledge graph
+sia doctor                          # Health check
+/sia-visualize-live                 # Graph explorer in your browser
 ```
 
 ---
 
 ## How It Works
 
+### Write Path (Capture)
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       Claude Code                           │
-│                                                             │
-│   You code normally. Sia works in the background.           │
-└──────────┬──────────────────────────────────┬───────────────┘
-           │                                  │
-     hooks fire on                    MCP tool calls
-     every action                   (automatic retrieval)
-           │                                  │
-           ▼                                  ▼
-┌─────────────────────┐         ┌──────────────────────────┐
-│   WRITE PATH        │         │   READ PATH              │
-│                     │         │                          │
-│  PostToolUse ──┐    │         │  sia_search ◄── query    │
-│  Stop ─────────┤    │         │  sia_by_file             │
-│  UserPrompt ───┤    │         │  sia_expand              │
-│  PreCompact ───┤    │         │  sia_community           │
-│  SessionStart ─┘    │         │  sia_at_time             │
-│       │             │         │  sia_note                │
-│       ▼             │         │  sia_execute + 8 more    │
-│  Hook capture ($0)  │         │       │                  │
-│  Event nodes        │         │       ▼                  │
-│  Dual-track extract │         │  Vector + BM25 + Graph   │
-│  Ontology validate  │         │  ──► RRF reranking       │
-│  Consolidate        │         │  ──► Trust weighting     │
-│       │             │         │       │                  │
-│       ▼             │         │       │                  │
-└───────┬─────────────┘         └───────┬──────────────────┘
-        │                               │
-        ▼                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    ~/.sia/repos/<hash>/                     │
-│                                                             │
-│   graph.db ─── Unified knowledge graph                      │
-│   ├── Structural: CodeSymbol, FileNode, PackageNode         │
-│   ├── Semantic:   Decision, Convention, Bug, Solution       │
-│   ├── Events:     EditEvent, ExecutionEvent, ErrorEvent     │
-│   ├── Docs:       ContentChunk (from AGENTS.md, ADRs, ...)  │
-│   ├── Ontology:   edge_constraints (validates all writes)   │
-│   └── Freshness:  source_deps + dirty propagation engine    │
-│                                                             │
-│   episodic.db ─ Append-only session archive                 │
-└─────────────────────────────────────────────────────────────┘
+Claude Code session
+  |
+  hooks fire on every action
+  |
+  v
+PostToolUse ──┐
+Stop ─────────┤
+UserPrompt ───┤
+PreCompact ───┤
+SessionStart ─┘
+  |
+  v
+Hook capture ($0)       ──> Event nodes (EditEvent, ExecutionEvent, GitEvent, ...)
+Dual-track extraction   ──> Track A: AST (deterministic) + Track B: LLM (probabilistic)
+Ontology validation     ──> Edge constraints enforced at SQLite trigger level
+Two-phase consolidation ──> ADD / UPDATE / INVALIDATE / NOOP against existing graph
+Atomic write            ──> Single transaction with full audit log
 ```
 
-### Automatic Capture
+### Read Path (Retrieval)
 
-When a Claude Code session ends (or during specific hook events), Sia's capture pipeline runs:
+```
+MCP tool call (sia_search, sia_by_file, ...)
+  |
+  v
+Vector similarity (ONNX embeddings + sqlite-vss)
+BM25 keyword search (SQLite FTS5)
+Graph traversal (1-hop expansion from mentioned nodes)
+  |
+  v
+Reciprocal Rank Fusion
+  weighted by: trust tier, task type, importance decay, graph proximity
+  |
+  v
+Progressive throttling: normal (calls 1-3), reduced (4-8), blocked (9+)
+  |
+  v
+Response to Claude Code
+```
 
-1. **Event node creation** — every hook event (PostToolUse, Stop, UserPromptSubmit) creates a typed event node in the graph with edges to related files, symbols, and the current session
-2. **Dual-track extraction** processes the session transcript:
-   - **Track A (deterministic)**: Tree-sitter parses code changes into CodeSymbol/FileNode nodes with structural edges (defines, imports, calls)
-   - **Track B (probabilistic)**: Haiku LLM extracts semantic knowledge (Decisions, Conventions, Bugs) from conversation
-3. **Two-phase consolidation** merges extracted candidates against the existing graph:
-   - Finds the top-5 semantically similar existing nodes for each candidate
-   - Decides: ADD (new fact), UPDATE (merge into existing), INVALIDATE (supersede old fact), or NOOP (duplicate, discard)
-   - All edges validated against the ontology constraint layer before commit
-   - Target: ≥80% of candidates are NOOP or UPDATE — the graph stays compact
-4. **Atomic write** commits all changes in a single transaction with a full audit log
-
-### Hooks-First Knowledge Capture
-
-Sia's primary capture mechanism uses Claude Code's hook system to observe every tool operation at the moment it happens — at zero additional LLM cost. This is architecturally superior to re-analyzing session transcripts with a separate LLM because Claude already has full context when it writes code, runs commands, and makes decisions.
-
-**Three-layer capture architecture:**
+### Three-Layer Capture Architecture
 
 ```
 Layer 1: Claude Code Hooks (real-time, deterministic, $0)
-  PostToolUse → extracts knowledge from every Write, Edit, Bash, Read operation
-  Stop → processes transcript for decisions expressed in natural language
-  PreCompact → snapshots graph state before context compaction
-  SessionStart → injects relevant graph context into new sessions
+  PostToolUse --> extracts knowledge from every Write, Edit, Bash, Read operation
+  Stop --> processes transcript for decisions expressed in natural language
+  PreCompact --> snapshots graph state before context compaction
+  SessionStart --> injects relevant graph context into new sessions
 
 Layer 2: CLAUDE.md Behavioral Directives (proactive, $0)
   Claude calls sia_note when it makes architectural decisions
   Claude calls sia_search before starting new tasks
-  Captures the "why" — reasoning, alternatives, context
+  Captures the "why" -- reasoning, alternatives, context
 
 Layer 3: Pluggable LLM Provider (offline + fallback)
   Community summarization (requires full-graph reasoning)
-  Deep validation (maintenance sweep — startup catchup or idle processing)
+  Deep validation (maintenance sweep)
   Non-Claude-Code agents (Cursor, Windsurf, Cline)
-  Built on Vercel AI SDK — supports Anthropic, OpenAI, Google, Ollama
+  Built on Vercel AI SDK -- supports Anthropic, OpenAI, Google, Ollama
 ```
 
-**How capture works in practice:** When Claude writes a file, the PostToolUse hook receives the full file path and content, triggers AST extraction for CodeSymbol nodes, creates an EditEvent, and detects knowledge patterns in comments (decisions, conventions, TODOs) — all deterministically, with zero LLM calls. When Claude discusses a decision in conversation without calling `sia_note`, the Stop hook catches it by scanning the transcript segment. The result: ~90% cost reduction compared to the pure-API approach (~$0.04/day vs ~$0.36/day), with richer knowledge capture because hooks observe at the moment of maximum context.
+**Cost in practice:** ~$0.04/day vs ~$0.36/day for a pure-API approach. Hooks observe at the moment of maximum context, capturing richer knowledge at zero LLM cost.
 
 **Three capture modes** (configured in `sia.config.yaml`):
 - **`hooks`** (default for Claude Code): Real-time hook capture + LLM for offline operations only
 - **`api`** (fallback for non-Claude-Code agents): All extraction via pluggable LLM provider
-- **`hybrid`**: Hooks for real-time + LLM for batch operations like `npx sia reindex`
+- **`hybrid`**: Hooks for real-time + LLM for batch operations
 
-### Session Continuity
+### Auto-Integration via CLAUDE.md
 
-Sia preserves context across Claude Code's context compaction events:
+SIA injects behavioral directives into your project's CLAUDE.md that make Claude use the knowledge graph automatically:
 
-1. **PreCompact hook**: When compaction is about to occur, Sia serializes a priority-weighted subgraph of the current session (events, decisions, modified files) into a compact JSON format (≤2 KB). P1 events (errors, user decisions) are always included; P4 events (routine searches) are dropped first.
-2. **SessionStart hook**: When the session resumes, Sia deserializes the subgraph, re-queries the graph for the current state of referenced nodes, and injects a Session Guide with: last prompt, active tasks, modified files, unresolved errors, and key decisions.
+- **Task classification** -- Claude classifies each task (bug-fix, feature, review, orientation) and loads the corresponding playbook via `/sia-playbooks`
+- **Tool selection** -- `sia_search` before any non-trivial task, `sia_by_file` before modifying files, `sia_note` after decisions, `sia_at_time` for regressions
+- **Trust tier rules** -- Tier 1-2 facts cited as ground truth, Tier 3 qualified before acting, Tier 4 referenced only
 
-### Documentation Ingestion
-
-Sia auto-discovers and indexes repository documentation at install time, during reindex, and via the file watcher:
-
-**Priority 1 — AI context files** (trust tier 1, tagged `ai-context`):
-AGENTS.md, CLAUDE.md, GEMINI.md, .cursor/rules/*.mdc, .windsurf/rules/*.md, .clinerules/*.md, .github/copilot-instructions.md, .amazonq/rules/*.md, .continue/rules/*.md
-
-**Priority 2 — Architecture docs** (trust tier 1, tagged `architecture`):
-ARCHITECTURE.md, DESIGN.md, docs/adr/*.md, docs/decisions/*.md
-
-**Priority 3 — Project docs** (trust tier 1, tagged `project-docs`):
-README.md, CONTRIBUTING.md, CONVENTIONS.md, CONTEXT.md, docs/*.md
-
-**Priority 4 — API docs** (trust tier 2, tagged `api-docs`):
-openapi.yaml, swagger.json, schema.graphql, API.md
-
-**Priority 5 — Change history** (trust tier 2, tagged `changelog`):
-CHANGELOG.md, HISTORY.md, MIGRATION.md
-
-Each document is chunked by heading boundaries, with code blocks kept intact and cross-references resolved to graph edges. Mentions of known code symbols in documentation create `references` edges, connecting prose knowledge to the structural backbone.
-
-Documentation freshness is tracked via git metadata — when a document's last modification significantly predates changes to the code it describes (default: 90 days), it is tagged `potentially-stale` and ranks lower in search results.
-
-### Ontology Enforcement
-
-Every edge in the graph is validated against a declarative `edge_constraints` table that defines all valid (source_kind, edge_type, target_kind) triples. Invalid relationships are rejected at write time by SQLite triggers — before they can enter the graph. Additional constraints enforced at the application layer:
-
-- **Co-creation**: A Bug node must have a `caused_by` edge (no orphaned bugs)
-- **Cardinality**: A Convention node must have ≥1 `pertains_to` edge (conventions must govern something)
-- **Type matching**: `supersedes` edges can only connect nodes of the same kind
-- **Deletion guards**: Cannot remove a Convention's last `pertains_to` edge
-
-### Intelligent Retrieval
-
-When Claude Code calls a Sia tool, the retrieval engine combines three signals:
-
-1. **Vector similarity** — local ONNX embeddings matched via sqlite-vss
-2. **BM25 keyword search** — SQLite FTS5 full-text search
-3. **Graph traversal** — follows edges from mentioned nodes (1-hop expansion)
-
-Results are fused via Reciprocal Rank Fusion and weighted by:
-- **Trust tier** (developer-stated facts rank higher than LLM-inferred ones)
-- **Task type** (bug-fix boosts Bug/Solution nodes; feature boosts Concept/Decision)
-- **Importance** (decays over time; frequently accessed and well-connected facts rank higher)
-- **Graph proximity** (nodes closer to query-mentioned entities score higher)
-
-Progressive throttling prevents excessive tool calls: normal results for calls 1–3, reduced results with warning for calls 4–8, blocked with redirect to `sia_batch_execute` for calls 9+.
-
-### Graph Freshness — Five Layers of Trust
-
-A persistent knowledge graph is only useful if its facts reflect the current codebase. Sia solves this with a five-layer freshness engine where each layer operates at a different timescale, and the invalidation mechanism matches the nature of each fact type:
-
-```
-Layer 1 — File-Watcher Invalidation     [milliseconds]   [handles >90% of cases]
-  File save → Tree-sitter incremental re-parse → surgical node invalidation
-Layer 2 — Git-Commit Reconciliation      [seconds]        [merges, rebases, checkouts]
-  Git operation → diff parse → bounded BFS with firewall nodes
-Layer 3 — Stale-While-Revalidate Reads   [per-query]      [~0.1ms overhead]
-  Fresh → serve instantly | Stale → serve + async re-validate | Rotten → block + repair
-Layer 4 — Confidence Decay               [hours to days]  [LLM-inferred facts only]
-  Exponential decay × trust tier, with Bayesian re-observation reinforcement
-Layer 5 — Periodic Deep Validation       [daily/weekly]   [batch cleanup]
-  Doc-vs-code cross-check → LLM re-verify → PageRank recompute → compaction
-```
-
-**Why different layers for different fact types?** A function signature extracted from an AST is either correct or not — time-based decay is meaningless for it. But a Decision inferred by an LLM six months ago genuinely loses confidence over time unless re-confirmed. Sia applies event-driven invalidation to deterministic facts (Tier 2) and exponential decay with Bayesian re-observation to probabilistic facts (Tier 3).
-
-**The inverted dependency index** (`source_deps` table) maps every source file to every graph node derived from it. When a file changes, a single indexed lookup returns the exact set of affected nodes — no graph scan required. An in-memory Cuckoo filter provides O(1) pre-screening for files with zero dependencies.
-
-**Early cutoff** prevents cascading re-verification: if a source file changes but the derived fact is unchanged (whitespace edit, comment change), propagation stops immediately. This eliminates ~30% of unnecessary re-verification during typical editing sessions.
-
-Each search result carries a `freshness` field (`fresh`, `stale`, or `rotten`) so the agent knows whether to cite a fact with confidence or verify it first.
-
-### Trust Tiers
-
-Every fact in the graph carries a trust tier that affects retrieval ranking and how the agent treats it:
-
-| Tier | Source | Confidence | Agent Behavior |
-|------|--------|------------|----------------|
-| 1 | **User-Direct** — developer explicitly stated this or authored documentation | 0.95 | Treat as ground truth; cite directly |
-| 2 | **Code-Analysis** — deterministically extracted from AST or API specs | 0.92 | Highly reliable; verify only for safety-critical claims |
-| 3 | **LLM-Inferred** — probabilistic extraction from conversation | 0.70 | Qualify before acting: "Sia suggests X — let me verify" |
-| 4 | **External** — from fetched URLs or unknown sources | 0.50 | Reference only; never sole basis for code changes |
-
-### Bi-Temporal Knowledge Graph
-
-Every fact (nodes and edges) carries four timestamps:
-
-- **`t_created`** — when Sia recorded the fact
-- **`t_expired`** — when Sia marked it superseded
-- **`t_valid_from`** — when the fact became true in the world
-- **`t_valid_until`** — when it stopped being true (null = still true)
-
-Facts are never deleted — only invalidated. This enables powerful temporal queries:
-
-```bash
-# What was the authentication strategy in January?
-# (Claude Code calls sia_at_time automatically during regression investigation)
-npx sia search "authentication" --as-of "2026-01-01"
-```
-
-When investigating a regression, Claude Code uses `sia_at_time` to find exactly which facts changed between "when it worked" and "when it broke" — with specific node citations, not speculation.
+Knowledge flows into and out of the graph automatically during normal coding sessions.
 
 ---
 
-## MCP Tools
+## What Gets Captured
 
-Sia exposes 16 tools that Claude Code calls on demand via the Model Context Protocol, organized into four categories.
+Sia uses a unified graph with a `kind` discriminator. Nodes fall into three categories:
+
+### Structural Nodes (Code Backbone)
+
+| Kind | What It Represents | Example |
+|------|-------------------|---------|
+| **CodeSymbol** | Functions, classes, modules | `UserService.authenticate()` -- handles JWT validation |
+| **FileNode** | Source files and documentation files | `src/auth/service.ts` |
+| **PackageNode** | Packages in monorepos | `packages/auth` |
+
+### Semantic Nodes (Developer Knowledge)
+
+| Kind | What It Captures | Example |
+|------|-----------------|---------|
+| **Concept** | Architectural ideas, patterns | "We use the repository pattern for all DB access" |
+| **Decision** | Choices with rationale and alternatives | "Chose Express over Fastify because of middleware ecosystem" |
+| **Bug** | Defects with symptoms and root cause | "Race condition in EventEmitter.on() -- fires before DB ready" |
+| **Solution** | Fixes linked to the bugs they resolve | "Added await to init() -- ensures DB connection before event binding" |
+| **Convention** | Project-specific rules | "All errors must extend AppBaseError" |
+| **Community** | Auto-discovered module clusters | "Authentication subsystem: UserService, JWTProvider, AuthMiddleware" |
+| **ContentChunk** | Indexed documentation sections, execution output | Heading-scoped chunks from ARCHITECTURE.md |
+
+### Event Nodes (Session Timeline)
+
+| Kind | What It Captures | Example |
+|------|-----------------|---------|
+| **SessionNode** | A Claude Code session | Session started at 10:30 AM, 45 events |
+| **EditEvent** | File modifications | Modified `src/auth/jwt.ts` lines 42-58 |
+| **ExecutionEvent** | Command/script runs | `bun run test` -- 3 failures |
+| **ErrorEvent** | Errors encountered | TypeError: Cannot read property 'token' of undefined |
+| **GitEvent** | Git operations | Committed `fix: token refresh` on branch `auth-fix` |
+| **UserDecision** | Developer corrections | "Use Redis instead of Memcached" |
+| **UserPrompt** | Developer messages | Prompt with references to entities |
+| **TaskNode** | Logical task groupings | "Implement JWT refresh token flow" |
+
+---
+
+## MCP Tools (16)
+
+Sia exposes 16 tools via the Model Context Protocol, organized into four categories.
 
 ### Memory Tools
 
-#### `sia_search` — General Memory Retrieval
+#### `sia_search` -- General Memory Retrieval
 
 The primary tool. Called at the start of every non-trivial task.
 
@@ -354,26 +236,26 @@ sia_search({
   query: "session timeout expiry behavior",
   task_type: "bug-fix",         // boosts Bug, Solution nodes
   node_types: ["Decision"],     // narrow by node kind
-  limit: 10,                    // default 5; use 10 for architectural queries
-  paranoid: true,               // exclude all external (Tier 4) content
+  limit: 10,                    // default 5
+  paranoid: true,               // exclude all Tier 4 content
   workspace: true,              // include cross-repo results
 })
 ```
 
-#### `sia_by_file` — File-Scoped Retrieval
+#### `sia_by_file` -- File-Scoped Retrieval
 
-Called before modifying any file. Returns everything Sia knows about that file: decisions, bugs, patterns, conventions.
+Called before modifying any file. Returns everything Sia knows about that file.
 
 ```
 sia_by_file({
   file_path: "src/services/UserService.ts",
-  workspace: true,    // include cross-repo edges for this file
+  workspace: true,
 })
 ```
 
-#### `sia_expand` — Graph Relationship Traversal
+#### `sia_expand` -- Graph Relationship Traversal
 
-Follows edges from a known node to understand how it connects to the rest of the graph. Session budget: 2 calls.
+Follows edges from a known node. Session budget: 2 calls.
 
 ```
 sia_expand({
@@ -383,9 +265,9 @@ sia_expand({
 })
 ```
 
-#### `sia_community` — Architectural Summaries
+#### `sia_community` -- Architectural Summaries
 
-Returns synthesized module-level descriptions from Leiden community detection. Used for orientation and architectural questions.
+Returns module-level descriptions from Leiden community detection.
 
 ```
 sia_community({
@@ -394,7 +276,7 @@ sia_community({
 })
 ```
 
-#### `sia_at_time` — Temporal Query
+#### `sia_at_time` -- Temporal Query
 
 Queries the graph at a historical point. Essential for regression investigation.
 
@@ -406,9 +288,23 @@ sia_at_time({
 })
 ```
 
-Returns two arrays: `nodes[]` (facts still valid at that time) and `invalidated_nodes[]` (facts that had ended by then — the diagnostic signal for regressions).
+Returns `nodes[]` (facts valid at that time) and `invalidated_nodes[]` (facts that had ended by then).
 
-#### `sia_flag` — Mid-Session Capture Signal (opt-in)
+#### `sia_note` -- Developer-Authored Knowledge
+
+Create a Tier 1 knowledge node with explicit tags and edges.
+
+```
+sia_note({
+  kind: "Decision",
+  name: "Use Redis for session cache",
+  content: "Chose Redis over Memcached because...",
+  relates_to: ["src/cache/redis.ts"],
+  template: "adr",
+})
+```
+
+#### `sia_flag` -- Mid-Session Capture Signal (opt-in)
 
 Marks an important moment for higher-priority capture. Disabled by default.
 
@@ -416,23 +312,9 @@ Marks an important moment for higher-priority capture. Disabled by default.
 sia_flag({ reason: "chose express-rate-limit at route level, not middleware" })
 ```
 
-#### `sia_note` — Developer-Authored Knowledge
+#### `sia_backlinks` -- Incoming Edge Traversal
 
-Create a Tier 1 knowledge node with explicit tags and edges. Supports templates for structured formats like ADRs.
-
-```
-sia_note({
-  kind: "Decision",
-  name: "Use Redis for session cache",
-  content: "Chose Redis over Memcached because...",
-  relates_to: ["src/cache/redis.ts"],  // creates pertains_to edges
-  template: "adr",                      // optional structured template
-})
-```
-
-#### `sia_backlinks` — Incoming Edge Traversal
-
-Returns all nodes that reference a given node, grouped by edge type. The graph-native equivalent of Obsidian's backlink panel.
+Returns all nodes that reference a given node, grouped by edge type.
 
 ```
 sia_backlinks({
@@ -443,19 +325,19 @@ sia_backlinks({
 
 ### Sandbox Tools
 
-#### `sia_execute` — Isolated Subprocess Execution
+#### `sia_execute` -- Isolated Subprocess Execution
 
-Run code in an isolated subprocess with stdout capture. Supports 11 runtimes. When output exceeds the context threshold and an intent is provided, Context Mode activates: output is chunked, embedded, indexed as ContentChunk nodes, and only relevant chunks are returned.
+Run code in an isolated subprocess with stdout capture. Supports 11 runtimes. When output exceeds the context threshold and an intent is provided, Context Mode activates: output is chunked, embedded, indexed, and only relevant chunks returned.
 
 ```
 sia_execute({
   language: "python",
   code: "import json; print(json.dumps(analyze_logs()))",
-  intent: "find OOM errors",    // triggers Context Mode for large output
+  intent: "find OOM errors",
 })
 ```
 
-#### `sia_execute_file` — File Processing in Sandbox
+#### `sia_execute_file` -- File Processing in Sandbox
 
 Like `sia_execute` but mounts a file into the sandbox. Raw content never enters the agent's context.
 
@@ -467,9 +349,9 @@ sia_execute_file({
 })
 ```
 
-#### `sia_batch_execute` — Multi-Command Batch
+#### `sia_batch_execute` -- Multi-Command Batch
 
-Execute multiple commands and searches in one call. Creates event nodes with `precedes` edges linking them in order.
+Execute multiple commands and searches in one call. Creates event nodes with `precedes` edges.
 
 ```
 sia_batch_execute({
@@ -481,95 +363,319 @@ sia_batch_execute({
 })
 ```
 
-#### `sia_index` — Content Indexing
+### Graph Management Tools
 
-Chunk markdown by headings, create ContentChunk nodes with embeddings, and cross-reference to known code symbols.
+#### `sia_index` -- Content Indexing
 
-```
-sia_index({
-  content: "# API Documentation\n...",
-  source: "api-docs",
-})
-```
-
-#### `sia_fetch_and_index` — URL Fetch and Index
-
-Fetch a URL, detect content type (HTML→markdown, JSON→structured), chunk and index as ContentChunk nodes with trust_tier 4.
+Chunk markdown by headings, create ContentChunk nodes with embeddings.
 
 ```
-sia_fetch_and_index({
-  url: "https://docs.example.com/api",
-})
+sia_index({ content: "# API Documentation\n...", source: "api-docs" })
 ```
+
+#### `sia_fetch_and_index` -- URL Fetch and Index
+
+Fetch a URL, convert to markdown, chunk and index as Tier 4 ContentChunk nodes.
+
+```
+sia_fetch_and_index({ url: "https://docs.example.com/api" })
+```
+
+#### `sia_ast_query` -- Structural Code Analysis
+
+Run tree-sitter queries against source files.
 
 ### Diagnostic Tools
 
-#### `sia_stats` — Graph Metrics
+#### `sia_stats` -- Graph Metrics
 
-Returns node counts by kind, edge counts by type, freshness metrics (fresh/stale/rotten counts, avg confidence by tier), context savings, native module status, and search/execute call counts.
+Returns node counts by kind, edge counts by type, freshness metrics, context savings, native module status.
 
-#### `sia_doctor` — Health Check
+#### `sia_doctor` -- Health Check
 
-Checks runtimes, hooks (HTTP connectivity + command executability), capture mode, LLM provider health, FTS5, sqlite-vss, ONNX model, native module status, community detection backend, graph integrity (orphan edges, bi-temporal invariants, ontology violations), and inverted dependency index coverage. Reports estimated daily cost based on capture mode.
+Checks runtimes, hooks, capture mode, LLM provider health, FTS5, sqlite-vss, ONNX model, native module status, graph integrity, and inverted dependency index coverage.
 
-#### `sia_upgrade` — Self-Update
+#### `sia_upgrade` -- Self-Update
 
-Fetches latest version, rebuilds, reconfigures hooks, runs migrations, and rebuilds VSS if the schema changed.
+Fetches latest version, rebuilds, runs migrations, and rebuilds VSS if the schema changed.
 
----
+#### `sia_sync_status` -- Sync Status
 
-## Multi-Repo Workspaces
+Check team sync configuration and connection status.
 
-Sia supports three repository models:
+### Branch Snapshot Tools
 
-### Single Repository (default)
+#### `sia_snapshot_list` / `sia_snapshot_restore` / `sia_snapshot_prune`
 
-Each repo gets an isolated SQLite database at `~/.sia/repos/<hash>/graph.db`. No cross-contamination.
-
-### Workspace (linked repos)
-
-Group related repositories with explicit cross-repo edges:
-
-```bash
-npx sia workspace create "Acme Fullstack" --repos ./frontend ./backend
-```
-
-Cross-repo relationships are auto-detected from:
-- OpenAPI / Swagger specs
-- GraphQL schema files
-- TypeScript project references
-- `.csproj` `<ProjectReference>` elements
-- `Cargo.toml` workspace members
-- `go.mod` `replace` directives
-- `pyproject.toml` path dependencies
-- `workspace:*` npm dependencies
-
-When Claude Code works in the frontend and calls `sia_by_file`, results include both local nodes and linked backend endpoint nodes — with authentication requirements, response types, and API contracts.
-
-### Monorepo
-
-Auto-detected from package manager config. All packages share one `graph.db` scoped by `package_path`:
-
-- `pnpm-workspace.yaml`
-- `package.json` `"workspaces"` field
-- `nx.json` with `project.json` files
-- Gradle multi-project `settings.gradle`
-
-The presence of `turbo.json` is logged but never used for package discovery — that always comes from the underlying package manager.
+List, restore, and prune branch snapshots for worktree-aware graph state management.
 
 ---
 
-## Team Sharing
+## Skills (46)
 
-By default, everything stays on your machine. Team sharing is opt-in and requires a single Docker container:
+Skills are slash commands providing structured workflows. Invoke them in Claude Code with `/sia-<name>`.
+
+### Core
+
+| Skill | Description |
+|---|---|
+| `/sia-learn` | Build complete knowledge graph (install + index + docs + communities) |
+| `/sia-setup` | First-time setup wizard (detect project, configure, learn, tour) |
+| `/sia-install` | Initialize SIA databases and register the repo |
+| `/sia-search` | Guided search with examples |
+| `/sia-stats` | Graph statistics |
+| `/sia-status` | Knowledge graph health dashboard |
+| `/sia-doctor` | System health diagnostics |
+| `/sia-reindex` | Re-parse repository with Tree-sitter |
+| `/sia-playbooks` | Load task-specific playbooks (regression, feature, review, orientation) |
+
+### Knowledge Management
+
+| Skill | Description |
+|---|---|
+| `/sia-capture` | Guided knowledge capture -- decisions, conventions, bugs, solutions |
+| `/sia-execute` | Run code in sandbox with knowledge capture |
+| `/sia-index` | Index external content (text, URLs) |
+| `/sia-workspace` | Manage cross-repo workspaces |
+| `/sia-export-import` | Export/import graphs as portable JSON |
+| `/sia-export-knowledge` | Export graph as human-readable KNOWLEDGE.md |
+| `/sia-history` | Explore temporal knowledge evolution |
+| `/sia-impact` | Analyze impact of planned code changes |
+| `/sia-compare` | Compare graph state between two time points |
+| `/sia-digest` | Daily knowledge summary |
+| `/sia-freshness` | Graph freshness report |
+| `/sia-conflicts` | List and resolve knowledge conflicts |
+| `/sia-prune` | Remove archived entities |
+| `/sia-upgrade` | Self-update SIA |
+
+### Development Workflow (Superpowers)
+
+These nine skills augment standard development workflows with graph intelligence:
+
+| Skill | Enhancement Over Standard Workflow |
+|---|---|
+| `/sia-debug-workflow` | Temporal root-cause tracing, known bug lookup, causal chain analysis |
+| `/sia-plan` | Community-aware task decomposition, convention injection per task |
+| `/sia-execute-plan` | Staleness detection, per-task convention checks, session resumption |
+| `/sia-brainstorm` | Surfaces past decisions, rejected alternatives, architectural constraints |
+| `/sia-test` | Known edge cases from Bug history, project test conventions |
+| `/sia-finish` | Semantic PR summaries from graph entities, post-merge knowledge capture |
+| `/sia-dispatch` | Community-based independence verification for parallel agents |
+| `/sia-review-respond` | Past decision context, YAGNI checks via usage patterns |
+| `/sia-verify` | Area-specific requirements, past verification failures, known gotchas |
+
+### Visualization & Onboarding
+
+| Skill | Description |
+|---|---|
+| `/sia-visualize` | Generate static HTML graph visualization |
+| `/sia-visualize-live` | Launch interactive browser-based graph explorer |
+| `/sia-tour` | Interactive guided tour of the knowledge graph |
+
+### Team Sync
+
+| Skill | Description |
+|---|---|
+| `/sia-team` | Join, leave, or check team sync status |
+| `/sia-sync` | Manual push/pull to/from team server |
+
+### Multi-Audience Reporting
+
+| Skill | Audience | What It Produces |
+|---|---|---|
+| `/sia-qa-report` | QA | Changes since last test cycle, risky areas, test priorities |
+| `/sia-qa-coverage` | QA | Test coverage gaps, buggy areas without tests |
+| `/sia-qa-flaky` | QA | Flaky test patterns, recurring failures |
+| `/sia-pm-sprint-summary` | PM | Plain-language progress, decisions, features delivered |
+| `/sia-pm-decision-log` | PM | Chronological decisions with rationale and alternatives |
+| `/sia-pm-risk-dashboard` | PM | Recurring bugs, conflicting decisions, fragile modules |
+| `/sia-lead-drift-report` | Tech Lead | Architecture drift vs captured decisions |
+| `/sia-lead-knowledge-map` | Tech Lead | Knowledge distribution, coverage gaps, bus-factor risks |
+| `/sia-lead-compliance` | Tech Lead | Convention compliance audit across the codebase |
+
+---
+
+## Agents (23)
+
+Agents are specialized subagents dispatched for focused tasks. Invoke via `@sia-<name>` (e.g., `@sia-code-reviewer`). All agents retrieve from the knowledge graph and can run simultaneously.
+
+### Before Coding
+
+| Agent | What It Does |
+|---|---|
+| `sia-orientation` | Answers specific architecture questions from the graph |
+| `sia-onboarding` | Comprehensive multi-topic onboarding session |
+| `sia-decision-reviewer` | Surfaces past decisions and rejected alternatives |
+| `sia-explain` | Explains SIA's graph structure, tools, and capabilities |
+
+### During Coding
+
+| Agent | What It Does |
+|---|---|
+| `sia-feature` | Feature development with convention awareness and dependency context |
+| `sia-refactor` | Impact analysis via dependency graph before structural changes |
+| `sia-migration` | Plans knowledge graph updates during major refactoring |
+| `sia-convention-enforcer` | Checks code against all known conventions |
+| `sia-dependency-tracker` | Cross-repo dependency monitoring and API contract tracking |
+| `sia-security-audit` | Security review with paranoid mode and Tier 4 exposure tracking |
+| `sia-test-advisor` | Test strategy from past failures, coverage gaps, and edge cases |
+
+### Debugging
+
+| Agent | What It Does |
+|---|---|
+| `sia-debug` | Temporal root-cause investigation using `sia_at_time` and causal history |
+| `sia-regression` | Regression risk analysis from known bugs and failure patterns |
+
+### Code Review
+
+| Agent | What It Does |
+|---|---|
+| `sia-code-reviewer` | Reviews with historical context, convention enforcement, regression detection |
+| `sia-conflict-resolver` | Resolves contradicting knowledge entities with evidence |
+
+### After Coding
+
+| Agent | What It Does |
+|---|---|
+| `sia-knowledge-capture` | Systematic review and capture of uncaptured session knowledge |
+| `sia-changelog-writer` | Generates changelogs from decisions, bugs fixed, and features added |
+
+### QA, PM & Tech Lead
+
+| Agent | What It Does |
+|---|---|
+| `sia-qa-analyst` | Regression risks, coverage gaps, test recommendations |
+| `sia-qa-regression-map` | Scored regression risk map (0-100) per module |
+| `sia-pm-briefing` | Plain-language project briefings for PMs |
+| `sia-pm-risk-advisor` | Technical risk in business-impact language |
+| `sia-lead-architecture-advisor` | Architecture drift detection against captured decisions |
+| `sia-lead-team-health` | Knowledge distribution, coverage gaps, capture rate trends |
+
+---
+
+## Knowledge Graph Features
+
+### Bi-Temporal Model
+
+Every fact (nodes and edges) carries four timestamps:
+
+- **`t_created`** -- when Sia recorded the fact
+- **`t_expired`** -- when Sia marked it superseded
+- **`t_valid_from`** -- when the fact became true in the world
+- **`t_valid_until`** -- when it stopped being true (null = still true)
+
+Facts are never deleted -- only invalidated. This enables temporal queries like "what was the authentication strategy in January?" via `sia_at_time`.
+
+### Branch-Aware Snapshots
+
+When you switch branches, the PostToolUse hook saves a snapshot of the current graph state tagged with the departing branch, then restores the arriving branch's snapshot. Each git worktree gets its own graph database instance. The `/sia-finish` skill handles snapshot pruning after merge.
+
+### Community Detection
+
+Leiden clustering at three resolution levels groups related code into communities. Communities are summarized (LLM-based when available, plain-text fallback) and queryable via `sia_community`.
+
+### Ontology Enforcement
+
+Every edge is validated against a declarative `edge_constraints` table. Invalid relationships are rejected at the SQLite trigger level. Additional constraints: Bug nodes must have `caused_by` edges, Convention nodes must have `pertains_to` edges, `supersedes` edges can only connect same-kind nodes.
+
+### Five-Layer Freshness Engine
+
+```
+Layer 1 -- File-Watcher Invalidation     [milliseconds]   [>90% of cases]
+  File save --> Tree-sitter incremental re-parse --> surgical node invalidation
+Layer 2 -- Git-Commit Reconciliation      [seconds]        [merges, rebases, checkouts]
+  Git operation --> diff parse --> bounded BFS with firewall nodes
+Layer 3 -- Stale-While-Revalidate Reads   [per-query]      [~0.1ms overhead]
+  Fresh --> serve instantly | Stale --> serve + async re-validate | Rotten --> block + repair
+Layer 4 -- Confidence Decay               [hours to days]  [LLM-inferred facts only]
+  Exponential decay x trust tier, with Bayesian re-observation reinforcement
+Layer 5 -- Periodic Deep Validation       [daily/weekly]   [batch cleanup]
+  Doc-vs-code cross-check --> LLM re-verify --> PageRank recompute --> compaction
+```
+
+Each search result carries a `freshness` field (`fresh`, `stale`, or `rotten`) so the agent knows whether to cite with confidence or verify first.
+
+---
+
+## Performance
+
+### Worker-Threaded Indexer
+
+- **Worker thread pool** -- configurable (default: CPU count - 1), each worker parses independently via Tree-sitter
+- **Batch SQL** -- 100 insertions per transaction
+- **Periodic cache saves** -- every 500 files; crashes lose at most one interval's work
+- **Per-file retry** -- individual parse failures logged without stopping the overall index
+- **Incremental mode** -- skips files with unchanged mtime
+
+### Expected Performance
+
+| Operation | Target |
+|-----------|--------|
+| Hybrid search (50K nodes) | <800ms |
+| Incremental AST re-parse | <200ms per file |
+| Full capture pipeline | <8s after hook fires |
+| Workspace search (2 x 25K nodes) | <1.2s |
+| Community detection (10K nodes) | <30s |
+| File-save invalidation (end-to-end) | <200ms |
+| Sandbox execution (simple script) | <5s |
+| Graph visualization (100 nodes) | <3s render |
+
+### Crash Recovery
+
+If `/sia-learn` crashes mid-run (OOM, Ctrl+C, power loss), re-running automatically resumes from the last checkpoint. A `.sia-learn-progress.json` file tracks progress per phase and is deleted on successful completion.
+
+---
+
+## Multi-Audience Intelligence
+
+SIA generates role-specific reports from the same knowledge graph.
+
+**QA teams** get regression risk maps with numeric scores (0-100) per module combining bug density, change velocity, and dependency fan-out. Coverage gap analysis surfaces buggy areas without tests. Flaky test tracking identifies intermittent failures.
+
+**Project managers** get plain-language sprint summaries (decisions made, bugs fixed, features delivered), chronological decision logs with rationale and alternatives, and risk dashboards scoring technical risk in business-impact language.
+
+**Tech leads** get architecture drift reports comparing current code against captured decisions, knowledge distribution maps showing bus-factor risks, and convention compliance audits checking every known convention against current code.
+
+---
+
+## Visualization
+
+Browser-based interactive graph explorer with four views:
+
+| View | What It Shows |
+|---|---|
+| **Graph Explorer** | Force-directed graph -- click to expand, filter by type/tier, zoom and pan |
+| **Timeline** | Temporal history -- when decisions were made, bugs found, entities invalidated |
+| **Dependency Map** | File dependency map -- imports, calls, depends_on edges |
+| **Community Clusters** | Leiden-detected module groups with summaries and inter-cluster edges |
 
 ```bash
-# One developer starts the sync server
-npx sia server start
-
-# Team members join
-npx sia team join https://sia.internal:8080 <token>
+/sia-visualize-live                    # Graph explorer (default)
+/sia-visualize-live --view timeline    # Temporal timeline
+/sia-visualize-live --view deps        # Dependency map
+/sia-visualize-live --view communities # Community clusters
 ```
+
+---
+
+## Team Sync
+
+SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server. Data sovereignty is guaranteed -- knowledge stays on infrastructure your team controls.
+
+### Setup
+
+1. DevOps deploys a sqld server (Docker, direct binary, or Kubernetes)
+2. DevOps provides a server URL and auth token
+3. Developer runs `/sia-team` and follows the setup instructions
+
+### Automatic Sync
+
+| Event | Action |
+|---|---|
+| Session start | Auto-pulls latest team knowledge |
+| Session end | Auto-pushes locally captured knowledge |
+| `/sia-sync` | Manual push/pull on demand |
 
 ### Visibility Model
 
@@ -579,101 +685,81 @@ npx sia team join https://sia.internal:8080 <token>
 | **team** | Synced to all workspace members. |
 | **project** | Synced to members of a specific workspace only. |
 
-### How Sync Works
+### Sync Internals
 
-- Uses `@libsql/client` embedded replicas against a self-hosted `sqld` server
-- All timestamps use Hybrid Logical Clocks (HLC) for causal ordering
-- Eventual consistency within 60 seconds under normal network conditions
-- Auth tokens stored in OS keychain (`@napi-rs/keyring`), never in config files
-- Genuine contradictions flagged with `conflict_group_id` for team review
-
-### Sharing Rules
-
-Configure which node kinds auto-promote to which visibility:
-
-```bash
-# Share all Decision nodes with the team by default
-npx sia share --type Decision --visibility team
-```
-
-Sharing rules are stored in `meta.db` and synced to all workspace members, ensuring consistent auto-promotion regardless of which repo a fact was captured in.
+- `@libsql/client` embedded replicas against a self-hosted `sqld` server
+- Hybrid Logical Clocks (HLC) for causal ordering
+- Three-layer dedup: Jaccard, cosine similarity, LLM
+- Auth tokens stored in OS keychain, never in config files
+- Contradictions flagged with `conflict_group_id` for team review
 
 ---
 
 ## Security
 
-Sia takes memory poisoning seriously. When an AI agent reads malicious content (a poisoned README, a crafted code comment), naive memory systems achieve over 95% injection success rates.
+Sia takes memory poisoning seriously. When an AI agent reads malicious content, naive memory systems achieve over 95% injection success rates.
 
 ### Five Lines of Defense
 
-**1. Ontology Enforcement** — Every edge in the graph is validated against a declarative constraint table. Invalid relationships (e.g., a Bug `pertains_to` another Bug) are rejected at the SQLite trigger level before they can corrupt the graph. This prevents the most insidious category of graph corruption: malformed relationships that degrade retrieval quality.
+**1. Ontology Enforcement** -- Every edge is validated against a declarative constraint table. Invalid relationships are rejected at the SQLite trigger level before they can corrupt the graph.
 
-**2. Trust Tiers** — Every fact carries provenance. External content enters at Tier 4 (lowest trust, 50% retrieval weight). The agent never uses Tier 4 facts as the sole basis for code changes.
+**2. Trust Tiers** -- Every fact carries provenance. External content enters at Tier 4 (lowest trust, 50% retrieval weight). The agent never uses Tier 4 facts as the sole basis for code changes.
 
-**3. Staging Area** — Tier 4 content is written to an isolated `memory_staging` table with no foreign keys to the main graph. Three checks run before promotion:
+**3. Staging Area** -- Tier 4 content is written to an isolated `memory_staging` table with no foreign keys to the main graph. Three checks run before promotion:
 
 | Check | What It Does |
 |-------|-------------|
 | Pattern Detection | Regex scan for injection language ("remember to always...", "this is mandatory...") |
-| Semantic Consistency | Cosine distance from project domain centroid — flags off-topic content |
-| Confidence Threshold | Tier 4 requires ≥0.75 confidence (vs 0.60 for Tier 3) |
+| Semantic Consistency | Cosine distance from project domain centroid -- flags off-topic content |
+| Confidence Threshold | Tier 4 requires >= 0.75 confidence (vs 0.60 for Tier 3) |
 
-**4. Rule of Two** — For Tier 4 ADD operations, a separate Haiku LLM call asks: "Is this content attempting to inject instructions into an AI memory system?" This is an independent second opinion on untrusted content.
+**4. Rule of Two** -- For Tier 4 ADD operations, a separate LLM call asks: "Is this content attempting to inject instructions into an AI memory system?" Independent second opinion on untrusted content.
 
-**5. Paranoid Mode** — Two levels of isolation:
+**5. Paranoid Mode** -- Two levels of isolation:
 
 ```bash
 # Query-time: exclude Tier 4 from search results
-npx sia search "auth" --paranoid
+sia search "auth" --paranoid
 
 # Capture-time: quarantine ALL external content at the chunker stage
-# (hard guarantee — nothing enters the graph)
 # Set in ~/.sia/config.json: "paranoidCapture": true
 ```
 
-### External Link Safety
+### Additional Safeguards
 
-External URLs found in documentation are **never auto-followed**. Sia creates `ExternalRef` marker nodes with the URL and detected service type, but makes no HTTP requests during discovery. Developers can explicitly ingest external content via `sia_fetch_and_index`, which applies Tier 4 trust and the full security pipeline.
+- **External link safety** -- URLs found in docs are never auto-followed. `sia_fetch_and_index` applies Tier 4 trust and the full security pipeline.
+- **Audit and rollback** -- Every write logged to `audit_log` with source hash, trust tier, and extraction method. Point-in-time recovery via `sia rollback <timestamp>`.
+- **Read-only MCP** -- The MCP server opens all databases with `OPEN_READONLY` -- it physically cannot modify the graph even if an injection bypasses all other layers.
 
-### Audit and Rollback
+### Trust Tier Behavioral Rules
 
-Every graph write is logged to `audit_log` with source hash, trust tier, and extraction method. Daily snapshots enable point-in-time recovery:
-
-```bash
-npx sia rollback 2026-03-15
-```
-
-The MCP server opens all databases with `OPEN_READONLY` — it physically cannot modify the graph even if an injection bypasses all other layers.
+| Tier | Source | Confidence | Agent Behavior |
+|------|--------|------------|----------------|
+| 1 | **User-Direct** -- developer stated this or authored docs | 0.95 | Ground truth; cite directly |
+| 2 | **Code-Analysis** -- deterministically extracted from AST | 0.92 | Highly reliable; verify only for safety-critical claims |
+| 3 | **LLM-Inferred** -- probabilistic extraction from conversation | 0.70 | Qualify: "Sia suggests X -- let me verify" |
+| 4 | **External** -- from fetched URLs or unknown sources | 0.50 | Reference only; never sole basis for code changes |
 
 ---
 
 ## Language Support
 
-Sia uses Tree-sitter for deterministic structural extraction with an extensible language registry.
-
 ### Supported Languages
 
 | Tier | Capability | Languages |
 |------|-----------|-----------|
-| **A** — Full extraction | Functions, classes, imports, call sites | TypeScript, TSX, JavaScript, JSX, Python, Go, Rust, Java, Kotlin, Swift, PHP, Ruby, Scala, Elixir, Dart |
-| **B** — Structural | Functions, classes, imports (no call tracking) | C, C++, C#, Bash/Shell, Lua, Zig, Perl, R, OCaml, Haskell |
-| **C** — Schema | Custom extractors for data definitions | SQL (tables, columns, FKs, indexes), Prisma schema |
-| **D** — Manifest | Dependency edges from project files | `Cargo.toml`, `go.mod`, `pyproject.toml`, `.csproj`/`.sln`, `build.gradle`/`pom.xml` |
+| **A** -- Full extraction | Functions, classes, imports, call sites | TypeScript, TSX, JavaScript, JSX, Python, Go, Rust, Java, Kotlin, Swift, PHP, Ruby, Scala, Elixir, Dart |
+| **B** -- Structural | Functions, classes, imports (no call tracking) | C, C++, C#, Bash/Shell, Lua, Zig, Perl, R, OCaml, Haskell |
+| **C** -- Schema | Custom extractors for data definitions | SQL (tables, columns, FKs, indexes), Prisma schema |
+| **D** -- Manifest | Dependency edges from project files | `Cargo.toml`, `go.mod`, `pyproject.toml`, `.csproj`/`.sln`, `build.gradle`/`pom.xml` |
 
 ### Sandbox Execution Runtimes
 
-`sia_execute` supports 11 runtimes for isolated subprocess execution: Python, Node.js, Bun, Bash, Ruby, Go, Rust, Java, PHP, Perl, and R.
+`sia_execute` supports 11 runtimes: Python, Node.js, Bun, Bash, Ruby, Go, Rust, Java, PHP, Perl, and R.
 
 ### Native Performance Module (Optional)
 
-Sia includes an optional Rust module (`@sia/native`) distributed as prebuilt binaries via npm for the two highest-cost hot paths. No Rust toolchain is required on your machine — prebuilt binaries are downloaded during `npm install`.
-
-The module provides three APIs:
-- **AST diffing** — GumTree algorithm for structural comparison of parse trees (5–20x faster than JavaScript)
-- **Graph algorithms** — PageRank, shortest path, betweenness centrality, connected components via petgraph (2–4x faster)
-- **Leiden community detection** — via the graphrs crate, replacing any need for a Python subprocess
-
-Graceful three-tier fallback: Rust native → Wasm → pure TypeScript. All three tiers produce identical results. `npx sia doctor` reports which backend is active.
+Optional Rust module (`@sia/native`) distributed as prebuilt binaries. No Rust toolchain required.
 
 | Operation | Rust Native | Wasm | TypeScript |
 |-----------|------------|------|------------|
@@ -681,20 +767,17 @@ Graceful three-tier fallback: Rust native → Wasm → pure TypeScript. All thre
 | PageRank (50K nodes) | < 20ms | < 50ms | < 80ms |
 | Leiden (50K nodes, 3 levels) | < 500ms | < 500ms | < 1s (Louvain) |
 
+Graceful three-tier fallback: Rust native --> Wasm --> pure TypeScript. All tiers produce identical results.
+
 ### Adding Languages
 
-Register additional Tree-sitter grammars at runtime without modifying source code:
+Register additional Tree-sitter grammars at runtime:
 
 ```json
 // ~/.sia/config.json
 {
   "additionalLanguages": [
-    {
-      "name": "gleam",
-      "extensions": [".gleam"],
-      "grammar": "tree-sitter-gleam",
-      "tier": "B"
-    }
+    { "name": "gleam", "extensions": [".gleam"], "grammar": "tree-sitter-gleam", "tier": "B" }
   ]
 }
 ```
@@ -706,110 +789,126 @@ Register additional Tree-sitter grammars at runtime without modifying source cod
 ### Core Commands
 
 ```bash
-npx sia install                     # Install and index the repository
-npx sia stats                       # Graph statistics (nodes by kind, edges by type, context savings)
-npx sia search <query>              # Search the knowledge graph
-npx sia search --paranoid <query>   # Search excluding all Tier 4 content
-npx sia reindex                     # Re-parse the AST backbone and re-discover documentation
-npx sia prune                       # Clean up decayed entities
-npx sia doctor                      # Health check (runtimes, hooks, model, graph integrity, ontology)
-npx sia upgrade                     # Self-update with migration
-npx sia rollback <timestamp>        # Restore graph to a previous state
-npx sia freshness                   # Graph freshness report (fresh/stale/rotten counts, confidence)
-npx sia doctor --providers          # LLM provider connectivity and cost estimate
+sia install                     # Install and index the repository
+sia stats                       # Graph statistics
+sia search <query>              # Search the knowledge graph
+sia search --paranoid <query>   # Exclude all Tier 4 content
+sia reindex                     # Re-parse AST backbone and re-discover docs
+sia doctor                      # Health check (runtimes, hooks, model, graph integrity)
+sia doctor --providers          # LLM provider connectivity and cost estimate
+sia upgrade                     # Self-update with migration
+sia freshness                   # Graph freshness report
+sia prune                       # Clean up decayed entities
+sia rollback <timestamp>        # Restore graph to a previous state
 ```
 
 ### Knowledge Commands
 
 ```bash
-npx sia community                   # View community summaries
-npx sia graph --open                # Interactive graph visualization in browser
-npx sia graph --scope src/auth/     # Visualize a subgraph
-npx sia digest --period 7d          # Weekly knowledge digest
-npx sia digest --period 30d --output digest.md
-npx sia download-model              # Download/update the ONNX embedding model
-npx sia enable-flagging             # Enable sia_flag mid-session capture
-npx sia disable-flagging
+sia learn                       # Build complete knowledge graph
+sia learn --incremental         # Update changed files only
+sia learn --force               # Full rebuild ignoring caches
+sia community                   # View community summaries
+sia digest --period 7d          # Weekly knowledge digest
+sia download-model              # Download/update the ONNX embedding model
+sia enable-flagging             # Enable sia_flag mid-session capture
+sia disable-flagging
 ```
 
-### Export/Import Commands
+### Visualization
 
 ```bash
-npx sia export                      # Export graph for backup or migration
-npx sia export --format markdown    # Obsidian-compatible markdown vault export
-npx sia import                      # Import a previously exported graph
-npx sia import --format markdown <dir>  # Import from markdown vault
+sia graph --open                # Interactive graph in browser
+sia graph --scope src/auth/     # Visualize a subgraph
+```
+
+### Export/Import
+
+```bash
+sia export                      # Export graph for backup or migration
+sia export --format markdown    # Obsidian-compatible markdown vault
+sia import                      # Import a previously exported graph
+sia import --format markdown <dir>
+sia export-knowledge            # Generate KNOWLEDGE.md
 ```
 
 ### Workspace Commands
 
 ```bash
-npx sia workspace create "My App" --repos ./frontend ./backend
-npx sia workspace list
-npx sia workspace show "My App"
-npx sia workspace add "My App" ./shared-lib
-npx sia workspace remove "My App" ./old-service
+sia workspace create "My App" --repos ./frontend ./backend
+sia workspace list
+sia workspace show "My App"
+sia workspace add "My App" ./shared-lib
+sia workspace remove "My App" ./old-service
 ```
 
 ### Team Commands
 
 ```bash
-npx sia server start                # Start the sync server (Docker)
-npx sia server stop
-npx sia server status
-npx sia team join <url> <token>     # Join a team
-npx sia team leave
-npx sia team status
-npx sia share <node-id>             # Promote node to team visibility
-npx sia conflicts list              # View unresolved contradictions
-npx sia conflicts resolve           # Resolve a contradiction
+sia team join <url> <token>     # Join a team
+sia team leave
+sia team status
+sia sync push                   # Push knowledge to team
+sia sync pull                   # Pull from team
+sia share <node-id>             # Promote node to team visibility
+sia conflicts list              # View unresolved contradictions
+sia conflicts resolve           # Resolve a contradiction
 ```
+
+### Multi-Audience Reports
+
+```bash
+sia qa-report                   # QA-focused report
+sia pm-report                   # PM sprint summary / decision log / risk dashboard
+sia lead-report                 # Architecture drift / knowledge map / compliance
+```
+
+### Standalone Alternative
+
+All `sia` commands can also be run as `npx sia <command>` when not using plugin mode.
 
 ---
 
 ## Configuration
 
-All configuration lives in `~/.sia/config.json`. Created automatically by `npx sia install`.
+All configuration lives in `~/.sia/config.json` (created by `sia install`).
 
 ### Key Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `captureModel` | `claude-haiku-4-5-20251001` | LLM used for extraction, consolidation, and security checks |
+| `captureModel` | `claude-haiku-4-5-20251001` | LLM for extraction, consolidation, security checks |
 | `minExtractConfidence` | `0.6` | Minimum confidence for LLM-extracted candidates |
-| `paranoidCapture` | `false` | Quarantine all Tier 4 content at chunker stage (hard guarantee) |
+| `paranoidCapture` | `false` | Quarantine all Tier 4 content at chunker stage |
 | `enableFlagging` | `false` | Enable `sia_flag` for mid-session capture |
-| `airGapped` | `false` | Disable all outbound network calls (LLM). ONNX embedder unaffected. |
+| `airGapped` | `false` | Disable all outbound network calls (LLM) |
 | `maxResponseTokens` | `1500` | Max tokens per MCP tool response |
 | `workingMemoryTokenBudget` | `8000` | Token budget before working memory compaction |
-| `communityTriggerNodeCount` | `20` | New nodes before community re-detection triggers |
-| `communityMinGraphSize` | `100` | Minimum graph size for Leiden to run |
-| `archiveThreshold` | `0.05` | Importance below which decayed, disconnected nodes are archived |
+| `communityTriggerNodeCount` | `20` | New nodes before community re-detection |
+| `communityMinGraphSize` | `100` | Minimum graph size for Leiden |
+| `archiveThreshold` | `0.05` | Importance below which decayed nodes are archived |
 | `sandboxTimeout` | `30000` | Subprocess execution timeout (ms) |
 | `contextModeThreshold` | `5000` | Output bytes before Context Mode activates |
-| `freshnessDivergenceThreshold` | `90` | Days before documentation is flagged as potentially stale |
-| `freshnessPenalty` | `0.15` | Importance penalty for stale documentation |
 
-### Capture Mode and LLM Providers
+### LLM Provider Configuration
 
-Sia's capture mode and LLM provider configuration lives in `sia.config.yaml` (separate from `~/.sia/config.json` which handles graph settings):
+Capture mode and LLM providers are configured in `sia.config.yaml`:
 
 ```yaml
 capture:
   mode: hooks              # hooks | api | hybrid
-  hookPort: 4521           # HTTP port for hook event receiver
 
 providers:
-  summarize:               # community summaries (active in all modes)
+  summarize:
     provider: anthropic
     model: claude-sonnet-4
-  validate:                # deep validation via maintenance sweep (active in all modes)
+  validate:
     provider: ollama
     model: qwen2.5-coder:7b
-  extract:                 # knowledge extraction (active in api/hybrid only)
+  extract:                 # active in api/hybrid only
     provider: anthropic
     model: claude-haiku-4-5
-  consolidate:             # graph consolidation (active in api/hybrid only)
+  consolidate:             # active in api/hybrid only
     provider: anthropic
     model: claude-haiku-4-5
 
@@ -818,53 +917,69 @@ fallback:
   maxRetries: 3
 
 costTracking:
-  budgetPerDay: 1.00       # daily spend cap
+  budgetPerDay: 1.00
 ```
-
-In `hooks` mode (the default when Claude Code is detected), only the `summarize` and `validate` providers make LLM calls. The `extract` and `consolidate` roles are dormant — hooks handle real-time knowledge capture at zero LLM cost.
-
-### Decay Half-Lives
-
-| Node Kind | Half-Life | Rationale |
-|-----------|-----------|-----------|
-| Decision | 90 days | Architectural decisions have long relevance |
-| Convention | 60 days | Team patterns evolve gradually |
-| Bug / Solution | 45 days | Bug context decays as code changes |
-| Default (semantic) | 30 days | General knowledge decays faster |
-| Event nodes | 1 hour | Session events are transient |
-| Session-flag-derived | 7 days | Flagged moments need rapid validation |
 
 ### Air-Gapped Mode
 
-Set `"airGapped": true` to run Sia with zero outbound network calls. This disables:
-- Track B LLM extraction (Track A AST continues normally)
-- Two-phase consolidation (falls back to direct-write)
-- Community summary generation (serves cached summaries)
-- Rule of Two security check (deterministic checks still run)
-- Layer 3 LLM provider calls (hooks and deterministic extraction still run normally)
+Set `"airGapped": true` for zero outbound network calls. This disables LLM extraction, consolidation, community summaries, and the Rule of Two security check. ONNX embeddings, vector search, BM25, graph traversal, hooks, sandbox execution, and doc ingestion remain fully functional.
 
-The ONNX embedder, vector search, BM25, graph traversal, hooks-first capture, sandbox execution, and documentation ingestion are all local and unaffected.
+---
 
-### Sync Configuration
+## Multi-Repo Workspaces
 
-```json
-{
-  "sync": {
-    "enabled": false,
-    "serverUrl": null,
-    "developerId": null,
-    "syncInterval": 30
-  }
-}
+### Single Repository (default)
+
+Each repo gets an isolated SQLite database at `~/.sia/repos/<hash>/graph.db`.
+
+### Workspace (linked repos)
+
+```bash
+sia workspace create "Acme Fullstack" --repos ./frontend ./backend
 ```
 
-Auth tokens are stored in the OS keychain, never in this file.
+Cross-repo relationships are auto-detected from: OpenAPI/Swagger specs, GraphQL schemas, TypeScript project references, `.csproj` references, `Cargo.toml` workspace members, `go.mod` replace directives, `pyproject.toml` path dependencies, and `workspace:*` npm dependencies.
+
+### Monorepo
+
+Auto-detected from `pnpm-workspace.yaml`, `package.json` workspaces, `nx.json`, or Gradle multi-project builds. All packages share one `graph.db` scoped by `package_path`.
+
+---
+
+## Onboarding & Export
+
+**`/sia-setup`** -- First-time wizard: detects project type and languages, creates databases, runs `/sia-learn`, launches `/sia-tour`.
+
+**`/sia-tour`** -- Interactive guided tour covering architecture, decisions, conventions, and known issues.
+
+**`/sia-export-knowledge`** -- Exports the graph as a human-readable `KNOWLEDGE.md` for team onboarding, sharing outside SIA, or generating project documentation.
+
+---
+
+## v2 Roadmap
+
+- Natural language graph queries ("what changed in auth last week?")
+- PR review integration with graph-backed suggestions
+- External source ingestion (Slack, Notion, Jira, Confluence)
+- PM tool sync (bidirectional Jira/Linear integration)
+- Graph analytics dashboard (trend lines, health scores)
+- Embedding model upgrade (domain-tuned code embeddings)
+- Lifecycle notifications (Slack/Teams alerts for drift, risk, compliance)
+
+---
+
+## Compatibility
+
+- **OS**: macOS, Linux, Windows (WSL2)
+- **Runtime**: Node.js 18+, Bun 1.0+
+- **Transport**: Standard MCP stdio
+- **AI Agent**: Claude Code (native hooks), Cursor (hook adapter), Cline (hook adapter), Windsurf/Aider (MCP-only), any MCP-compatible agent
+- **LLM Providers**: Anthropic, OpenAI, Google, Ollama via Vercel AI SDK
+- **Native module**: Prebuilt for macOS (ARM/Intel), Linux (x64/ARM64, glibc/musl), Windows (x64)
 
 ---
 
 ## Storage
-
-All data lives in `~/.sia/`:
 
 ```
 ~/.sia/
@@ -880,75 +995,6 @@ All data lives in `~/.sia/`:
   snapshots/<hash>/YYYY-MM-DD.snapshot  # daily graph snapshots
   logs/sia.log                          # structured JSON log
 ```
-
-### Storage Limits
-
-| Store | Budget |
-|-------|--------|
-| Per-repo graph | <1GB for 50K nodes |
-| Episodic archive | <2GB for 12 months of daily use |
-| Bridge database | <100MB for most workspaces |
-| ONNX model | ~90MB, downloaded once |
-
----
-
-## Performance Targets
-
-| Operation | Target |
-|-----------|--------|
-| Hybrid search (50K nodes) | <800ms |
-| Incremental AST re-parse | <200ms per file |
-| Full capture pipeline | <8s after hook fires |
-| Workspace search (2 × 25K nodes) | <1.2s |
-| Community detection (10K nodes) | <30s |
-| Post-sync VSS refresh (500 nodes) | <2s |
-| Sandbox execution (simple script) | <5s |
-| Graph visualization (100 nodes) | <3s render |
-| Documentation discovery (≤50 files) | <2s |
-| Fresh node retrieval | < 0.05ms |
-| Stale check (per node) | < 0.2ms |
-| File-save invalidation (end-to-end) | < 200ms |
-| Git-commit reconciliation (5 files) | < 2s |
-| Dirty propagation (10K graph) | < 1ms |
-| AST diff (Rust native, 500 nodes) | < 10ms |
-| PageRank (Rust native, 50K nodes) | < 20ms |
-| Nightly deep validation | < 60s |
-
----
-
-## Architecture
-
-Sia is composed of fifteen modules: storage, capture pipeline, community engine, retrieval engine, MCP server, security layer, decay engine, team sync, sandbox execution engine, ontology layer, knowledge/documentation engine, freshness engine, native performance module, hooks-first capture engine, and pluggable LLM provider.
-
-**Write path**: Hook fires → event node creation → dual-track extraction (AST + LLM) → ontology validation → two-phase consolidation → atomic graph write → **inverted dependency index update → dirty propagation**
-
-**Read path**: MCP query → three-stage retrieval (vector + BM25 + graph traversal) → RRF reranking with trust weighting → progressive throttling → context assembly
-
-**Freshness path**: File change → Layer 1 file-watcher invalidation → dirty propagation with early cutoff → Layer 3 stale-while-revalidate on next read → Layer 4 confidence decay for LLM-inferred facts → Layer 5 deep validation (maintenance sweep)
-
-**Capture path**: PostToolUse hook → deterministic extraction (Write/Edit/Bash/Read handlers) → event nodes + AST extraction → consolidation pipeline | Stop hook → transcript analysis → semantic knowledge extraction
-
-**Session continuity path**: PreCompact → priority-weighted subgraph serialization → SessionStart → subgraph deserialization + graph re-query → Session Guide injection
-
-For the full architecture with module details, data flow diagrams, database schemas, and design rationale, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
-
----
-
-## Compatibility
-
-- **OS**: macOS, Linux, Windows (WSL2)
-- **Runtime**: Node.js 18+, Bun 1.0+
-- **Transport**: Standard MCP stdio
-- **AI Agent**: Claude Code (native hooks), Cursor (hook adapter), Cline (hook adapter), Windsurf/Aider (MCP-only with api capture mode), any MCP-compatible agent
-- **LLM Providers**: Anthropic (Claude), OpenAI (GPT), Google (Gemini), Ollama (local models) via Vercel AI SDK
-- **Documentation formats**: AGENTS.md, CLAUDE.md, GEMINI.md, Cursor rules, Windsurf rules, Copilot instructions, and 15+ more
-- **Native module**: Prebuilt for macOS (ARM/Intel), Linux (x64/ARM64, glibc/musl), Windows (x64). Wasm and TypeScript fallbacks when unavailable.
-
----
-
-## Status
-
-Sia is under active development.
 
 ---
 
