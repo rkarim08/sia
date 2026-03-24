@@ -91,6 +91,8 @@ sia_search({ query: "<module> recurring bugs failures", node_types: ["Bug"], lim
 
 Check if this is a problem area with a history of bugs. If so, surface the pattern to the developer — this may need a design change, not another patch.
 
+**For test pollution bisection:** Run `skills/sia-debug-workflow/scripts/find-polluter.sh`
+
 ## Key Principle
 
 **Time is your best debugging tool.** `sia_at_time` lets you ask "what was true before this broke?" — that's usually the fastest path to root cause.
