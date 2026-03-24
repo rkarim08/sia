@@ -2,7 +2,7 @@
 
 import { runCommunityCommand } from "@/cli/commands/community";
 
-const VERSION = "0.1.0";
+const VERSION = "1.0.0";
 
 function printHelp(): void {
 	console.log(`sia v${VERSION} — Persistent graph memory for AI coding agents

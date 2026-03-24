@@ -1,6 +1,6 @@
 {
 	"name": "sia",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Persistent graph memory for AI coding agents",
 	"type": "module",
 	"bin": {
