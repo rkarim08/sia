@@ -38,6 +38,7 @@ Commands:
   download-model       Download ONNX embedding model
   enable-flagging      Enable mid-session flagging
   disable-flagging     Disable mid-session flagging
+  tour                 Guided walkthrough of the knowledge graph
   server               Manage MCP server (start, stop, status)
 
 Options:
@@ -370,6 +371,11 @@ async function main(): Promise<void> {
 		case "compare": {
 			const { runCompare } = await import("@/cli/commands/compare");
 			await runCompare(rest);
+			return;
+		}
+		case "tour": {
+			const { runTour } = await import("@/cli/commands/tour");
+			await runTour(rest);
 			return;
 		}
 		case "server": {
