@@ -1,11 +1,13 @@
 {
-	"sia": {
-		"command": "bash",
-		"args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start-mcp.sh"],
-		"env": {
-			"SIA_HOME": "${CLAUDE_PLUGIN_DATA}",
-			"CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}",
-			"CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+	"mcpServers": {
+		"sia": {
+			"command": "bash",
+			"args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start-mcp.sh"],
+			"env": {
+				"SIA_HOME": "${CLAUDE_PLUGIN_DATA}",
+				"CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}",
+				"CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+			}
 		}
 	}
 }

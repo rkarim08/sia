@@ -7,7 +7,9 @@ import { openGraphDb } from "../src/graph/semantic-db";
 import { startServer } from "../src/mcp/server";
 import { getConfig, resolveSiaHome } from "../src/shared/config";
 
-const cwd = process.cwd();
+// When launched as a plugin MCP server, process.cwd() may be the plugin cache dir.
+// The CLAUDE_CWD env var (if set by the host) provides the real project directory.
+const cwd = process.env.CLAUDE_CWD || process.cwd();
 const repoHash = resolveRepoHash(cwd);
 const siaHome = resolveSiaHome();
 const config = getConfig(siaHome);
