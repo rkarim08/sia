@@ -94,6 +94,18 @@ claude --plugin-dir /path/to/sia
 | `/sia-team` | Join, leave, or check team sync status |
 | `/sia-sync` | Manual push/pull to/from team server |
 
+### Subagents
+
+| Agent | Purpose | Can Run In Parallel |
+|---|---|---|
+| `sia-code-reviewer` | Code review with graph context — convention enforcement, regression detection | Yes |
+| `sia-orientation` | Project onboarding — architecture, decisions, conventions, known issues | Yes |
+| `sia-regression` | Regression risk analysis — temporal investigation of what changed and when | Yes |
+| `sia-feature` | Feature development — architectural context, dependency and convention awareness | Yes |
+
+All subagents are read-only against the knowledge graph and can run simultaneously.
+Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
+
 ### Automatic Hooks
 
 | Hook | Trigger | Purpose |
