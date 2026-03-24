@@ -24,6 +24,13 @@ export default defineConfig({
 			"@/shared": resolve(__dirname, "src/shared"),
 			"@/agent": resolve(__dirname, "src/agent"),
 			"@/hooks": resolve(__dirname, "src/hooks"),
+			"@/ontology": resolve(__dirname, "src/ontology"),
+			"@/knowledge": resolve(__dirname, "src/knowledge"),
+			"@/visualization": resolve(__dirname, "src/visualization"),
+			"@/freshness": resolve(__dirname, "src/freshness"),
+			"@/native": resolve(__dirname, "src/native"),
+			"@/llm": resolve(__dirname, "src/llm"),
+			"@/sandbox": resolve(__dirname, "src/sandbox"),
 		},
 	},
 });
