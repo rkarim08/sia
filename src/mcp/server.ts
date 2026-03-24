@@ -8,7 +8,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
-import { handleSiaAstQuery } from "@/mcp/tools/sia-ast-query";
+import {
+	handleSiaAstQuery,
+	type SiaAstQueryInput as SiaAstQueryHandlerInput,
+} from "@/mcp/tools/sia-ast-query";
 import { handleSiaAtTime } from "@/mcp/tools/sia-at-time";
 import { handleSiaBacklinks } from "@/mcp/tools/sia-backlinks";
 import { handleSiaBatchExecute } from "@/mcp/tools/sia-batch-execute";
@@ -784,11 +787,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			annotations: { readOnlyHint: true },
 		},
 		async () => {
-			const result = await handleSiaSyncStatus();
-			return {
-				content: [{ type: "text" as const, text: JSON.stringify(result) }],
-				isError: result.status === "error" ? true : undefined,
-			};
+			return safeToolCall("sia_sync_status", () => handleSiaSyncStatus(), maxChars);
 		},
 	);
 
@@ -804,7 +803,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		async (args) => {
 			// sia_ast_query is stateless — no deps needed. It returns errors in-band
 			// via the error field rather than throwing, so we propagate isError manually.
-			const result = await handleSiaAstQuery(args as any);
+			const result = await handleSiaAstQuery(args as SiaAstQueryHandlerInput);
 			return {
 				content: [
 					{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },

@@ -57,6 +57,14 @@ async function getService(): Promise<TreeSitterService> {
 	return serviceInstance;
 }
 
+/** Dispose the singleton service and allow re-initialization on next call. */
+export function resetAstQueryService(): void {
+	if (serviceInstance) {
+		serviceInstance.dispose();
+		serviceInstance = null;
+	}
+}
+
 /**
  * Extract symbols from query matches. Symbols have @name and @kind captures.
  */
