@@ -69,7 +69,7 @@ claude --plugin-dir /path/to/sia
 | `sia_upgrade` | Self-update SIA to the latest version |
 | `sia_sync_status` | Check team sync configuration and connection status |
 
-### Skills (slash commands)
+### Skills (46 slash commands)
 
 #### Core
 
@@ -78,16 +78,38 @@ claude --plugin-dir /path/to/sia
 | `/sia-install` | Initialize SIA in current project |
 | `/sia-search` | Guided search with examples |
 | `/sia-stats` | Graph statistics |
+| `/sia-status` | Knowledge graph health dashboard |
 | `/sia-reindex` | Re-index repository code |
+| `/sia-learn` | Build or refresh the complete knowledge graph |
+| `/sia-playbooks` | Load task-specific playbooks (regression, feature, review, orientation) |
 
 #### Knowledge Management
 
 | Skill | Description |
 |---|---|
+| `/sia-capture` | Guided knowledge capture — decisions, conventions, bugs, solutions |
 | `/sia-execute` | Run code in sandbox with knowledge capture |
 | `/sia-index` | Index external content (text, URLs) |
 | `/sia-workspace` | Manage cross-repo workspaces |
 | `/sia-export-import` | Export/import graphs as portable JSON |
+| `/sia-export-knowledge` | Export graph as human-readable KNOWLEDGE.md |
+| `/sia-history` | Explore temporal knowledge evolution |
+| `/sia-impact` | Analyze impact of planned code changes |
+| `/sia-compare` | Compare graph state between two time points |
+
+#### Development Workflow
+
+| Skill | Description |
+|---|---|
+| `/sia-brainstorm` | Brainstorm features using graph context |
+| `/sia-plan` | Write implementation plans with graph topology |
+| `/sia-execute-plan` | Execute plans with staleness detection and convention checks |
+| `/sia-dispatch` | Dispatch parallel agents with community-based independence verification |
+| `/sia-test` | TDD guided by known edge cases and test conventions |
+| `/sia-verify` | Verify work completeness against area-specific requirements |
+| `/sia-debug-workflow` | Systematic debugging with temporal root-cause tracing |
+| `/sia-finish` | Finish branches — semantic PR summaries from graph entities |
+| `/sia-review-respond` | Respond to code review feedback with graph-backed evidence |
 
 #### Maintenance
 
@@ -96,10 +118,18 @@ claude --plugin-dir /path/to/sia
 | `/sia-doctor` | System health diagnostics |
 | `/sia-digest` | Daily knowledge summary |
 | `/sia-visualize` | Generate HTML graph visualization |
+| `/sia-visualize-live` | Launch interactive browser-based graph visualizer |
 | `/sia-freshness` | Graph freshness report |
 | `/sia-conflicts` | List and resolve knowledge conflicts |
 | `/sia-prune` | Remove archived entities |
 | `/sia-upgrade` | Self-update SIA |
+
+#### Onboarding
+
+| Skill | Description |
+|---|---|
+| `/sia-setup` | Guided first-time setup with checklist |
+| `/sia-tour` | Interactive guided tour of the knowledge graph |
 
 #### Team Sync
 
@@ -108,34 +138,65 @@ claude --plugin-dir /path/to/sia
 | `/sia-team` | Join, leave, or check team sync status |
 | `/sia-sync` | Manual push/pull to/from team server |
 
-### Subagents
+#### QA & Testing Intelligence
 
-#### All Agents
+| Skill | Description |
+|---|---|
+| `/sia-qa-report` | QA-focused report — risky areas, test priorities |
+| `/sia-qa-coverage` | Test coverage gap analysis from the knowledge graph |
+| `/sia-qa-flaky` | Track flaky test patterns and recurring failures |
+
+#### Project Management Intelligence
+
+| Skill | Description |
+|---|---|
+| `/sia-pm-sprint-summary` | Sprint summary in plain language for PMs |
+| `/sia-pm-decision-log` | Chronological decision log with rationale |
+| `/sia-pm-risk-dashboard` | Technical risk dashboard scored by impact |
+
+#### Tech Lead Intelligence
+
+| Skill | Description |
+|---|---|
+| `/sia-lead-drift-report` | Architecture drift report — decisions vs current code |
+| `/sia-lead-knowledge-map` | Knowledge distribution map with bus-factor risks |
+| `/sia-lead-compliance` | Convention compliance audit across the codebase |
+
+### Subagents (23 agents)
 
 | Agent | Purpose | Category |
 |---|---|---|
 | **Before Coding** | | |
-| `sia-orientation` | Architecture overview | Onboarding |
-| `sia-onboarding` | Comprehensive new team member guide | Onboarding |
-| `sia-decision-reviewer` | Decision archaeology | Planning |
-| `sia-explain` | Explains SIA itself | Meta |
+| `sia-orientation` | Quick architecture Q&A — single focused answers | Onboarding |
+| `sia-onboarding` | Comprehensive multi-topic onboarding session | Onboarding |
+| `sia-decision-reviewer` | Decision archaeology — past choices and rejected alternatives | Planning |
+| `sia-explain` | Explains SIA's tools, graph structure, and workflows | Meta |
 | **During Coding** | | |
-| `sia-feature` | Feature dev with conventions | Development |
-| `sia-refactor` | Impact analysis via dependency graph | Development |
-| `sia-convention-enforcer` | Convention compliance check | Quality |
-| `sia-test-advisor` | Test strategy from past failures | Testing |
-| `sia-dependency-tracker` | Cross-repo dependency monitoring | Architecture |
+| `sia-feature` | Feature dev with convention awareness and dependency context | Development |
+| `sia-refactor` | Impact analysis via dependency graph before structural changes | Development |
+| `sia-convention-enforcer` | Convention compliance check against known standards | Quality |
+| `sia-test-advisor` | Test strategy from past failures and known edge cases | Testing |
+| `sia-dependency-tracker` | Cross-repo dependency monitoring and API contract tracking | Architecture |
 | **During Debugging** | | |
-| `sia-debug` | Active bug investigation | Debugging |
-| `sia-regression` | Proactive risk analysis | Prevention |
+| `sia-debug` | Active bug investigation with temporal root-cause tracing | Debugging |
+| `sia-regression` | Proactive regression risk analysis for code changes | Prevention |
 | **During Review** | | |
-| `sia-code-reviewer` | Code review with graph context | Review |
-| `sia-security-audit` | Security review with paranoid mode | Security |
-| `sia-conflict-resolver` | Resolve contradicting knowledge | Quality |
+| `sia-code-reviewer` | Code review with historical context and convention enforcement | Review |
+| `sia-security-audit` | Security review with paranoid mode and Tier 4 exposure tracking | Security |
+| `sia-conflict-resolver` | Resolve contradicting knowledge entities | Quality |
 | **After Coding** | | |
-| `sia-knowledge-capture` | Systematic session capture | Capture |
-| `sia-changelog-writer` | Graph-powered release notes | Documentation |
-| `sia-migration` | Graph maintenance during refactors | Maintenance |
+| `sia-knowledge-capture` | Systematic session capture — decisions, conventions, bugs, solutions | Capture |
+| `sia-changelog-writer` | Graph-powered changelogs and release notes | Documentation |
+| `sia-migration` | Graph maintenance during major refactors | Maintenance |
+| **QA & Testing** | | |
+| `sia-qa-analyst` | QA intelligence — regression risks, coverage gaps, test recommendations | QA |
+| `sia-qa-regression-map` | Scored regression risk map (0-100) per module for test prioritization | QA |
+| **Project Management** | | |
+| `sia-pm-briefing` | Plain-language project briefings for PMs | PM |
+| `sia-pm-risk-advisor` | Technical risk advisor — debt, fragile modules, dependency risks | PM |
+| **Tech Lead** | | |
+| `sia-lead-architecture-advisor` | Architecture drift detection against captured decisions | Leadership |
+| `sia-lead-team-health` | Team knowledge health — coverage gaps, bus-factor risks | Leadership |
 
 All subagents primarily retrieve from the knowledge graph and can run simultaneously.
 The feature agent may flag decisions via `sia_flag` when flagging is enabled.
@@ -177,8 +238,8 @@ SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server.
 
 | Component | Purpose |
 |---|---|
-| `/sia-team` | Join, leave, or check team status |
-| `/sia-sync` | Manual push/pull operations |
+| `/sia-team` | Join, leave, or check team status (see Skills section above) |
+| `/sia-sync` | Manual push/pull operations (see Skills section above) |
 | `sia_sync_status` MCP tool | Programmatic sync status check |
 
 ## Requirements

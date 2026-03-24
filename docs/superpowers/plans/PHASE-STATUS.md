@@ -25,10 +25,8 @@
 - **Phase T** — Project Management Intelligence: COMPLETE
 - **Phase U** — Tech Lead Intelligence: COMPLETE
 - **Phase V** — Skill Companion Files: COMPLETE
-
-## Pending Phases
-
-- **Phase W** — Post-Gap-Analysis Fixes & Discipline Hardening
+- **Phase W** — Post-Gap-Analysis Fixes & Discipline Hardening: COMPLETE
+- **Phase X** — CI & Native Build Fixes: COMPLETE
 
 ## Pre-Plugin Phases (Foundation — completed before plugin work)
 
