@@ -8,6 +8,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { handleSiaAstQuery } from "@/mcp/tools/sia-ast-query";
 import { handleSiaAtTime } from "@/mcp/tools/sia-at-time";
 import { handleSiaBacklinks } from "@/mcp/tools/sia-backlinks";
 import { handleSiaBatchExecute } from "@/mcp/tools/sia-batch-execute";
@@ -24,7 +25,6 @@ import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
-import { handleSiaAstQuery } from "@/mcp/tools/sia-ast-query";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
 import { truncateResponse } from "@/mcp/truncate";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
@@ -796,12 +796,21 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	server.registerTool(
 		"sia_ast_query",
 		{
-			description: "Parse a file with tree-sitter and extract symbols, imports, or call relationships",
+			description:
+				"Parse a file with tree-sitter and extract symbols, imports, or call relationships",
 			inputSchema: SiaAstQueryInput.shape,
 			annotations: { readOnlyHint: true },
 		},
 		async (args) => {
-			return safeToolCall("sia_ast_query", () => handleSiaAstQuery(args as any), maxChars);
+			// sia_ast_query is stateless — no deps needed. It returns errors in-band
+			// via the error field rather than throwing, so we propagate isError manually.
+			const result = await handleSiaAstQuery(args as any);
+			return {
+				content: [
+					{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
+				],
+				isError: result.error ? true : undefined,
+			};
 		},
 	);
 

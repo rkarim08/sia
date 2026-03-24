@@ -7,14 +7,26 @@
 import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
-import { readStdin } from "@/hooks/plugin-common";
+import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
+import type { HookEvent } from "@/hooks/types";
 
 async function main() {
 	try {
 		const input = await readStdin();
-		const event = input.trim() ? JSON.parse(input) : {};
+		// SessionStart may be invoked without event data on initial install
+		let event: HookEvent;
+		if (input.trim()) {
+			event = parsePluginHookEvent(input);
+		} else {
+			event = {
+				session_id: "unknown",
+				cwd: process.cwd(),
+				transcript_path: "",
+				hook_event_name: "SessionStart",
+			};
+		}
 
-		const cwd = (event.cwd as string) || process.cwd();
+		const cwd = event.cwd || process.cwd();
 		const repoHash = resolveRepoHash(cwd);
 		const db = openGraphDb(repoHash);
 

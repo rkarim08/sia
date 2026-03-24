@@ -4,7 +4,8 @@
 // against the AST. Returns structured results with bounded output.
 
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getLanguageForFile, resolveLanguageConfig } from "@/ast/languages";
 import { TreeSitterService } from "@/ast/tree-sitter/service";
 import type { SiaQueryMatch } from "@/ast/tree-sitter/types";
@@ -32,7 +33,9 @@ export interface SiaAstQueryResult {
 }
 
 const MAX_RESULTS = 100;
-const GRAMMARS_DIR = join(process.cwd(), "grammars", "queries");
+// Resolve grammars relative to the package root, not process.cwd()
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const GRAMMARS_DIR = join(__dirname, "../../..", "grammars", "queries");
 
 const DEFAULT_TS_CONFIG: TreeSitterConfig = {
 	enabled: true,
@@ -57,7 +60,7 @@ async function getService(): Promise<TreeSitterService> {
 /**
  * Extract symbols from query matches. Symbols have @name and @kind captures.
  */
-function extractSymbols(matches: SiaQueryMatch[], maxResults: number): AstSymbol[] {
+export function extractSymbols(matches: SiaQueryMatch[], maxResults: number): AstSymbol[] {
 	const symbols: AstSymbol[] = [];
 	for (const match of matches) {
 		if (symbols.length >= maxResults) break;
@@ -94,7 +97,7 @@ function extractSymbols(matches: SiaQueryMatch[], maxResults: number): AstSymbol
 /**
  * Extract import paths from query matches. Imports have @source captures.
  */
-function extractImports(matches: SiaQueryMatch[], maxResults: number): string[] {
+export function extractImports(matches: SiaQueryMatch[], maxResults: number): string[] {
 	const imports: string[] = [];
 	for (const match of matches) {
 		if (imports.length >= maxResults) break;
@@ -115,7 +118,7 @@ function extractImports(matches: SiaQueryMatch[], maxResults: number): string[] 
 /**
  * Extract call targets from query matches.
  */
-function extractCalls(matches: SiaQueryMatch[], maxResults: number): string[] {
+export function extractCalls(matches: SiaQueryMatch[], maxResults: number): string[] {
 	const calls: string[] = [];
 	for (const match of matches) {
 		if (calls.length >= maxResults) break;
@@ -134,11 +137,15 @@ function extractCalls(matches: SiaQueryMatch[], maxResults: number): string[] {
 /**
  * Parse a file with tree-sitter and extract structured AST data.
  */
-export async function handleSiaAstQuery(
-	input: SiaAstQueryInput,
-): Promise<SiaAstQueryResult> {
-	const filePath = resolve(process.cwd(), input.file_path);
+export async function handleSiaAstQuery(input: SiaAstQueryInput): Promise<SiaAstQueryResult> {
+	const cwd = process.cwd();
+	const filePath = resolve(cwd, input.file_path);
 	const maxResults = input.max_results ?? MAX_RESULTS;
+
+	// Prevent path traversal outside the project directory
+	if (!filePath.startsWith(cwd + "/") && filePath !== cwd) {
+		return { file_path: input.file_path, error: "Path must be within the project directory" };
+	}
 
 	if (!existsSync(filePath)) {
 		return { file_path: input.file_path, error: `File not found: ${input.file_path}` };
