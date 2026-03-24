@@ -391,6 +391,11 @@ async function main(): Promise<void> {
 			await runPmReport(rest);
 			return;
 		}
+		case "lead-report": {
+			const { runLeadReport } = await import("@/cli/commands/lead-report");
+			await runLeadReport(rest);
+			return;
+		}
 		case "server": {
 			const { serverStart, serverStop, serverStatus } = await import("@/cli/commands/server");
 			const sub = rest[0];
