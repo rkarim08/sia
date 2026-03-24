@@ -34,6 +34,7 @@ Commands:
   freshness            Generate freshness report
   share                Share an entity
   history              Show temporal knowledge history
+  compare              Compare graph state between time points
   download-model       Download ONNX embedding model
   enable-flagging      Enable mid-session flagging
   disable-flagging     Disable mid-session flagging
@@ -364,6 +365,11 @@ async function main(): Promise<void> {
 		case "history": {
 			const { runHistory } = await import("@/cli/commands/history");
 			await runHistory(rest);
+			return;
+		}
+		case "compare": {
+			const { runCompare } = await import("@/cli/commands/compare");
+			await runCompare(rest);
 			return;
 		}
 		case "server": {
