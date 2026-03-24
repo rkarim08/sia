@@ -39,10 +39,14 @@ async function main() {
 
 			if (!newBranch) return; // detached HEAD — nothing to snapshot
 
-			// Save current graph state under the OLD branch name before restoring
+			// Save current graph state under the OLD branch name before restoring.
+			// Note: since this is a PostToolUse hook, checkout has already completed.
+			// We cannot recover the old branch's true commit hash — newCommit (the
+			// current HEAD) is stored as an approximation. This is acceptable because
+			// the snapshot data (nodes/edges) is the authoritative state, not the hash.
 			const oldBranch = previousBranch(cwd);
 			if (oldBranch && oldBranch !== newBranch) {
-				await createBranchSnapshot(db, oldBranch, currentCommit(cwd));
+				await createBranchSnapshot(db, oldBranch, newCommit);
 				process.stderr.write(`sia: saved graph snapshot for branch '${oldBranch}'\n`);
 			}
 
