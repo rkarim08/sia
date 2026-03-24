@@ -37,6 +37,8 @@ Hard gate — tests must pass.
 
 ### Step 4, Option 2 — Create PR (ENHANCED)
 
+**For the full PR template:** See [pr-summary-template.md](pr-summary-template.md)
+
 When creating a PR, include a **Knowledge Summary** section built from graph entities:
 
 ```markdown
