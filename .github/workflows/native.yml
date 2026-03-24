@@ -57,6 +57,10 @@ jobs:
       - name: Build
         working-directory: sia-native
         run: npx napi build --platform --release --target ${{ matrix.settings.target }}
+      - name: Test
+        if: matrix.settings.target != 'aarch64-unknown-linux-gnu'
+        working-directory: sia-native
+        run: node -e "const m = require('./index.js'); console.log('Native module loaded:', Object.keys(m))"
       - uses: actions/upload-artifact@v4
         with:
           name: binding-${{ matrix.settings.target }}
