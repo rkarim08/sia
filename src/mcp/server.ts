@@ -24,6 +24,7 @@ import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
+import { handleSiaAstQuery } from "@/mcp/tools/sia-ast-query";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
 import { truncateResponse } from "@/mcp/truncate";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
@@ -148,6 +149,12 @@ export const SiaUpgradeInput = z.object({
 	dry_run: z.boolean().optional(),
 });
 
+export const SiaAstQueryInput = z.object({
+	file_path: z.string(),
+	query_type: z.enum(["symbols", "imports", "calls"]),
+	max_results: z.number().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -170,6 +177,7 @@ export const TOOL_NAMES = [
 	"sia_doctor",
 	"sia_upgrade",
 	"sia_sync_status",
+	"sia_ast_query",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -765,6 +773,18 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				content: [{ type: "text" as const, text: JSON.stringify(result) }],
 				isError: result.status === "error" ? true : undefined,
 			};
+		},
+	);
+
+	// --- sia_ast_query -----------------------------------------------------
+	server.registerTool(
+		"sia_ast_query",
+		{
+			description: "Parse a file with tree-sitter and extract symbols, imports, or call relationships",
+			inputSchema: SiaAstQueryInput.shape,
+		},
+		async (args) => {
+			return safeToolCall("sia_ast_query", () => handleSiaAstQuery(args as any), maxChars);
 		},
 	);
 
