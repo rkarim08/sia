@@ -1008,4 +1008,6 @@ Auto-detected from `pnpm-workspace.yaml`, `package.json` workspaces, `nx.json`, 
 
 ## License
 
-TBD
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
+
+Attribution is required for all distributions, including commercial use.
