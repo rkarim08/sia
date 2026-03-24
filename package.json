@@ -3,6 +3,29 @@
 	"version": "1.0.0",
 	"description": "Persistent graph memory for AI coding agents",
 	"type": "module",
+	"license": "Apache-2.0",
+	"author": {
+		"name": "Ramez Karim"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/rkarim08/sia.git"
+	},
+	"homepage": "https://github.com/rkarim08/sia#readme",
+	"bugs": {
+		"url": "https://github.com/rkarim08/sia/issues"
+	},
+	"keywords": [
+		"claude-code",
+		"plugin",
+		"memory",
+		"knowledge-graph",
+		"mcp",
+		"ai-coding",
+		"persistent-memory",
+		"bi-temporal",
+		"tree-sitter"
+	],
 	"bin": {
 		"sia": "./src/cli/index.ts"
 	},
@@ -15,7 +38,8 @@
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
 		"typecheck": "tsc --noEmit",
-		"test:tree-sitter-bun": "bun test tests/bun/tree-sitter-smoke.test.ts"
+		"test:tree-sitter-bun": "bun test tests/bun/tree-sitter-smoke.test.ts",
+		"prepublishOnly": "bun run typecheck && bun run test"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.58",
@@ -66,5 +90,20 @@
 		"better-sqlite3": "^12.8.0",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.0"
-	}
+	},
+	"engines": {
+		"bun": ">=1.0.0"
+	},
+	"files": [
+		"src/",
+		"scripts/",
+		"skills/",
+		"agents/",
+		"hooks/",
+		"migrations/",
+		".claude-plugin/",
+		".mcp.json",
+		"CLAUDE.md",
+		"PLUGIN_README.md"
+	]
 }
