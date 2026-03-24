@@ -5,7 +5,7 @@ description: Debugs systematically using SIA's temporal knowledge graph — trac
 
 ## Invariants
 
-> These rules have NO exceptions. A debug session that violates them is incomplete.
+> These rules have No exceptions. A debug session that violates them is incomplete.
 >
 > 1. YOU MUST query `sia_search` for known bugs BEFORE investigating. "I already
 >    know the cause" is the #1 reason developers re-debug solved problems.

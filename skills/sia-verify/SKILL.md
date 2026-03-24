@@ -5,7 +5,7 @@ description: Verifies work completeness using SIA's knowledge of area-specific r
 
 ## Invariants
 
-> These rules have NO exceptions. A "done" claim without evidence is a FAILURE.
+> These rules have No exceptions. A "done" claim without evidence is a FAILURE.
 >
 > 1. YOU MUST run a verification command and read its FULL output before claiming
 >    ANY work is done. "I'm confident it works" is NEVER sufficient.
