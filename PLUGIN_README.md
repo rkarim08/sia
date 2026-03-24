@@ -103,7 +103,8 @@ claude --plugin-dir /path/to/sia
 | `sia-regression` | Regression risk analysis — temporal investigation of what changed and when | Yes |
 | `sia-feature` | Feature development — architectural context, dependency and convention awareness | Yes |
 
-All subagents are read-only against the knowledge graph and can run simultaneously.
+All subagents primarily retrieve from the knowledge graph and can run simultaneously.
+The feature agent may flag decisions via `sia_flag` when flagging is enabled.
 Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
 
 ### Automatic Hooks

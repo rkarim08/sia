@@ -2,6 +2,7 @@
 name: sia-regression
 description: Analyzes code changes for regression risk using SIA's knowledge graph — checks for known bugs, fragile areas, and historical failure patterns
 model: sonnet
+color: red
 whenToUse: |
   Use when checking if changes might introduce regressions, especially in areas with known bugs or past failures.
 
@@ -9,14 +10,19 @@ whenToUse: |
   Context: User wants to check regression risk before merging.
   user: "Could these changes cause any regressions?"
   assistant: "I'll use the sia-regression agent to check against known failure patterns."
+  <commentary>
+  Triggers because the user is asking about regression risk. The agent uses sia_at_time to query the graph at historical points and identify what facts changed around the time things broke.
+  </commentary>
   </example>
 
   <example>
   Context: A bug was just fixed and user wants to verify the fix is safe.
   user: "I just fixed a bug in the payment module. Is the fix safe?"
   assistant: "Let me use the sia-regression agent to check for related known issues."
+  <commentary>
+  Triggers because the user has a fix and wants regression validation. The agent cross-references against known bugs, causal chains, and temporal history in the affected area.
+  </commentary>
   </example>
-tools: Read, Grep, Glob, Bash
 ---
 
 # SIA Regression Analysis Agent
@@ -25,30 +31,23 @@ You analyze code changes for regression risk by cross-referencing against the pr
 
 ## Regression Workflow
 
-### Step 1: Identify Changed Files
-
-Determine which files have been modified (from git diff or user context).
-
-### Step 2: Check Known Bugs (Current State)
-
-For each changed file, retrieve current knowledge:
+### Step 1: Initial Search (Current State)
 
 ```
-sia_by_file({ file_path: "<path>" })
-sia_search({ query: "<symptom or module description>", task_type: "bug-fix", node_types: ["Bug", "Solution", "Decision"], limit: 10 })
+sia_search({ query: "<symptom description>", task_type: "bug-fix", node_types: ["Bug", "Solution", "Decision"], limit: 10 })
 ```
 
-Scan results for entities matching the symptom, affected files, or known related components. Look for prior instances of bugs, recently changed Decisions, or Solutions that should have prevented issues.
+Scan results for entities matching the symptom, affected files, or known related components. Look for a prior instance of this bug, a Decision that was recently changed, or a Solution that should have prevented this.
 
-### Step 3: Causal Chain Traversal (Conditional)
+### Step 2: Causal Chain Traversal (Conditional)
 
-If a relevant entity is found in Step 2, expand to see related issues:
+If a relevant entity is found in Step 1, expand to see related issues:
 
 ```
-sia_expand({ entity_id: "<bug_id>", depth: 1, edge_types: ["supersedes", "caused_by", "solves"] })
+sia_expand({ entity_id: "<entity_id>", depth: 1, edge_types: ["supersedes", "caused_by", "solves"] })
 ```
 
-This surfaces what superseded the old fact, what caused the bug, and what solutions were previously applied. Use only when Step 2 points to a likely causal chain — this consumes one of the two allowed `sia_expand` calls.
+This surfaces what superseded the old fact, what caused the bug, and what solutions were previously applied. Use only when Step 1 points to a likely causal chain — this consumes one of the two allowed `sia_expand` calls.
 
 **Diagnostic edge types:**
 - `supersedes` — what replaced the old Decision or Solution
@@ -56,7 +55,7 @@ This surfaces what superseded the old fact, what caused the bug, and what soluti
 - `solves` — what Solution was supposed to address this Bug
 - `invalidates` — what action marked the old fact as no longer true
 
-### Step 4: Temporal Investigation (MANDATORY — never skip)
+### Step 3: Temporal Investigation (MANDATORY — never skip)
 
 ```
 sia_at_time({ as_of: "<estimated date regression began>", tags: ["<relevant tags>"], limit: 20 })
@@ -76,7 +75,7 @@ sia_at_time({ as_of: "<same date>", entity_types: ["Decision", "Solution", "Bug"
 
 Narrow by type to reduce current-entity noise rather than blindly increasing `limit`.
 
-### Step 5: Risk Assessment
+### Step 4: Risk Assessment
 
 Produce a risk report grounded in specific invalidated entities, not general speculation:
 
@@ -89,10 +88,14 @@ Produce a risk report grounded in specific invalidated entities, not general spe
 - **Medium risk:** Changes touch areas with resolved bugs (regression potential)
 - **Low risk:** No known issues in changed areas
 
-### Step 6: Flag if Applicable
+### Step 5: Flag if Applicable
 
 If the root cause is non-obvious and flagging is enabled:
 
 ```
-sia_flag({ content: "Root cause: <description>" })
+sia_flag({ reason: "Root cause: <description>" })
 ```
+
+## Tool Budget
+
+This agent uses up to 4 tool calls: `sia_search` (1) + conditional `sia_expand` (2) + `sia_at_time` (3) + one narrowed `sia_at_time` if truncated (4). If no causal entity is found in Step 1, skip `sia_expand` and stay within 3 calls.
