@@ -69,17 +69,16 @@ describe("ontology middleware", () => {
 	// createBug — missing causedBy
 	// ---------------------------------------------------------------
 
-	it("createBug throws without causedBy", async () => {
+	it("createBug succeeds without causedBy (cause may be unknown)", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("mw-bug-err", tmpDir);
 
-		await expect(
-			createBug(db, {
-				name: "Some bug",
-				content: "Details",
-				causedBy: "",
-			}),
-		).rejects.toThrow(OntologyError);
+		const bug = await createBug(db, {
+			name: "Some bug",
+			content: "Details",
+		});
+		expect(bug.id).toBeDefined();
+		expect(bug.type).toBe("Bug");
 	});
 
 	// ---------------------------------------------------------------

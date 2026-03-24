@@ -291,6 +291,21 @@ export async function ingestDocument(
 	for (const chunk of chunks) {
 		const chunkName = chunk.heading !== "" ? chunk.heading : `${fileName} - Introduction`;
 
+		// Dedup: skip if an identical ContentChunk already exists for this file
+		const existingChunk = await db.execute(
+			`SELECT id FROM graph_nodes
+			 WHERE type = 'ContentChunk'
+			 AND name = ?
+			 AND file_paths LIKE ?
+			 AND t_valid_until IS NULL
+			 AND archived_at IS NULL
+			 LIMIT 1`,
+			[chunkName, `%"${relativePath}"%`],
+		);
+		if (existingChunk.rows.length > 0) {
+			continue;
+		}
+
 		const contentPreview = chunk.content.slice(0, 150).trim();
 
 		const chunkTags: string[] = [tag];
