@@ -18,3 +18,28 @@ const bridgeDb = openBridgeDb(siaHome);
 const sessionId = randomUUID();
 
 await startServer({ graphDb, bridgeDb, metaDb, embedder: null, config, sessionId });
+
+// Start maintenance scheduler (background — non-blocking)
+try {
+	const { openEpisodicDb } = await import("../src/graph/semantic-db");
+	const { createMaintenanceScheduler } = await import("../src/decay/maintenance-scheduler");
+
+	const episodicDb = openEpisodicDb(repoHash, siaHome);
+
+	const scheduler = createMaintenanceScheduler({
+		graphDb,
+		episodicDb,
+		bridgeDb,
+		config,
+		repoHash,
+		siaHome,
+	});
+
+	scheduler.onStartup(repoHash).catch((err) => {
+		process.stderr.write(`sia: maintenance startup failed (non-fatal): ${err}\n`);
+	});
+
+	process.stderr.write("sia: maintenance scheduler started\n");
+} catch (err) {
+	process.stderr.write(`sia: maintenance scheduler init failed: ${err}\n`);
+}
