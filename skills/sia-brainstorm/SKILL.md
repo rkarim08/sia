@@ -41,18 +41,17 @@ Present a brief "Graph Context" summary to the user before asking questions:
 > - 2 conventions that apply: [list]
 > - 1 previously rejected approach: [description + why rejected]
 
-### Step 1-5 — Standard Brainstorming (same as superpowers)
+### Step 1-4 — Collaborative Design
 
-Follow the standard brainstorming process:
+Follow the brainstorming process:
 1. Explore project context (enhanced by Step 0's graph data)
-2. Offer visual companion if applicable
-3. Ask clarifying questions (one at a time)
-4. Propose 2-3 approaches with trade-offs (informed by past decisions)
-5. Present design in sections, get approval
+2. Ask clarifying questions (one at a time, prefer multiple choice)
+3. Propose 2-3 approaches with trade-offs (informed by past decisions)
+4. Present design in sections, get approval
 
-**Enhancement in Step 4:** When proposing approaches, explicitly note which prior decisions each approach aligns with or contradicts. If an approach was tried before and rejected, say so and explain what's different now.
+**Enhancement in Step 3:** When proposing approaches, explicitly note which prior decisions each approach aligns with or contradicts. If an approach was tried before and rejected, say so and explain what's different now.
 
-### Step 6 — Write Design Doc + Capture Knowledge (ENHANCED)
+### Step 5 — Write Design Doc + Capture Knowledge (ENHANCED)
 
 After writing the design doc:
 
@@ -66,9 +65,11 @@ For each rejected alternative:
 sia_note({ kind: "Decision", name: "Rejected: <alternative>", content: "<why rejected>", supersedes: "<old_decision_id if replacing>" })
 ```
 
-### Step 7-9 — Standard Review + Handoff
+### Step 6-8 — Review + Handoff
 
-Follow the standard review loop and execution handoff.
+6. **Spec review loop** — dispatch a reviewer subagent to check completeness; fix issues and re-dispatch until approved (max 3 iterations, then surface to human)
+7. **User reviews written spec** — ask user to review before proceeding
+8. **Transition to implementation** — invoke sia-plan to create an implementation plan
 
 ## Key Principles
 
