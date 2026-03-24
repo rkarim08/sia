@@ -77,8 +77,8 @@ export async function runSync(args: string[]): Promise<void> {
 		console.error(`Sync failed: ${msg}`);
 		process.exit(1);
 	} finally {
-		try { await syncDb?.close(); } catch {}
-		try { await bridgeDb?.close(); } catch {}
-		try { await metaDb?.close(); } catch {}
+		try { await syncDb?.close(); } catch (e) { console.error("[sia] warning: failed to close sync db:", e); }
+		try { await bridgeDb?.close(); } catch (e) { console.error("[sia] warning: failed to close bridge db:", e); }
+		try { await metaDb?.close(); } catch (e) { console.error("[sia] warning: failed to close meta db:", e); }
 	}
 }
