@@ -66,6 +66,8 @@ sia_community({ entity_id: "<broken_entity>" })
 
 Find structurally similar code in the same community that IS working. Compare the broken version against the working pattern.
 
+**For detailed causal chain analysis:** See [root-cause-tracing.md](root-cause-tracing.md)
+
 ### Phase 3 — Hypothesis and Testing (same as standard)
 
 Form a single hypothesis, test minimally, verify. No SIA changes needed here — this phase is about focused experimentation.
