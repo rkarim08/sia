@@ -116,9 +116,15 @@ claude --plugin-dir /path/to/sia
 | `sia-orientation` | Project onboarding — architecture, decisions, conventions, known issues | Yes |
 | `sia-regression` | Regression risk analysis — temporal investigation of what changed and when | Yes |
 | `sia-feature` | Feature development — architectural context, dependency and convention awareness | Yes |
+| `sia-debug` | Active bug investigation with temporal queries | Yes |
+| `sia-refactor` | Impact analysis via dependency graph + backlinks | Yes |
+| `sia-decision-reviewer` | Decision archaeology — surfaces past choices | Yes |
+| `sia-knowledge-capture` | Systematic session knowledge capture | No (end of session) |
+| `sia-security-audit` | Security review with paranoid mode | Yes |
 
 All subagents primarily retrieve from the knowledge graph and can run simultaneously.
 The feature agent may flag decisions via `sia_flag` when flagging is enabled.
+The knowledge-capture agent is designed for end-of-session use rather than parallel execution.
 Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
 
 ### Automatic Hooks
