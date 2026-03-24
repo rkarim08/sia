@@ -53,6 +53,7 @@ claude --plugin-dir /path/to/sia
 | `sia_stats` | Graph metrics — node/edge counts by type, optional session stats |
 | `sia_doctor` | Run diagnostic checks on the installation |
 | `sia_upgrade` | Self-update SIA to the latest version |
+| `sia_sync_status` | Check team sync configuration and connection status |
 
 ### Skills (slash commands)
 
@@ -86,6 +87,13 @@ claude --plugin-dir /path/to/sia
 | `/sia-prune` | Remove archived entities |
 | `/sia-upgrade` | Self-update SIA |
 
+#### Team Sync
+
+| Skill | Description |
+|---|---|
+| `/sia-team` | Join, leave, or check team sync status |
+| `/sia-sync` | Manual push/pull to/from team server |
+
 ### Automatic Hooks
 
 | Hook | Trigger | Purpose |
@@ -97,6 +105,32 @@ claude --plugin-dir /path/to/sia
 | **PostCompact** | After compaction | Logs compaction coverage for observability |
 | **SessionEnd** | Session exit | Records session statistics and entity counts |
 | **UserPromptSubmit** | User prompt | Captures user prompts and detects correction/preference patterns |
+
+## Team Sync
+
+SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server.
+
+### Setup
+
+1. DevOps deploys a sqld server (see `docs/team-sync-deployment.md`)
+2. DevOps provides a server URL and auth token
+3. Developer runs: `/sia-team` → follow setup instructions
+
+### Automatic Sync
+
+| Event | Action |
+|---|---|
+| Session start | Auto-pulls latest team knowledge |
+| Session end | Auto-pushes locally captured knowledge |
+| `/sia-sync` | Manual push/pull on demand |
+
+### Skills & Tools
+
+| Component | Purpose |
+|---|---|
+| `/sia-team` | Join, leave, or check team status |
+| `/sia-sync` | Manual push/pull operations |
+| `sia_sync_status` MCP tool | Programmatic sync status check |
 
 ## Requirements
 
