@@ -23,21 +23,18 @@ function tagsJson(tags?: string[]): string {
 export interface CreateBugOpts {
 	name: string;
 	content: string;
-	causedBy: string;
+	causedBy?: string;
 	tags?: string[];
 	sessionId?: string;
 }
 
 /**
- * Create a Bug entity together with a required `caused_by` edge.
+ * Create a Bug entity, optionally with a `caused_by` edge.
  *
- * Throws OntologyError if `causedBy` is not provided.
+ * If `causedBy` is provided, a caused_by edge is created to the target entity.
+ * If omitted, the Bug is created without a causal link — the cause can be linked later.
  */
 export async function createBug(db: SiaDb, opts: CreateBugOpts): Promise<Entity> {
-	if (!opts.causedBy) {
-		throw new OntologyError("createBug requires a causedBy target entity id");
-	}
-
 	let created!: Entity;
 	await db.transaction(async (tx) => {
 		created = await insertEntity(tx, {
@@ -49,21 +46,23 @@ export async function createBug(db: SiaDb, opts: CreateBugOpts): Promise<Entity>
 			source_episode: opts.sessionId ?? null,
 		});
 
-		const valid = await validateEdge(tx, "Bug", "caused_by", "CodeEntity");
-		if (!valid) {
-			// Fall back: still allow if the constraint exists for any target type
-			const fallback = await validateEdge(tx, "Bug", "caused_by", "FileNode");
-			if (!fallback) {
-				throw new OntologyError("No edge_constraints entry for Bug→caused_by");
+		if (opts.causedBy) {
+			const valid = await validateEdge(tx, "Bug", "caused_by", "CodeEntity");
+			if (!valid) {
+				// Fall back: still allow if the constraint exists for any target type
+				const fallback = await validateEdge(tx, "Bug", "caused_by", "FileNode");
+				if (!fallback) {
+					throw new OntologyError("No edge_constraints entry for Bug→caused_by");
+				}
 			}
-		}
 
-		await insertEdge(tx, {
-			from_id: created.id,
-			to_id: opts.causedBy,
-			type: "caused_by",
-			source_episode: opts.sessionId ?? null,
-		});
+			await insertEdge(tx, {
+				from_id: created.id,
+				to_id: opts.causedBy,
+				type: "caused_by",
+				source_episode: opts.sessionId ?? null,
+			});
+		}
 	});
 
 	return created;

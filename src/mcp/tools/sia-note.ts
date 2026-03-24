@@ -30,7 +30,7 @@ export interface SiaNoteResult {
  * Create a developer-authored knowledge entry in the graph.
  * Routes to the appropriate ontology middleware function based on kind.
  *
- * For Bug: first relates_to entry becomes the causedBy target.
+ * For Bug: first relates_to entry becomes the causedBy target (optional — cause may be unknown).
  * For Convention: all relates_to become pertainsTo targets (at least 1 required).
  * For Decision: relates_to become pertainsTo, supersedes if provided.
  * For Solution: first relates_to entry becomes the solves target, rest become pertainsTo.
@@ -45,19 +45,13 @@ export async function handleSiaNote(db: SiaDb, input: SiaNoteInput): Promise<Sia
 
 		switch (input.kind) {
 			case "Bug": {
-				if (relatesTo.length === 0) {
-					throw new OntologyError(
-						"Bug requires at least one relates_to entry as the causedBy target",
-					);
-				}
 				entity = await createBug(db, {
 					name: input.name,
 					content: input.content,
-					causedBy: relatesTo[0],
+					causedBy: relatesTo[0], // undefined when no relates_to provided
 					tags: input.tags,
 				});
-				// Bug creates exactly 1 caused_by edge
-				edgesCreated = 1;
+				edgesCreated = relatesTo.length > 0 ? 1 : 0;
 				break;
 			}
 
