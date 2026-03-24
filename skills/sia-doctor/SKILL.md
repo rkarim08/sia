@@ -23,6 +23,17 @@ This checks:
 - Hook registration status
 - Disk usage
 
+## MCP Tool
+
+You can also run diagnostics via the `sia_doctor` MCP tool with targeted checks:
+
+```
+sia_doctor({ checks: ["all"] })
+sia_doctor({ checks: ["graph_integrity", "onnx"] })
+```
+
+Valid check names: `runtimes`, `hooks`, `fts5`, `vss`, `onnx`, `graph_integrity`, `all`
+
 ## Interpreting Results
 
 Each check reports: OK, Warning, or Error with remediation steps.

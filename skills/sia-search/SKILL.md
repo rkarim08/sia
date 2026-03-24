@@ -24,6 +24,9 @@ Use the `sia_search` MCP tool directly. It supports these parameters:
 - **task_type** (optional): One of `orientation`, `feature`, `bug-fix`, `regression`, `review` — helps tune result ranking
 - **node_types** (optional): Filter to specific types like `["Decision", "Convention", "Bug"]`
 - **package_path** (optional): Scope search to a specific package/module
+- **workspace** (optional): Search across all repos in the workspace, not just the current one
+- **paranoid** (optional): Enable extra validation on results
+- **include_provenance** (optional): Include source provenance metadata in results
 - **limit** (optional): Max results (default varies by query type)
 
 ### Examples

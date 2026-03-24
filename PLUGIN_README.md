@@ -34,8 +34,8 @@ claude --plugin-dir /path/to/sia
 | Tool | Description |
 |---|---|
 | `sia_note` | Record a Decision, Convention, Bug, Solution, or Concept |
-| `sia_flag` | Flag current session for review |
-| `sia_index` | Index markdown/text content into the graph |
+| `sia_flag` | Flag current session for human review (writes to session_flags only) |
+| `sia_index` | Index markdown/text content by chunking and scanning for entity references |
 | `sia_fetch_and_index` | Fetch a URL, convert to markdown, and index |
 
 #### Sandbox Execution
@@ -44,13 +44,13 @@ claude --plugin-dir /path/to/sia
 |---|---|
 | `sia_execute` | Execute code in an isolated sandbox |
 | `sia_execute_file` | Execute an existing file in a sandbox subprocess |
-| `sia_batch_execute` | Execute multiple operations in one call |
+| `sia_batch_execute` | Execute multiple operations in one call with precedes edges |
 
 #### Diagnostics & Maintenance
 
 | Tool | Description |
 |---|---|
-| `sia_stats` | Graph metrics — node/edge counts by type |
+| `sia_stats` | Graph metrics — node/edge counts by type, optional session stats |
 | `sia_doctor` | Run diagnostic checks on the installation |
 | `sia_upgrade` | Self-update SIA to the latest version |
 
@@ -93,7 +93,7 @@ claude --plugin-dir /path/to/sia
 | **PostToolUse** | Write/Edit | Captures knowledge from file changes |
 | **Stop** | Session stop | Detects uncaptured knowledge patterns |
 | **SessionStart** | Session begin | Injects recent decisions/conventions as context |
-| **PreCompact** | Before compaction | Extracts knowledge from transcript before context window shrinks |
+| **PreCompact** | Before compaction | Scans transcript tail for unextracted knowledge before context compaction |
 | **PostCompact** | After compaction | Logs compaction coverage for observability |
 | **SessionEnd** | Session exit | Records session statistics and entity counts |
 | **UserPromptSubmit** | User prompt | Captures user prompts and detects correction/preference patterns |
