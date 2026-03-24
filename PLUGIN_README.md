@@ -222,7 +222,7 @@ SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server.
 
 ### Setup
 
-1. DevOps deploys a sqld server (see `docs/team-sync-deployment.md`)
+1. DevOps deploys a sqld server (see `TEAM-SYNC-DEPLOYMENT.md`)
 2. DevOps provides a server URL and auth token
 3. Developer runs: `/sia-team` → follow setup instructions
 
