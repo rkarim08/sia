@@ -44,6 +44,7 @@ describe("sia lead-report", () => {
 			const report = await generateLeadReport(db, { type: "drift" });
 
 			expect(report.type).toBe("drift");
+			if (report.type !== "drift") throw new Error("unreachable");
 			expect(report.decisions.length).toBe(1);
 			expect(report.decisions[0].name).toBe("All DB access through SiaDb");
 			expect(report.conventions.length).toBe(1);
@@ -68,6 +69,8 @@ describe("sia lead-report", () => {
 			const { generateLeadReport } = await import("@/cli/commands/lead-report");
 			const report = await generateLeadReport(db, { type: "drift" });
 
+			expect(report.type).toBe("drift");
+			if (report.type !== "drift") throw new Error("unreachable");
 			expect(report.decisions.length).toBe(1);
 			expect(report.decisions[0].name).toBe("Active Decision");
 		});
@@ -99,6 +102,7 @@ describe("sia lead-report", () => {
 			const report = await generateLeadReport(db, { type: "knowledge-map" });
 
 			expect(report.type).toBe("knowledge-map");
+			if (report.type !== "knowledge-map") throw new Error("unreachable");
 			expect(report.totalEntities).toBe(4);
 			expect(report.byType.Decision).toBe(2);
 			expect(report.byType.Convention).toBe(1);
@@ -122,6 +126,8 @@ describe("sia lead-report", () => {
 			const { generateLeadReport } = await import("@/cli/commands/lead-report");
 			const report = await generateLeadReport(db, { type: "knowledge-map" });
 
+			expect(report.type).toBe("knowledge-map");
+			if (report.type !== "knowledge-map") throw new Error("unreachable");
 			expect(report.byContributor.alice).toBe(5);
 			expect(Object.keys(report.byContributor).length).toBe(1);
 		});
@@ -148,6 +154,7 @@ describe("sia lead-report", () => {
 			const report = await generateLeadReport(db, { type: "compliance" });
 
 			expect(report.type).toBe("compliance");
+			if (report.type !== "compliance") throw new Error("unreachable");
 			expect(report.conventions.length).toBe(2);
 			expect(report.conventions[0]).toHaveProperty("name");
 			expect(report.conventions[0]).toHaveProperty("filePaths");

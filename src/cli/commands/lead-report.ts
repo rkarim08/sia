@@ -79,7 +79,10 @@ export interface ComplianceReport {
 }
 
 async function generateComplianceReport(db: SiaDb): Promise<ComplianceReport> {
-	const conventions = await queryEntitiesByType(db, "Convention");
+	const entities = await queryEntitiesByType(db, "Convention");
+	const conventions: ComplianceConvention[] = entities.map(({ id, name, content, filePaths }) => ({
+		id, name, content, filePaths,
+	}));
 	return { type: "compliance", conventions };
 }
 
