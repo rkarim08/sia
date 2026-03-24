@@ -19,8 +19,14 @@ function patternToRegExp(pattern: string): RegExp {
 	const trimmed = pattern.trim();
 	if (!trimmed) return /^$/; // unused
 
-	const escaped = trimmed.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
-	const wildcarded = escaped.replace(/\\\*\\\*/g, ".*").replace(/\\\*/g, "[^/]*");
+	// First replace ** and * with placeholders, then escape regex chars, then restore
+	const withPlaceholders = trimmed
+		.replace(/\*\*/g, "\x00GLOBSTAR\x00")
+		.replace(/\*/g, "\x00STAR\x00");
+	const escaped = withPlaceholders.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+	const wildcarded = escaped
+		.replace(/\x00GLOBSTAR\x00/g, ".*")
+		.replace(/\x00STAR\x00/g, "[^/]*");
 
 	if (trimmed.startsWith("/")) {
 		return new RegExp(`^${wildcarded.slice(1)}(/.*)?$`);
