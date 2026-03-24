@@ -53,7 +53,7 @@ describe("createMcpServer", () => {
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(16);
+		expect(registeredNames).toHaveLength(17);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}

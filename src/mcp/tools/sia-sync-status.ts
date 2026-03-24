@@ -34,6 +34,7 @@ export async function handleSiaSyncStatus(): Promise<SiaSyncStatusResult> {
 			sync_interval_seconds: sync.syncInterval,
 		};
 	} catch (err) {
+		console.error("[sia] sia_sync_status error:", err);
 		return {
 			enabled: false,
 			status: "error",

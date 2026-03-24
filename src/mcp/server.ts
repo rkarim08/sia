@@ -1,4 +1,4 @@
-// Module: server — MCP server with 16 tool registrations
+// Module: server — MCP server registering all Sia tool handlers
 //
 // Read-heavy against graph.db. Write paths: session_flags (sia_flag),
 // graph entities/edges (sia_note), sandbox results (sia_execute*).
@@ -761,7 +761,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async () => {
 			const result = await handleSiaSyncStatus();
-			return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+			return {
+				content: [{ type: "text" as const, text: JSON.stringify(result) }],
+				isError: result.status === "error" ? true : undefined,
+			};
 		},
 	);
 

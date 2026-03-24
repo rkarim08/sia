@@ -11,15 +11,6 @@ SIA uses libSQL embedded replicas for team sync. Each developer's machine has a 
 ### Option 1: Docker (Quickest)
 
 ```bash
-# On the sync server machine:
-sia server start --port 8080
-```
-
-This writes a `docker-compose.yml` to `~/.sia/server/` and runs `docker compose up -d`. The sqld container listens on port 8080.
-
-Alternatively, run the container directly:
-
-```bash
 docker run -d \
   --name sia-sync \
   -p 8080:8080 \
@@ -98,7 +89,7 @@ openssl rand -hex 32 > jwt-secret.txt
 sqld --auth-jwt-key $(cat jwt-secret.txt) ...
 
 # Generate a token for a developer (using any JWT library)
-# The token needs no specific claims — sqld validates the signature only
+# As of sqld 0.x, the token needs no specific claims — sqld validates the signature only
 ```
 
 For simple setups, use a shared token for the whole team. For per-developer tokens, use a JWT library to generate unique tokens signed with the same secret.
@@ -118,7 +109,7 @@ Place a reverse proxy (nginx, Caddy, Traefik) in front of sqld:
 Developer → HTTPS → Reverse Proxy → HTTP → sqld:8080
 ```
 
-Developers join with the HTTPS URL: `sia team join https://sia-sync.yourcompany.com <token>`
+Developers join with the HTTPS URL: `bun run /path/to/sia/src/cli/index.ts team join https://sia-sync.yourcompany.com <token>` (or via the `/sia-team` skill in Claude Code)
 
 ## Monitoring
 

@@ -23,9 +23,8 @@ This will:
 1. Store the auth token securely in the OS keychain
 2. Configure sync with the provided server URL
 3. Generate a unique developer ID for this machine
-4. Perform an initial pull to download existing team knowledge
 
-After joining, sync is **automatic**:
+After joining, run `/sia-sync` to pull existing team knowledge, then sync is **automatic**:
 - **Session start:** Pulls latest team knowledge
 - **Session end:** Pushes your captured knowledge
 
