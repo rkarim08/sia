@@ -19,6 +19,7 @@ export interface IndexOptions {
 	dryRun?: boolean;
 	onProgress?: (progress: IndexResult & { file?: string }) => void;
 	repoHash?: string;
+	cacheSaveInterval?: number; // Save cache every N files (default: 500)
 }
 
 interface CacheEntry {
@@ -57,6 +58,7 @@ export async function indexRepository(
 	const cachePath = join(cacheDir, "index-cache.json");
 	const cache = loadCache(cachePath);
 
+	const CACHE_INTERVAL = opts.cacheSaveInterval ?? 500;
 	let filesProcessed = 0;
 	let entitiesCreated = 0;
 	let cacheHits = 0;
@@ -140,6 +142,11 @@ export async function indexRepository(
 
 			if (!opts.dryRun) {
 				cache[relPath] = { mtimeMs: stat.mtimeMs };
+				// Periodic cache save for crash recovery
+				if (filesProcessed % CACHE_INTERVAL === 0 && filesProcessed > 0) {
+					mkdirSync(cacheDir, { recursive: true });
+					saveCache(cachePath, cache);
+				}
 			}
 
 			opts.onProgress?.({

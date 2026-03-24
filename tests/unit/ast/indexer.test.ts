@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -115,6 +115,26 @@ describe("indexRepository", () => {
 		expect(progressCalls).toHaveLength(2);
 		expect(progressCalls).toContain("src/a.ts");
 		expect(progressCalls).toContain("src/b.ts");
+	});
+
+	it("should save cache periodically during indexing", async () => {
+		// Create 10 files to exceed the cache save interval (set to 5 for test)
+		const dir = join(repoRoot, "src");
+		mkdirSync(dir, { recursive: true });
+		for (let i = 0; i < 10; i++) {
+			writeFileSync(join(dir, `file${i}.ts`), `export const x${i} = ${i};`);
+		}
+
+		await indexRepository(repoRoot, db, config, {
+			repoHash,
+			cacheSaveInterval: 5,
+		});
+
+		// Cache file should exist and have entries
+		const cachePath = join(config.astCacheDir, repoHash, "index-cache.json");
+		expect(existsSync(cachePath)).toBe(true);
+		const cache = JSON.parse(readFileSync(cachePath, "utf-8"));
+		expect(Object.keys(cache).length).toBeGreaterThanOrEqual(5);
 	});
 
 	it("sets package_path when file is inside packages/*", async () => {
