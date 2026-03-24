@@ -5,6 +5,7 @@ on:
     paths: ['sia-native/**']
   pull_request:
     paths: ['sia-native/**']
+  workflow_dispatch:
 
 jobs:
   build:
