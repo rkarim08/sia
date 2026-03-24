@@ -18,6 +18,7 @@ Commands:
   search               Search the knowledge graph
   stats                Show graph statistics
   reindex              Re-index the repository
+  learn                Build the complete knowledge graph (code + docs + communities)
   community            Show community structure
   doctor               Run diagnostic checks
   digest               Generate session digest
@@ -81,6 +82,17 @@ async function main(): Promise<void> {
 			const { siaReindex } = await import("@/cli/commands/reindex");
 			const result = await siaReindex();
 			console.log(JSON.stringify(result, null, 2));
+			return;
+		}
+		case "learn": {
+			const { siaLearn } = await import("@/cli/commands/learn");
+			const options: Record<string, unknown> = {};
+			if (rest.includes("--incremental")) options.incremental = true;
+			if (rest.includes("--force")) options.force = true;
+			if (rest.includes("--quiet")) options.verbosity = "quiet";
+			if (rest.includes("--interactive")) options.verbosity = "interactive";
+			if (rest.includes("--verbose")) options.verbosity = "verbose";
+			await siaLearn(options as any);
 			return;
 		}
 		case "download-model": {
