@@ -103,7 +103,7 @@ export class GitUpdateStrategy implements UpdateStrategy {
 	}
 
 	update(_target: string): void {
-		const pull = spawnSync("git", ["pull", "origin", "main"], {
+		const pull = spawnSync("git", ["pull", "--ff-only", "origin", "main"], {
 			cwd: this.siaRoot,
 			encoding: "utf-8",
 		});
@@ -180,7 +180,7 @@ export async function handleSiaUpgrade(
 	input: z.infer<typeof SiaUpgradeInput>,
 	config?: { siaRoot?: string; upgradeReleaseUrl?: string },
 ): Promise<SiaUpgradeResult> {
-	const siaRoot = config?.siaRoot ?? process.cwd();
+	const siaRoot = config?.siaRoot ?? process.env.CLAUDE_PLUGIN_ROOT ?? process.cwd();
 	const targetVersion = input.target_version ?? "";
 	const dryRun = input.dry_run ?? false;
 
