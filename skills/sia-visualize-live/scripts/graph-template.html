@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SIA Knowledge Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    :root {
+      --bg-primary: #f5f5f7;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #e5e5e7;
+      --border: #d1d1d6;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --node-decision: #0a84ff;
+      --node-convention: #30d158;
+      --node-bug: #ff453a;
+      --node-solution: #ffd60a;
+      --node-file: #bf5af2;
+      --node-default: #86868b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1d1d1f;
+        --bg-secondary: #2d2d2f;
+        --bg-tertiary: #3d3d3f;
+        --border: #424245;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --accent: #0a84ff;
+      }
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: var(--bg-secondary);
+      padding: 0.5rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .header h1 { font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
+    .header .status { font-size: 0.7rem; color: #34c759; display: flex; align-items: center; gap: 0.4rem; }
+    .header .status::before { content: ''; width: 6px; height: 6px; background: #34c759; border-radius: 50%; }
+
+    .toolbar {
+      background: var(--bg-secondary);
+      padding: 0.4rem 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .toolbar input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      width: 250px;
+    }
+    .toolbar button {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .toolbar button:hover { border-color: var(--accent); }
+    .toolbar button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .content { display: flex; flex: 1; overflow: hidden; }
+
+    #graph-container { flex: 1; position: relative; }
+    #graph-container svg { width: 100%; height: 100%; }
+
+    #sidebar {
+      width: 300px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      padding: 1rem;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: none;
+    }
+    #sidebar.visible { display: block; }
+    #sidebar h3 { font-size: 0.9rem; margin-bottom: 0.5rem; }
+    #sidebar .field { margin-bottom: 0.75rem; }
+    #sidebar .field-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+    #sidebar .field-value { font-size: 0.85rem; margin-top: 0.15rem; word-break: break-word; }
+    #sidebar .trust-tier { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    #sidebar .tier-1 { background: #30d158; color: #000; }
+    #sidebar .tier-2 { background: #0a84ff; color: #fff; }
+    #sidebar .tier-3 { background: #ffd60a; color: #000; }
+    #sidebar .tier-4 { background: #86868b; color: #fff; }
+
+    #legend {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.75rem;
+      z-index: 5;
+    }
+    #legend .legend-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+    #legend .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    .node-label { font-size: 10px; fill: var(--text-secondary); pointer-events: none; }
+    .edge-label { font-size: 8px; fill: var(--text-secondary); pointer-events: none; }
+    .link { stroke: var(--border); stroke-opacity: 0.6; }
+    .link:hover { stroke-opacity: 1; stroke-width: 2px; }
+    .node { cursor: pointer; }
+    .node:hover circle { stroke-width: 3px; }
+    .node.highlighted circle { stroke: var(--accent); stroke-width: 3px; }
+    .node.dimmed { opacity: 0.2; }
+    .link.dimmed { opacity: 0.05; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SIA Knowledge Graph Explorer</h1>
+    <div class="status">Connected</div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Search entities..." />
+    <button data-filter="all" class="active">All</button>
+    <button data-filter="Decision">Decisions</button>
+    <button data-filter="Convention">Conventions</button>
+    <button data-filter="Bug">Bugs</button>
+    <button data-filter="Solution">Solutions</button>
+    <button data-filter="File">Files</button>
+  </div>
+
+  <div class="content">
+    <div id="graph-container">
+      <div id="legend">
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-decision)"></div> Decision</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-convention)"></div> Convention</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-bug)"></div> Bug</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-solution)"></div> Solution</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-file)"></div> File</div>
+        <div class="legend-item"><div class="legend-dot" style="background: var(--node-default)"></div> Other</div>
+      </div>
+    </div>
+    <div id="sidebar">
+      <h3 id="sidebar-title">Select an entity</h3>
+      <div id="sidebar-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const graphData = /* GRAPH_DATA */;
+
+    const typeColors = {
+      Decision: getComputedStyle(document.documentElement).getPropertyValue('--node-decision').trim(),
+      Convention: getComputedStyle(document.documentElement).getPropertyValue('--node-convention').trim(),
+      Bug: getComputedStyle(document.documentElement).getPropertyValue('--node-bug').trim(),
+      Solution: getComputedStyle(document.documentElement).getPropertyValue('--node-solution').trim(),
+      File: getComputedStyle(document.documentElement).getPropertyValue('--node-file').trim(),
+    };
+    const defaultColor = getComputedStyle(document.documentElement).getPropertyValue('--node-default').trim();
+
+    function nodeColor(d) { return typeColors[d.type] || defaultColor; }
+    function nodeRadius(d) { return d.type === 'File' ? 6 : 8; }
+
+    const container = document.getElementById('graph-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const svg = d3.select('#graph-container')
+      .append('svg')
+      .attr('viewBox', [0, 0, width, height]);
+
+    const g = svg.append('g');
+
+    // Zoom/pan
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 10])
+      .on('zoom', (event) => g.attr('transform', event.transform));
+    svg.call(zoom);
+
+    // Build simulation
+    const nodes = (graphData.nodes || []).map(d => ({ ...d }));
+    const links = (graphData.edges || graphData.links || []).map(d => ({
+      ...d,
+      source: d.source_id || d.source,
+      target: d.target_id || d.target,
+    }));
+
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 4));
+
+    // Edges
+    const link = g.append('g')
+      .selectAll('line')
+      .data(links)
+      .join('line')
+      .attr('class', 'link')
+      .attr('stroke-width', 1);
+
+    const edgeLabels = g.append('g')
+      .selectAll('text')
+      .data(links)
+      .join('text')
+      .attr('class', 'edge-label')
+      .attr('text-anchor', 'middle')
+      .text(d => d.edge_type || d.type || '');
+
+    // Nodes
+    const node = g.append('g')
+      .selectAll('g')
+      .data(nodes)
+      .join('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended));
+
+    node.append('circle')
+      .attr('r', d => nodeRadius(d))
+      .attr('fill', d => nodeColor(d))
+      .attr('stroke', d => d3.color(nodeColor(d)).darker(0.5))
+      .attr('stroke-width', 1.5);
+
+    node.append('text')
+      .attr('class', 'node-label')
+      .attr('dx', d => nodeRadius(d) + 4)
+      .attr('dy', '0.35em')
+      .text(d => d.name || d.label || d.id);
+
+    // Click to show details in sidebar
+    node.on('click', (event, d) => {
+      event.stopPropagation();
+      showSidebar(d);
+    });
+
+    svg.on('click', () => hideSidebar());
+
+    simulation.on('tick', () => {
+      link
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+
+      edgeLabels
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2);
+
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    // Drag behavior
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x; d.fy = d.y;
+    }
+    function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null; d.fy = null;
+    }
+
+    // Search — highlights matching nodes
+    document.getElementById('search').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      if (!query) {
+        node.classed('highlighted', false).classed('dimmed', false);
+        link.classed('dimmed', false);
+        return;
+      }
+      const matchIds = new Set();
+      nodes.forEach(n => {
+        if ((n.name || n.label || n.id).toLowerCase().includes(query)) matchIds.add(n.id);
+      });
+      node.classed('highlighted', d => matchIds.has(d.id));
+      node.classed('dimmed', d => !matchIds.has(d.id));
+      link.classed('dimmed', d => !matchIds.has(d.source.id) && !matchIds.has(d.target.id));
+    });
+
+    // Filter buttons — show/dim by entity type
+    document.querySelectorAll('.toolbar button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        if (filter === 'all') {
+          node.classed('dimmed', false);
+          link.classed('dimmed', false);
+        } else {
+          node.classed('dimmed', d => d.type !== filter);
+          link.classed('dimmed', d => d.source.type !== filter && d.target.type !== filter);
+        }
+      });
+    });
+
+    // Sidebar — shows entity details using safe DOM methods
+    function showSidebar(d) {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.add('visible');
+      document.getElementById('sidebar-title').textContent = d.name || d.label || d.id;
+
+      const contentEl = document.getElementById('sidebar-content');
+      contentEl.textContent = ''; // Clear previous content safely
+
+      const fields = [
+        { label: 'Type', value: d.type },
+        { label: 'ID', value: d.id },
+        { label: 'Content', value: d.content },
+        { label: 'Trust Tier', value: d.trust_tier ? 'Tier ' + d.trust_tier : null },
+        { label: 'Valid From', value: d.t_valid_from },
+        { label: 'Valid Until', value: d.t_valid_until || 'current' },
+        { label: 'File Path', value: d.file_path },
+        { label: 'Community', value: d.community_id != null ? 'Community ' + d.community_id : null },
+      ].filter(f => f.value != null);
+
+      fields.forEach(f => {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'field';
+
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'field-label';
+        labelDiv.textContent = f.label;
+
+        const valueDiv = document.createElement('div');
+        valueDiv.className = 'field-value';
+
+        if (f.label === 'Trust Tier' && d.trust_tier) {
+          const span = document.createElement('span');
+          span.className = 'trust-tier tier-' + d.trust_tier;
+          span.textContent = f.value;
+          valueDiv.appendChild(span);
+        } else {
+          valueDiv.textContent = f.value;
+        }
+
+        fieldDiv.appendChild(labelDiv);
+        fieldDiv.appendChild(valueDiv);
+        contentEl.appendChild(fieldDiv);
+      });
+    }
+
+    function hideSidebar() {
+      document.getElementById('sidebar').classList.remove('visible');
+    }
+
+    // WebSocket live reload
+    (function connectWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(proto + '//' + location.host);
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'reload') location.reload();
+        } catch (e) { /* ignore parse errors */ }
+      };
+      ws.onclose = () => setTimeout(connectWS, 2000);
+      ws.onerror = () => ws.close();
+    })();
+  </script>
+</body>
+</html>

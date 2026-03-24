@@ -29,6 +29,20 @@ bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts visualize-live --view deps
 bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts visualize-live --view communities
 ```
 
+## Starting the Visualizer
+
+```bash
+skills/sia-visualize-live/scripts/start-visualizer.sh --project-dir /path/to/project
+```
+
+Open the URL shown in the output. The graph loads automatically.
+
+## Stopping
+
+```bash
+skills/sia-visualize-live/scripts/stop-visualizer.sh $SCREEN_DIR
+```
+
 ## Views
 
 | View | What It Shows |
