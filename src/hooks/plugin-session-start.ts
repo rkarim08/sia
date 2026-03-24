@@ -33,7 +33,28 @@ async function main() {
 		try {
 			const isResume = event.source === "resume";
 			const context = await buildSessionContext(db, cwd, isResume);
-			const formatted = formatSessionContext(context);
+			let formatted = formatSessionContext(context);
+
+			// Load previous session subgraph if resuming
+			if (isResume && event.session_id && event.session_id !== "unknown") {
+				try {
+					const { loadSubgraph } = await import("@/graph/session-resume");
+					const resume = await loadSubgraph(db, event.session_id);
+					if (resume) {
+						const subgraph = JSON.parse(resume.subgraph_json);
+						const entities = subgraph.entities as Array<{ name: string; summary: string; type: string }>;
+						if (entities.length > 0) {
+							formatted += "\n## Previous Session Context\n";
+							formatted += "These entities were active in your previous session:\n\n";
+							for (const entity of entities.slice(0, 10)) {
+								formatted += `- **${entity.name}** (${entity.type}): ${entity.summary || "no summary"}\n`;
+							}
+						}
+					}
+				} catch (err) {
+					process.stderr.write(`sia: session resume load failed (non-fatal): ${err}\n`);
+				}
+			}
 
 			// SessionStart hooks output to stdout — Claude Code injects
 			// the output as context into the conversation.

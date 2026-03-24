@@ -25,6 +25,36 @@ async function main() {
 			const handler = createStopHandler(db);
 			const result = await handler(event);
 			process.stdout.write(JSON.stringify(result));
+
+			// Save session subgraph for resume
+			try {
+				const { saveSubgraph } = await import("@/graph/session-resume");
+
+				const recentNodes = await db.execute(
+					`SELECT id, type, name, summary, kind, trust_tier, file_paths
+					 FROM graph_nodes
+					 WHERE session_id = ? OR last_accessed > ?
+					 ORDER BY last_accessed DESC
+					 LIMIT 20`,
+					[event.session_id, Date.now() - 3600000],
+				);
+
+				const subgraph = {
+					entities: recentNodes.rows,
+					timestamp: Date.now(),
+				};
+
+				await saveSubgraph(
+					db,
+					event.session_id,
+					JSON.stringify(subgraph),
+					null,
+					0,
+				);
+				process.stderr.write("sia: saved session subgraph for resume\n");
+			} catch (err) {
+				process.stderr.write(`sia: session save failed (non-fatal): ${err}\n`);
+			}
 		} finally {
 			await db.close();
 		}
