@@ -17,6 +17,7 @@ Commands:
   sync                 Manual push/pull (sync push, sync pull)
   search               Search the knowledge graph
   stats                Show graph statistics
+  status               Show knowledge graph health dashboard
   reindex              Re-index the repository
   learn                Build the complete knowledge graph (code + docs + communities)
   community            Show community structure
@@ -26,6 +27,7 @@ Commands:
   visualize-live       Launch interactive browser graph visualizer
   prune                Remove archived entities
   export               Export graph to JSON
+  export-knowledge     Generate human-readable KNOWLEDGE.md
   import               Import graph from JSON
   rollback             Restore graph from snapshot
   conflicts            List or resolve entity conflicts
@@ -151,6 +153,16 @@ async function main(): Promise<void> {
 			try {
 				const results = await searchGraph(db, query);
 				console.log(JSON.stringify(results, null, 2));
+			} finally {
+				await db.close();
+			}
+			return;
+		}
+		case "status": {
+			const { runStatus } = await import("@/cli/commands/status");
+			const db = await openDb();
+			try {
+				await runStatus(db);
 			} finally {
 				await db.close();
 			}
