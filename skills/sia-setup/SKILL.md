@@ -7,6 +7,8 @@ description: Guides first-time SIA setup — detects the project, configures the
 
 Welcome to SIA! This wizard gets you set up in one step.
 
+**For detailed phase guide with error recovery:** See [setup-checklist.md](setup-checklist.md)
+
 ## What This Does
 
 1. Detects your project type, languages, and structure
