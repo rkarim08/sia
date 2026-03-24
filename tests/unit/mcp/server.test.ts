@@ -9,6 +9,9 @@ import {
 	SiaExpandInput,
 	SiaFlagInput,
 	SiaSearchInput,
+	SiaSnapshotListInput,
+	SiaSnapshotPruneInput,
+	SiaSnapshotRestoreInput,
 	TOOL_NAMES,
 } from "@/mcp/server";
 import { DEFAULT_CONFIG } from "@/shared/config";
@@ -295,6 +298,51 @@ describe("SiaAstQueryInput", () => {
 
 	it("rejects missing query_type", () => {
 		const result = SiaAstQueryInput.safeParse({ file_path: "a.ts" });
+		expect(result.success).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Snapshot Zod schemas
+// ---------------------------------------------------------------------------
+
+describe("SiaSnapshotListInput", () => {
+	it("accepts empty input", () => {
+		const result = SiaSnapshotListInput.safeParse({});
+		expect(result.success).toBe(true);
+	});
+});
+
+describe("SiaSnapshotRestoreInput", () => {
+	it("accepts valid input", () => {
+		const result = SiaSnapshotRestoreInput.safeParse({ branch_name: "main" });
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects missing branch_name", () => {
+		const result = SiaSnapshotRestoreInput.safeParse({});
+		expect(result.success).toBe(false);
+	});
+});
+
+describe("SiaSnapshotPruneInput", () => {
+	it("accepts valid input", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: ["old-branch", "stale"] });
+		expect(result.success).toBe(true);
+	});
+
+	it("accepts empty array", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: [] });
+		expect(result.success).toBe(true);
+	});
+
+	it("rejects missing branch_names", () => {
+		const result = SiaSnapshotPruneInput.safeParse({});
+		expect(result.success).toBe(false);
+	});
+
+	it("rejects non-array branch_names", () => {
+		const result = SiaSnapshotPruneInput.safeParse({ branch_names: "single-string" });
 		expect(result.success).toBe(false);
 	});
 });

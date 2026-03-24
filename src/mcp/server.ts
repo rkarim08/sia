@@ -870,7 +870,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		{
 			description: "Restore the knowledge graph from a branch snapshot",
 			inputSchema: SiaSnapshotRestoreInput.shape,
-			annotations: { readOnlyHint: false },
+			annotations: { readOnlyHint: false, destructiveHint: true },
 		},
 		async (args) => {
 			if (deps) {

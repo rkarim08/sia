@@ -28,13 +28,13 @@ export function resolveWorktreeRoot(cwd?: string): string | null {
  */
 export function isWorktree(cwd?: string): boolean {
 	try {
-		const opts = {
+		const execOpts = {
 			cwd: cwd ?? process.cwd(),
 			encoding: "utf-8" as const,
-			stdio: ["pipe", "pipe", "pipe"] as const,
+			stdio: ["pipe", "pipe", "pipe"] as ["pipe", "pipe", "pipe"],
 		};
-		const gitDir = execFileSync("git", ["rev-parse", "--git-dir"], opts).trim();
-		const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], opts).trim();
+		const gitDir = execFileSync("git", ["rev-parse", "--git-dir"], execOpts).trim();
+		const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], execOpts).trim();
 		return gitDir !== commonDir && !gitDir.endsWith("/.git") && gitDir !== ".git";
 	} catch {
 		return false;
@@ -58,7 +58,25 @@ export function currentBranch(cwd?: string): string {
 }
 
 /**
+ * Get the previous branch name (the branch checked out before the current one).
+ * Uses `git rev-parse --abbrev-ref @{-1}` which reads the reflog.
+ * Returns empty string if unavailable (e.g., fresh repo, no prior checkout).
+ */
+export function previousBranch(cwd?: string): string {
+	try {
+		return execFileSync("git", ["rev-parse", "--abbrev-ref", "@{-1}"], {
+			cwd: cwd ?? process.cwd(),
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
+	} catch {
+		return "";
+	}
+}
+
+/**
  * Get the current HEAD commit hash (short form).
+ * Returns empty string if not in a git repo or on error.
  */
 export function currentCommit(cwd?: string): string {
 	try {

@@ -396,4 +396,130 @@ describe("branch snapshots", () => {
 		const remaining = await listBranchSnapshots(db);
 		expect(remaining).toHaveLength(0);
 	});
+
+	// ---------------------------------------------------------------
+	// Additional edge-case tests
+	// ---------------------------------------------------------------
+
+	it("should return false when restoring a nonexistent branch", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-noexist", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Existing",
+			content: "Should remain",
+			summary: "Existing entity",
+		});
+
+		const restored = await restoreBranchSnapshot(db, "nonexistent-branch");
+		expect(restored).toBe(false);
+
+		// Graph state should be unchanged
+		const { rows } = await db.execute(
+			"SELECT * FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		);
+		expect(rows).toHaveLength(1);
+		expect(rows[0].name).toBe("Existing");
+	});
+
+	it("should throw on corrupted snapshot_data JSON", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-corrupt", tmpDir);
+
+		// Insert a row with invalid JSON directly
+		await db.execute(
+			`INSERT INTO branch_snapshots (branch_name, commit_hash, node_count, edge_count, snapshot_data, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			["corrupt-branch", "abc1", 0, 0, "NOT VALID JSON{{{", Date.now(), Date.now()],
+		);
+
+		await expect(restoreBranchSnapshot(db, "corrupt-branch")).rejects.toThrow(
+			/Failed to parse branch snapshot for "corrupt-branch"/,
+		);
+	});
+
+	it("should throw on snapshot_data with missing nodes/edges arrays", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-bad-structure", tmpDir);
+
+		await db.execute(
+			`INSERT INTO branch_snapshots (branch_name, commit_hash, node_count, edge_count, snapshot_data, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			["bad-branch", "abc1", 0, 0, JSON.stringify({ nodes: "not-array" }), Date.now(), Date.now()],
+		);
+
+		await expect(restoreBranchSnapshot(db, "bad-branch")).rejects.toThrow(
+			/Invalid snapshot structure/,
+		);
+	});
+
+	it("should handle empty graph snapshot create/restore round-trip", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-empty", tmpDir);
+
+		// Create snapshot of empty graph
+		await createBranchSnapshot(db, "empty-branch", "abc1");
+
+		const snapshots = await listBranchSnapshots(db);
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0].node_count).toBe(0);
+		expect(snapshots[0].edge_count).toBe(0);
+
+		// Add an entity, then restore the empty snapshot
+		await insertEntity(db, {
+			type: "Decision",
+			name: "Temp",
+			content: "Will be removed",
+			summary: "Temp",
+		});
+
+		const restored = await restoreBranchSnapshot(db, "empty-branch");
+		expect(restored).toBe(true);
+
+		const { rows } = await db.execute("SELECT * FROM graph_nodes");
+		expect(rows).toHaveLength(0);
+	});
+
+	it("should return 0 when pruning with empty branch array", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-prune-empty", tmpDir);
+
+		await createBranchSnapshot(db, "keep-me", "abc1");
+
+		const pruned = await pruneBranchSnapshots(db, []);
+		expect(pruned).toBe(0);
+
+		const remaining = await listBranchSnapshots(db);
+		expect(remaining).toHaveLength(1);
+	});
+
+	it("should preserve recent snapshots during GC", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("branch-gc-preserve", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "D1",
+			content: "Test",
+			summary: "Test decision",
+		});
+
+		// Create two snapshots: one old, one recent
+		await createBranchSnapshot(db, "old-branch", "abc1");
+		await createBranchSnapshot(db, "recent-branch", "abc2");
+
+		// Backdate only the old one
+		await db.execute(
+			"UPDATE branch_snapshots SET updated_at = ? WHERE branch_name = ?",
+			[Date.now() - 30 * 24 * 60 * 60 * 1000, "old-branch"],
+		);
+
+		const gc = await gcBranchSnapshots(db, 7);
+		expect(gc).toBe(1);
+
+		const remaining = await listBranchSnapshots(db);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0].branch_name).toBe("recent-branch");
+	});
 });

@@ -52,9 +52,16 @@ export function parseHookPayload(stdin: string): HookPayload {
  * Derive a stable repo identifier from a working directory path.
  * Uses the git worktree root so that all paths within the same repo
  * (including subdirectories) resolve to the same hash.
- * Falls back to realpathSync for non-git directories.
+ * Falls back to realpathSync for non-git directories (with a warning).
  */
 export function resolveRepoHash(cwd: string): string {
-	const root = resolveWorktreeRoot(cwd) ?? realpathSync(cwd);
+	const root = resolveWorktreeRoot(cwd);
+	if (!root) {
+		console.error(
+			`[sia] WARNING: Cannot determine git root for "${cwd}". ` +
+				"Using directory path as repo hash — graph data may diverge if git becomes available later.",
+		);
+		return createHash("sha256").update(realpathSync(cwd)).digest("hex");
+	}
 	return createHash("sha256").update(root).digest("hex");
 }

@@ -2,7 +2,8 @@
 // Plugin hook: Branch switch detection
 //
 // Triggered by PostToolUse on Bash commands matching git checkout/switch.
-// Saves snapshot for the old branch state, restores snapshot for the new branch.
+// Saves a snapshot of the current graph under the old branch name,
+// then restores (or creates) a snapshot for the new branch.
 
 import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
@@ -11,30 +12,22 @@ import {
 	restoreBranchSnapshot,
 } from "@/graph/snapshots";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
-import { currentBranch, currentCommit } from "@/shared/git-utils";
+import { currentBranch, currentCommit, previousBranch } from "@/shared/git-utils";
 
 async function main() {
 	try {
 		const input = await readStdin();
-		if (!input.trim()) {
-			process.exit(0);
-		}
+		if (!input.trim()) return;
 
 		const event = parsePluginHookEvent(input);
 
-		if (event.tool_name !== "Bash") {
-			process.exit(0);
-		}
+		if (event.tool_name !== "Bash") return;
 
 		const command = event.tool_input?.command as string | undefined;
-		if (!command) {
-			process.exit(0);
-		}
+		if (!command) return;
 
 		const isCheckout = /^git\s+(checkout|switch)\b/.test(command);
-		if (!isCheckout) {
-			process.exit(0);
-		}
+		if (!isCheckout) return;
 
 		const cwd = event.cwd || process.cwd();
 		const repoHash = resolveRepoHash(cwd);
@@ -44,10 +37,16 @@ async function main() {
 			const newBranch = currentBranch(cwd);
 			const newCommit = currentCommit(cwd);
 
-			if (!newBranch) {
-				process.exit(0);
+			if (!newBranch) return; // detached HEAD — nothing to snapshot
+
+			// Save current graph state under the OLD branch name before restoring
+			const oldBranch = previousBranch(cwd);
+			if (oldBranch && oldBranch !== newBranch) {
+				await createBranchSnapshot(db, oldBranch, currentCommit(cwd));
+				process.stderr.write(`sia: saved graph snapshot for branch '${oldBranch}'\n`);
 			}
 
+			// Restore snapshot for the new branch, or create an initial one
 			const restored = await restoreBranchSnapshot(db, newBranch);
 
 			if (restored) {
@@ -61,7 +60,6 @@ async function main() {
 		}
 	} catch (err) {
 		process.stderr.write(`sia branch-switch hook error: ${err}\n`);
-		process.exit(0);
 	}
 }
 

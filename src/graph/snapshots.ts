@@ -159,18 +159,20 @@ export async function restoreSnapshot(
 		// Re-insert entities
 		for (const entity of data.entities) {
 			const columns = Object.keys(entity);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => entity[col] ?? null);
-			const sql = `INSERT INTO graph_nodes (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_nodes (${safeColumns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 
 		// Re-insert edges
 		for (const edge of data.edges) {
 			const columns = Object.keys(edge);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => edge[col] ?? null);
-			const sql = `INSERT INTO graph_edges (${columns.join(", ")}) VALUES (${placeholders})`;
+			const sql = `INSERT INTO graph_edges (${safeColumns.join(", ")}) VALUES (${placeholders})`;
 			await tx.execute(sql, values);
 		}
 	});
@@ -227,7 +229,7 @@ export async function createBranchSnapshot(
 		[branchName, commitHash, nodes.length, edges.length, snapshotData, now, now],
 	);
 
-	await writeAuditEntry(db, "ADD", { branch_snapshot: branchName, commit: commitHash });
+	await writeAuditEntry(db, "ADD", { snapshot_id: `branch:${branchName}:${commitHash}` });
 }
 
 /**
@@ -246,10 +248,18 @@ export async function restoreBranchSnapshot(
 
 	if (rows.length === 0) return false;
 
-	const data = JSON.parse(rows[0].snapshot_data as string) as {
-		nodes: Record<string, unknown>[];
-		edges: Record<string, unknown>[];
-	};
+	let data: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+	try {
+		const parsed = JSON.parse(rows[0].snapshot_data as string);
+		if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+			throw new Error("Invalid snapshot structure: missing nodes or edges arrays");
+		}
+		data = parsed;
+	} catch (err) {
+		throw new Error(
+			`Failed to parse branch snapshot for "${branchName}": ${err instanceof Error ? err.message : err}`,
+		);
+	}
 
 	await db.transaction(async (tx) => {
 		await tx.execute("DELETE FROM graph_edges");
@@ -257,26 +267,28 @@ export async function restoreBranchSnapshot(
 
 		for (const node of data.nodes) {
 			const columns = Object.keys(node);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => node[col] ?? null);
 			await tx.execute(
-				`INSERT INTO graph_nodes (${columns.join(", ")}) VALUES (${placeholders})`,
+				`INSERT INTO graph_nodes (${safeColumns.join(", ")}) VALUES (${placeholders})`,
 				values,
 			);
 		}
 
 		for (const edge of data.edges) {
 			const columns = Object.keys(edge);
+			const safeColumns = columns.map((c) => `"${c.replace(/"/g, '""')}"`);
 			const placeholders = columns.map(() => "?").join(", ");
 			const values = columns.map((col) => edge[col] ?? null);
 			await tx.execute(
-				`INSERT INTO graph_edges (${columns.join(", ")}) VALUES (${placeholders})`,
+				`INSERT INTO graph_edges (${safeColumns.join(", ")}) VALUES (${placeholders})`,
 				values,
 			);
 		}
 	});
 
-	await writeAuditEntry(db, "UPDATE", { branch_snapshot_restore: branchName });
+	await writeAuditEntry(db, "UPDATE", { snapshot_id: `branch-restore:${branchName}` });
 	return true;
 }
 
@@ -316,7 +328,7 @@ export async function pruneBranchSnapshots(
 
 	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
 	if (deleted > 0) {
-		await writeAuditEntry(db, "DELETE", { pruned_branch_snapshots: branchNames });
+		await writeAuditEntry(db, "ARCHIVE", { snapshot_id: `branch-prune:${branchNames.join(",")}` });
 	}
 	return deleted;
 }
@@ -346,7 +358,7 @@ export async function gcBranchSnapshots(
 
 	const deleted = Number(before[0].cnt) - Number(after[0].cnt);
 	if (deleted > 0) {
-		await writeAuditEntry(db, "DELETE", { gc_branch_snapshots: deleted, ttl_days: ttlDays });
+		await writeAuditEntry(db, "ARCHIVE", { snapshot_id: `branch-gc:${deleted}:ttl=${ttlDays}d` });
 	}
 	return deleted;
 }

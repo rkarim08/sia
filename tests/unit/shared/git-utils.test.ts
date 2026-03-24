@@ -3,6 +3,7 @@ import {
 	resolveWorktreeRoot,
 	isWorktree,
 	currentBranch,
+	previousBranch,
 	currentCommit,
 	resolveProjectGraphDir,
 	getChangedFiles,
@@ -37,6 +38,18 @@ describe("git-utils", () => {
 			expect(typeof branch).toBe("string");
 			// We're on a feature branch; just verify it's non-empty
 			expect(branch.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe("previousBranch", () => {
+		it("should return a string", () => {
+			const prev = previousBranch();
+			expect(typeof prev).toBe("string");
+		});
+
+		it("should return empty string for non-git directories", () => {
+			const prev = previousBranch("/tmp");
+			expect(prev).toBe("");
 		});
 	});
 
