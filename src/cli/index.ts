@@ -14,6 +14,7 @@ Commands:
   install              Install Sia in the current project
   workspace            Manage workspaces (create, list, add, remove, show)
   team                 Team sync (join, leave, status)
+  sync                 Manual push/pull (sync push, sync pull)
   search               Search the knowledge graph
   stats                Show graph statistics
   reindex              Re-index the repository
@@ -52,6 +53,26 @@ async function main(): Promise<void> {
 		case "community":
 			await runCommunityCommand(rest);
 			return;
+		case "sync": {
+			const { runSync } = await import("@/cli/commands/sync");
+			await runSync(rest);
+			return;
+		}
+		case "team": {
+			const { teamJoin, teamLeave, teamStatus } = await import("@/cli/commands/team");
+			const sub = rest[0];
+			if (sub === "join" && rest.length >= 3) {
+				await teamJoin(rest[1], rest[2]);
+			} else if (sub === "leave") {
+				await teamLeave();
+			} else if (sub === "status") {
+				const status = await teamStatus();
+				console.log(JSON.stringify(status, null, 2));
+			} else {
+				console.error("Usage: sia team <join|leave|status>");
+			}
+			return;
+		}
 		default:
 			console.error(`Unknown command: ${command}. Run 'sia --help' for usage.`);
 	}
