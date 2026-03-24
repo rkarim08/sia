@@ -96,20 +96,48 @@ async function tryTreeSitterExtraction(
 			}
 		}
 
-		// Run imports.scm query
+		// Run imports.scm query — pair @imported_name and @source captures
 		const importsPath = join(queryDir, resolved.queryDir, "imports.scm");
 		if (existsSync(importsPath)) {
 			const matches = service.query(tree, importsPath);
 			for (const match of matches) {
-				for (const cap of match.captures) {
-					const dedupeKey = `import:${cap.text}`;
+				const nameCapture = match.captures.find((c) => c.name === "imported_name");
+				const sourceCapture = match.captures.find((c) => c.name === "source");
+
+				if (nameCapture) {
+					const dedupeKey = `import:${nameCapture.text}`;
 					if (seen.has(dedupeKey)) continue;
 					seen.add(dedupeKey);
 					facts.push({
 						type: "CodeEntity",
-						name: cap.text,
-						content: surroundingLines(content, cap.startIndex),
-						summary: `import ${cap.text} in ${base}`,
+						name: nameCapture.text,
+						content: surroundingLines(content, nameCapture.startIndex),
+						summary: `import ${nameCapture.text} in ${base}`,
+						tags: [langName, "import"],
+						file_paths: [filePath],
+						trust_tier: 2,
+						confidence: 0.95,
+						extraction_method: "tree-sitter",
+						proposed_relationships: sourceCapture
+							? [
+									{
+										target_name: sourceCapture.text.replace(/['"]/g, ""),
+										type: "imports",
+										weight: 0.9,
+									},
+								]
+							: [],
+					});
+				} else if (sourceCapture) {
+					// require() calls only have @source
+					const dedupeKey = `import:${sourceCapture.text}`;
+					if (seen.has(dedupeKey)) continue;
+					seen.add(dedupeKey);
+					facts.push({
+						type: "CodeEntity",
+						name: sourceCapture.text.replace(/['"]/g, ""),
+						content: surroundingLines(content, sourceCapture.startIndex),
+						summary: `import ${sourceCapture.text} in ${base}`,
 						tags: [langName, "import"],
 						file_paths: [filePath],
 						trust_tier: 2,

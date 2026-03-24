@@ -386,7 +386,7 @@ export function extractTierA(content: string, filePath: string): CandidateFact[]
 				}
 
 				const context = surroundingLines(content, m.index);
-				facts.push({
+				const fact: CandidateFact = {
 					type: "CodeEntity",
 					name,
 					content: context,
@@ -396,7 +396,23 @@ export function extractTierA(content: string, filePath: string): CandidateFact[]
 					trust_tier: 2,
 					confidence: 0.92,
 					extraction_method: "regex-ast",
-				});
+				};
+
+				// For imports, extract source module from the matched line
+				if (category === "import") {
+					const lineEnd = content.indexOf("\n", m.index);
+					const line = content.slice(m.index, lineEnd === -1 ? undefined : lineEnd);
+					const fromMatch = /from\s+["']([^"']+)["']/.exec(line);
+					const reqMatch = /require\s*\(\s*["']([^"']+)["']\s*\)/.exec(line);
+					const sourceMod = fromMatch?.[1] ?? reqMatch?.[1];
+					if (sourceMod) {
+						fact.proposed_relationships = [
+							{ target_name: sourceMod, type: "imports", weight: 0.9 },
+						];
+					}
+				}
+
+				facts.push(fact);
 
 				m = regex.exec(content);
 			}
