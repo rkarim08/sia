@@ -137,6 +137,32 @@ describe("indexRepository", () => {
 		expect(Object.keys(cache).length).toBeGreaterThanOrEqual(5);
 	});
 
+	it("should handle batch dedup correctly with multiple symbols per file", async () => {
+		// Create a file with multiple exports (multiple facts)
+		writeFileSync(
+			join(repoRoot, "multi.ts"),
+			`export function alpha() {}\nexport function beta() {}\nexport function gamma() {}\n`,
+		);
+
+		const result1 = await indexRepository(repoRoot, db, config, { repoHash });
+		expect(result1.entitiesCreated).toBeGreaterThanOrEqual(3);
+
+		// Clear cache, modify file, re-index — should update, not duplicate
+		const cachePath = join(config.astCacheDir, repoHash, "index-cache.json");
+		writeFileSync(cachePath, "{}");
+		writeFileSync(
+			join(repoRoot, "multi.ts"),
+			`export function alpha() { /* updated */ }\nexport function beta() {}\nexport function gamma() {}\n`,
+		);
+
+		await indexRepository(repoRoot, db, config, { repoHash });
+		// Should not create new entities — just update existing ones
+		const count = await db.execute(
+			"SELECT COUNT(*) as cnt FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		);
+		expect(Number(count.rows[0]?.cnt)).toBe(result1.entitiesCreated);
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(

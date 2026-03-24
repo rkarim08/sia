@@ -4,6 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, detectPackagePath, toPosixPath } from "@/ast/path-utils";
+import type { CandidateFact } from "@/capture/types";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
@@ -42,6 +43,79 @@ function saveCache(cachePath: string, cache: CacheMap): void {
 	writeFileSync(cachePath, JSON.stringify(cache, null, 2), "utf-8");
 }
 
+const BATCH_SIZE = 100;
+
+interface PendingFact {
+	fact: CandidateFact;
+	relPath: string;
+	packagePath: string | null;
+}
+
+/**
+ * Flush a batch of facts to the database.
+ * Uses a single IN-clause SELECT for dedup, then INSERT/UPDATE per entry.
+ */
+async function flushBatch(db: SiaDb, batch: PendingFact[], dryRun: boolean): Promise<number> {
+	if (batch.length === 0 || dryRun) return 0;
+
+	// Batch dedup: single query with IN clause
+	const names = batch.map((f) => f.fact.name);
+	const placeholders = names.map(() => "?").join(", ");
+	const existing = await db.execute(
+		`SELECT id, name, file_paths FROM graph_nodes
+		 WHERE name IN (${placeholders})
+		 AND t_valid_until IS NULL AND archived_at IS NULL`,
+		names,
+	);
+
+	// Key by name+file_paths composite to handle same-named symbols in different files
+	const existingMap = new Map<string, { id: string; file_paths: string }>();
+	for (const row of existing.rows) {
+		const name = row.name as string;
+		const filePaths = (row.file_paths as string) ?? "";
+		existingMap.set(`${name}::${filePaths}`, {
+			id: row.id as string,
+			file_paths: filePaths,
+		});
+	}
+
+	let created = 0;
+	for (const pending of batch) {
+		const compositeKey = `${pending.fact.name}::${JSON.stringify(pending.fact.file_paths ?? [pending.relPath])}`;
+		// Also check without exact file_paths match — the DB may store differently
+		const match =
+			existingMap.get(compositeKey) ??
+			[...existingMap.entries()].find(
+				([key, _v]) =>
+					key.startsWith(`${pending.fact.name}::`) && _v.file_paths.includes(pending.relPath),
+			)?.[1];
+
+		if (match) {
+			await updateEntity(db, match.id, {
+				content: pending.fact.content,
+				summary: pending.fact.summary,
+				tags: JSON.stringify(pending.fact.tags ?? []),
+			});
+		} else {
+			await insertEntity(db, {
+				type: pending.fact.type,
+				name: pending.fact.name,
+				content: pending.fact.content,
+				summary: pending.fact.summary,
+				tags: JSON.stringify(pending.fact.tags ?? []),
+				file_paths: JSON.stringify(pending.fact.file_paths ?? [pending.relPath]),
+				trust_tier: pending.fact.trust_tier,
+				confidence: pending.fact.confidence,
+				package_path: pending.packagePath,
+				extraction_method: pending.fact.extraction_method ?? null,
+			});
+			created++;
+		}
+	}
+
+	return created;
+}
+
 /** Walk the repository, extract AST facts, and write CodeEntity nodes. */
 export async function indexRepository(
 	repoRoot: string,
@@ -62,6 +136,7 @@ export async function indexRepository(
 	let filesProcessed = 0;
 	let entitiesCreated = 0;
 	let cacheHits = 0;
+	const pendingBatch: PendingFact[] = [];
 
 	const stack: string[] = [root];
 
@@ -109,35 +184,13 @@ export async function indexRepository(
 			const packagePath = detectPackagePath(relPath);
 
 			for (const fact of facts) {
-				if (!opts.dryRun) {
-					// Dedup: check for existing active entity with same name in the same file
-					const existing = await db.execute(
-						`SELECT id FROM graph_nodes
-						 WHERE name = ? AND file_paths LIKE ? AND t_valid_until IS NULL AND archived_at IS NULL`,
-						[fact.name, `%${relPath}%`],
-					);
-					if (existing.rows.length > 0) {
-						await updateEntity(db, existing.rows[0].id as string, {
-							content: fact.content,
-							summary: fact.summary,
-							tags: JSON.stringify(fact.tags ?? []),
-						});
-					} else {
-						await insertEntity(db, {
-							type: fact.type,
-							name: fact.name,
-							content: fact.content,
-							summary: fact.summary,
-							tags: JSON.stringify(fact.tags ?? []),
-							file_paths: JSON.stringify(fact.file_paths ?? [relPath]),
-							trust_tier: fact.trust_tier,
-							confidence: fact.confidence,
-							package_path: packagePath,
-							extraction_method: fact.extraction_method ?? null,
-						});
-					}
-				}
-				entitiesCreated += 1;
+				pendingBatch.push({ fact, relPath, packagePath });
+			}
+
+			// Flush batch when it reaches BATCH_SIZE
+			if (pendingBatch.length >= BATCH_SIZE) {
+				entitiesCreated += await flushBatch(db, pendingBatch, opts.dryRun ?? false);
+				pendingBatch.length = 0;
 			}
 
 			if (!opts.dryRun) {
@@ -158,6 +211,9 @@ export async function indexRepository(
 			});
 		}
 	}
+
+	// Final batch flush
+	entitiesCreated += await flushBatch(db, pendingBatch, opts.dryRun ?? false);
 
 	if (!opts.dryRun) {
 		mkdirSync(cacheDir, { recursive: true });
