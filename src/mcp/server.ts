@@ -225,7 +225,7 @@ async function safeToolCall<T>(
 // ---------------------------------------------------------------------------
 
 export function createMcpServer(deps?: McpServerDeps): McpServer {
-	const server = new McpServer({ name: "sia", version: "0.2.0" });
+	const server = new McpServer({ name: "sia", version: "0.1.0" });
 	// workingMemoryTokenBudget is token-denominated; multiply by ~4 to approximate
 	// a character budget for JSON truncation (1 token ≈ 4 chars in JSON output).
 	const maxChars = deps ? deps.config.workingMemoryTokenBudget * 4 : undefined;
