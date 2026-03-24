@@ -1,14 +1,21 @@
 ---
 name: sia-qa-regression-map
-description: Generates a structured regression risk map from SIA's bug history, dependency graph, and recent changes — highlights which areas are most likely to regress and why
+description: Generates a SCORED regression risk map with numeric risk ratings (0-100) per module — combines bug density, change velocity, and dependency fan-out. Unlike sia-qa-analyst (which gives broad QA recommendations), this agent produces a single ranked table for test prioritization.
 model: sonnet
 whenToUse: |
   Use when QA needs a visual or structured regression risk assessment, especially before releases or after major changes.
 
   <example>
-  Context: QA is planning regression testing before a release.
-  user: "Generate a regression risk map for the v3.0 release"
-  assistant: "I'll use the sia-qa-regression-map to build a risk assessment from the knowledge graph."
+  Context: QA needs to prioritize regression testing after a large refactor.
+  user: "We refactored the payment module — which areas are most likely to break?"
+  assistant: "I'll use the sia-qa-regression-map agent to generate a risk-scored
+  regression map based on bug history and dependency analysis."
+  </example>
+  <example>
+  Context: Sprint planning needs risk data to allocate QA effort.
+  user: "Generate a regression risk map for the next release so QA can focus testing"
+  assistant: "I'll use the sia-qa-regression-map agent to produce a scored risk map
+  showing which modules have the highest regression probability."
   </example>
 tools: Read, Grep, Glob, Bash
 ---
@@ -76,3 +83,12 @@ Risk Score = weighted sum, normalized to 0-100.
 ### Step 4: Recommend Test Priority Order
 
 Test highest risk first. Within each risk level, test by dependency fan-out (changes to high-fan-out areas break the most things).
+
+### Step 5 — Capture Risk Assessment
+
+Record the risk assessment to the knowledge graph:
+
+```
+sia_note({ kind: "Decision", name: "Regression risk assessment: <date>",
+           content: "High-risk: <modules>. Medium-risk: <modules>. Based on bug density, change velocity, and fan-out." })
+```
