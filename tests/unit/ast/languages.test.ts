@@ -39,9 +39,9 @@ describe("languages registry", () => {
 		]);
 	});
 
-	it("contains all 9 Tier B languages", () => {
+	it("contains all 10 Tier B languages", () => {
 		const tierB = byTier("B");
-		expect(tierB).toHaveLength(9);
+		expect(tierB).toHaveLength(10);
 
 		const names = tierB.map((l) => l.name).sort();
 		expect(names).toEqual([
@@ -53,6 +53,7 @@ describe("languages registry", () => {
 			"lua",
 			"ocaml",
 			"perl",
+			"r",
 			"zig",
 		]);
 	});

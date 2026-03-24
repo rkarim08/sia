@@ -219,8 +219,13 @@ const TIER_B: LanguageConfig[] = [
 		tier: "B",
 		extractors: { functions: true, classes: false, imports: true, calls: false },
 	},
-	// R language support removed — tree-sitter-r was flagged as malicious by npm security
-	// and replaced with a security holding package. Re-add when a safe grammar is available.
+	{
+		name: "r",
+		extensions: [".r", ".R"],
+		treeSitterGrammar: "@davisvaughan/tree-sitter-r",
+		tier: "B",
+		extractors: { functions: true, classes: false, imports: true, calls: false },
+	},
 	{
 		name: "ocaml",
 		extensions: [".ml", ".mli"],

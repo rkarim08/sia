@@ -8,6 +8,7 @@
         "@ai-sdk/anthropic": "^3.0.58",
         "@ai-sdk/openai": "^3.0.41",
         "@anthropic-ai/sdk": "^0.79.0",
+        "@davisvaughan/tree-sitter-r": "^1.2.0",
         "@libsql/client": "^0.10.0",
         "@modelcontextprotocol/sdk": "^1.27.1",
         "@napi-rs/keyring": "^1.1.8",
@@ -88,6 +89,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.4.7", "", { "os": "win32", "cpu": "arm64" }, "sha512-hOUHBMlFCvDhu3WCq6vaBoG0dp0LkWxSEnEEsxxXvOa9TfT6ZBnbh72A/xBM7CBYB7WgwqboetzFEVDnMxelyw=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.7", "", { "os": "win32", "cpu": "x64" }, "sha512-qEpGjSkPC3qX4ycbMUthXvi9CkRq7kZpkqMY1OyhmYlYLnANnooDQ7hDerM8+0NJ+DZKVnsIc07h30XOpt7LtQ=="],
+
+    "@davisvaughan/tree-sitter-r": ["@davisvaughan/tree-sitter-r@1.2.0", "", { "dependencies": { "node-addon-api": "^8.2.1", "node-gyp-build": "^4.8.2" }, "peerDependencies": { "tree-sitter": "^0.21.1" }, "optionalPeers": ["tree-sitter"] }, "sha512-KnvUaJJS6h1oCcRaq8fFb/xYyvqodMcE5M48vYmIWW7uOJCFkNwaHdGXuLzTipOWfXGzrKuq4EFRifHphLu9GQ=="],
 
     "@emnapi/core": ["@emnapi/core@1.9.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.0", "tslib": "^2.4.0" } }, "sha512-0DQ98G9ZQZOxfUcQn1waV2yS8aWdZ6kJMbYCJB3oUBecjWYO1fqJ+a1DRfPF3O5JEkwqwP1A9QEN/9mYm2Yd0w=="],
 
