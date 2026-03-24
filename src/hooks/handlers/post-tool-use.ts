@@ -32,6 +32,91 @@ function responseStr(event: HookEvent): string {
 }
 
 // ---------------------------------------------------------------------------
+// Test failure parser
+// ---------------------------------------------------------------------------
+
+/** A structured test failure parsed from test runner output. */
+export interface TestFailure {
+	testName: string;
+	testFile: string;
+	errorMessage: string;
+	sourceFile?: string;
+	sourceLine?: number;
+}
+
+const TEST_COMMAND_RE = /\b(test|vitest|jest|pytest|mocha)\b/;
+
+/**
+ * Parse structured test failures from test runner output.
+ * Supports vitest/jest and pytest output formats.
+ */
+export function parseTestFailures(output: string, command: string): TestFailure[] {
+	if (!TEST_COMMAND_RE.test(command)) return [];
+
+	const failures: TestFailure[] = [];
+
+	// --- Vitest/Jest format ---
+	// Matches: ❯ path/to/test.ts (N tests | M failed)
+	// Then:    × test name
+	//          → ErrorType: message
+	//          ❯ source.ts:line:col
+	const vitestBlockRe = /❯\s+(\S+\.(?:test|spec)\.\S+)\s+\([^)]*failed[^)]*\)/g;
+	let blockMatch: RegExpExecArray | null = vitestBlockRe.exec(output);
+	while (blockMatch !== null) {
+		const testFile = blockMatch[1];
+		// Find the region of this test file block
+		const blockStart = blockMatch.index + blockMatch[0].length;
+		const nextBlock = output.indexOf("\n ❯ ", blockStart);
+		const blockEnd = nextBlock === -1 ? output.length : nextBlock;
+		const blockText = output.slice(blockStart, blockEnd);
+
+		// Find individual failed tests: × test name
+		const failRe = /×\s+(.+)/g;
+		let failMatch: RegExpExecArray | null = failRe.exec(blockText);
+		while (failMatch !== null) {
+			const testName = failMatch[1].trim();
+			// Look for error message after the test name (→ ErrorType: msg)
+			const afterFail = blockText.slice(failMatch.index + failMatch[0].length);
+			const errorLineMatch = afterFail.match(/→\s+(.+)/);
+			const errorMessage = errorLineMatch ? errorLineMatch[1].trim() : "Test failed";
+
+			// Look for source file in stack trace (❯ path:line:col, skip test files)
+			const stackLines = afterFail.match(/❯\s+(\S+):(\d+):\d+/g) ?? [];
+			let sourceFile: string | undefined;
+			let sourceLine: number | undefined;
+			for (const sl of stackLines) {
+				const m = sl.match(/❯\s+(\S+):(\d+):\d+/);
+				if (m && !m[1].match(/\.(test|spec)\./)) {
+					sourceFile = m[1];
+					sourceLine = Number.parseInt(m[2], 10);
+					break;
+				}
+			}
+
+			failures.push({ testName, testFile, errorMessage, sourceFile, sourceLine });
+			failMatch = failRe.exec(blockText);
+		}
+
+		blockMatch = vitestBlockRe.exec(output);
+	}
+
+	// --- Pytest format ---
+	// FAILED path::test_name - ErrorType: message
+	const pytestRe = /^FAILED\s+(\S+)::(\S+)\s+-\s+(.+)$/gm;
+	let pytestMatch: RegExpExecArray | null = pytestRe.exec(output);
+	while (pytestMatch !== null) {
+		failures.push({
+			testName: pytestMatch[2],
+			testFile: pytestMatch[1],
+			errorMessage: pytestMatch[3].trim(),
+		});
+		pytestMatch = pytestRe.exec(output);
+	}
+
+	return failures;
+}
+
+// ---------------------------------------------------------------------------
 // Tool-specific handlers
 // ---------------------------------------------------------------------------
 
@@ -156,24 +241,56 @@ async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		}
 	}
 
-	// Detect errors in output
-	const hasError =
-		/\bError\b/i.test(output) ||
-		/\bfailed\b/i.test(output) ||
-		/\bFATAL\b/.test(output) ||
-		/\bpanic\b/i.test(output);
+	// Detect structured test failures from test runner output
+	const testFailures = parseTestFailures(output, command);
+	for (const failure of testFailures) {
+		const filePaths = [failure.testFile];
+		if (failure.sourceFile) filePaths.push(failure.sourceFile);
 
-	if (hasError && !commitMatch) {
+		const content = [
+			`Test: ${failure.testName}`,
+			`File: ${failure.testFile}`,
+			`Error: ${failure.errorMessage}`,
+			failure.sourceFile ? `Source: ${failure.sourceFile}:${failure.sourceLine ?? "?"}` : null,
+		]
+			.filter(Boolean)
+			.join("\n");
+
 		await insertEntity(db, {
 			type: "Bug",
-			name: `Error: ${command.slice(0, 60)}`,
-			content: output.slice(0, 2000),
-			summary: `Error detected running: ${command.slice(0, 100)}`,
-			confidence: 0.7,
-			extraction_method: "hook:post-tool-use:error",
+			name: `${failure.testName}: ${failure.errorMessage.slice(0, 60)}`,
+			content,
+			summary: `Test failure in ${failure.testFile}: ${failure.testName}`,
+			trust_tier: 2,
+			confidence: 0.95,
+			file_paths: JSON.stringify(filePaths),
+			extraction_method: "hook:post-tool-use:test-runner",
 			source_episode: event.session_id,
+			kind: "Bug",
 		});
 		nodesCreated++;
+	}
+
+	// Detect errors in output (skip if structured test failures were found)
+	if (testFailures.length === 0) {
+		const hasError =
+			/\bError\b/i.test(output) ||
+			/\bfailed\b/i.test(output) ||
+			/\bFATAL\b/.test(output) ||
+			/\bpanic\b/i.test(output);
+
+		if (hasError && !commitMatch) {
+			await insertEntity(db, {
+				type: "Bug",
+				name: `Error: ${command.slice(0, 60)}`,
+				content: output.slice(0, 2000),
+				summary: `Error detected running: ${command.slice(0, 100)}`,
+				confidence: 0.7,
+				extraction_method: "hook:post-tool-use:error",
+				source_episode: event.session_id,
+			});
+			nodesCreated++;
+		}
 	}
 
 	return { status: "processed", nodes_created: nodesCreated };
