@@ -83,15 +83,19 @@ export async function handleSiaIndex(
 				const entityId = row.id as string;
 				const entityName = row.name as string;
 				if (entityName && chunkText.includes(entityName)) {
-					await insertEdge(db, {
-						from_id: chunkNodeId,
-						to_id: entityId,
-						type: "references",
-						weight: 1.0,
-						confidence: 0.7,
-						trust_tier: 3,
-					});
-					referenceCount++;
+					try {
+						await insertEdge(db, {
+							from_id: chunkNodeId,
+							to_id: entityId,
+							type: "references",
+							weight: 1.0,
+							confidence: 0.7,
+							trust_tier: 3,
+						});
+						referenceCount++;
+					} catch (edgeErr) {
+						console.error(`[sia-index] edge insert failed for ${chunkNodeId}->${entityId}: ${(edgeErr as Error).message}`);
+					}
 				}
 			}
 		}

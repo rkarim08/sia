@@ -64,6 +64,7 @@ async function main() {
 		}
 	} catch (err) {
 		process.stderr.write(`sia branch-switch hook error: ${err}\n`);
+		process.exit(0);
 	}
 }
 
