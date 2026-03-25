@@ -82,6 +82,23 @@ describe("handleSiaIndex", () => {
 		expect(rows).toHaveLength(2);
 	});
 
+	it("executes with null embedder", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("sia-index-null-emb", tmpDir);
+
+		// sia_index accepts _embedder but never uses it
+		// This test verifies it doesn't crash when embedder is null
+		const result = await handleSiaIndex(
+			db,
+			{ content: "# Test\nSome test content", source: "test-doc" },
+			null,
+			"session-null-emb",
+		);
+
+		expect(result).toBeDefined();
+		expect(result.indexed).toBeGreaterThanOrEqual(0);
+	});
+
 	it("returns 0 for empty content", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("sia-index-empty", tmpDir);

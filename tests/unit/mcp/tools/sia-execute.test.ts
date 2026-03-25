@@ -86,6 +86,41 @@ describe("handleSiaExecute", () => {
 		expect(result.contextMode).toBeUndefined();
 	});
 
+	it("warns on stderr when context mode skipped due to null embedder", async () => {
+		const deps = setup();
+		const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+		// Use a low threshold so we don't need huge inline strings
+		const code = 'for i in $(seq 1 50); do echo "Line $i: some padded output text here"; done';
+		const result = await handleSiaExecute(
+			db,
+			{
+				code,
+				language: "bash",
+				intent: "find something",
+			},
+			null,
+			deps.throttle,
+			deps.sessionId,
+			{
+				sandboxTimeoutMs: 10000,
+				sandboxOutputMaxBytes: 1_048_576,
+				contextModeThreshold: 100,
+				contextModeTopK: 5,
+			},
+		);
+
+		expect(result.stdout).toBeDefined();
+		expect(result.stdout!.length).toBeGreaterThan(100);
+		expect(result.contextMode).toBeUndefined();
+
+		expect(stderrSpy).toHaveBeenCalledWith(
+			expect.stringContaining("context mode skipped"),
+		);
+
+		stderrSpy.mockRestore();
+	});
+
 	it("applies context mode for large output with intent", async () => {
 		const deps = setup();
 		const code = 'for i in $(seq 1 500); do echo "Log line $i: normal operation"; done';
