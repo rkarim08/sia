@@ -196,10 +196,14 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 				}
 				proc.kill("SIGKILL");
 			}
+			// After the kill attempt, clean up stdout/stderr listeners
+			proc.stdout.removeAllListeners();
+			proc.stderr.removeAllListeners();
 		}, opts.timeout);
 
 		proc.on("close", (code) => {
 			clearTimeout(timer);
+			proc.removeAllListeners();
 			try {
 				rmSync(tmpDir, { recursive: true, force: true });
 			} catch (e) {
@@ -217,6 +221,7 @@ export async function executeSubprocess(opts: SubprocessOpts): Promise<Subproces
 
 		proc.on("error", (err) => {
 			clearTimeout(timer);
+			proc.removeAllListeners();
 			try {
 				rmSync(tmpDir, { recursive: true, force: true });
 			} catch (e) {
