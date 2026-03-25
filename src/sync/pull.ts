@@ -204,8 +204,10 @@ export async function pullChanges(
 						.prepare("INSERT OR REPLACE INTO graph_nodes_vss(rowid, embedding) VALUES (?, ?)")
 						.run(row.rowid, row.embedding);
 					vssRefreshed++;
-				} catch {
-					// Ignore individual VSS insert failures
+				} catch (err) {
+					process.stderr.write(
+						`sia: VSS insert skipped for rowid ${row.rowid}: ${err instanceof Error ? err.message : String(err)}\n`,
+					);
 				}
 			}
 
@@ -214,8 +216,10 @@ export async function pullChanges(
 					await writeAuditEntry(db, "VSS_REFRESH", { entity_id: String(row.rowid) });
 				}
 			}
-		} catch {
-			// Ignore if extension/table not available
+		} catch (err) {
+			process.stderr.write(
+				`sia: VSS refresh unavailable — embeddings not indexed: ${err instanceof Error ? err.message : String(err)}\n`,
+			);
 		}
 	} else if (!sqlite && processedEntityIds.length > 0) {
 		console.warn("rawSqlite() returned null — skipping VSS refresh for received entities");
