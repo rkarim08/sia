@@ -41,7 +41,7 @@
 		"test:tree-sitter-bun": "bun test tests/bun/tree-sitter-smoke.test.ts",
 		"postinstall": "bash scripts/postinstall.sh",
 		"prepublishOnly": "bun run typecheck && bun run test",
-		"version": "node --input-type=commonjs -e \"const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); const c=JSON.parse(fs.readFileSync('.claude-plugin/plugin.json','utf8')); c.version=p.version; fs.writeFileSync('.claude-plugin/plugin.json',JSON.stringify(c,null,2)+'\\n')\" && git add .claude-plugin/plugin.json"
+		"version": "node --input-type=commonjs -e \"const fs=require('fs'); const v=JSON.parse(fs.readFileSync('package.json','utf8')).version; const sync=(f)=>{const j=JSON.parse(fs.readFileSync(f,'utf8'));j.version=v;if(j.metadata)j.metadata.version=v;if(j.plugins)j.plugins.forEach(p=>p.version=v);fs.writeFileSync(f,JSON.stringify(j,null,2)+'\\n')}; sync('.claude-plugin/plugin.json'); sync('.claude-plugin/marketplace.json')\" && git add .claude-plugin/plugin.json .claude-plugin/marketplace.json"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.58",

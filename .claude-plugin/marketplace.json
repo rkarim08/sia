@@ -5,14 +5,14 @@
 	},
 	"metadata": {
 		"description": "Sia — persistent graph memory for AI coding agents",
-		"version": "1.0.0"
+		"version": "1.0.8"
 	},
 	"plugins": [
 		{
 			"name": "sia",
 			"source": "./",
 			"description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
-			"version": "1.0.0",
+			"version": "1.0.8",
 			"author": {
 				"name": "Ramez Karim"
 			},
