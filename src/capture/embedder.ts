@@ -15,6 +15,7 @@ const MAX_SEQ_LENGTH = 128;
  */
 export interface Embedder {
 	embed(text: string, trustTier?: number): Promise<Float32Array | null>;
+	embedBatch(texts: string[]): Promise<(Float32Array | null)[]>;
 	close(): void;
 }
 
@@ -107,6 +108,16 @@ export function createEmbedder(modelPath: string, tokenizerPath: string): Embedd
 
 			// Mean pooling: average only non-padding token vectors
 			return meanPoolAndNormalize(hiddenData, attentionMask, seqLen, EMBEDDING_DIM);
+		},
+
+		async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
+			const results: (Float32Array | null)[] = [];
+			for (let i = 0; i < texts.length; i += 16) {
+				const batch = texts.slice(i, i + 16);
+				const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
+				results.push(...batchResults);
+			}
+			return results;
 		},
 
 		close(): void {

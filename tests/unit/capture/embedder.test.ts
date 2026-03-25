@@ -141,4 +141,43 @@ describe("embedder", () => {
 		const result2 = await embedder.embed("test");
 		expect(result2).toBeNull();
 	});
+
+	// ---------------------------------------------------------------
+	// embedBatch — batch embedding
+	// ---------------------------------------------------------------
+
+	it("embedBatch returns an array of results matching input length", async () => {
+		const embedder = createEmbedder("/nonexistent/model.onnx", "/nonexistent/tokenizer.json");
+
+		const results = await embedder.embedBatch(["hello", "world", "test"]);
+		expect(results).toHaveLength(3);
+		// All null since model doesn't exist
+		expect(results[0]).toBeNull();
+		expect(results[1]).toBeNull();
+		expect(results[2]).toBeNull();
+	});
+
+	it("embedBatch handles empty input", async () => {
+		const embedder = createEmbedder("/nonexistent/model.onnx", "/nonexistent/tokenizer.json");
+
+		const results = await embedder.embedBatch([]);
+		expect(results).toHaveLength(0);
+	});
+
+	it("embedBatch handles large batches (more than 16 items)", async () => {
+		const embedder = createEmbedder("/nonexistent/model.onnx", "/nonexistent/tokenizer.json");
+
+		const texts = Array.from({ length: 20 }, (_, i) => `text ${i}`);
+		const results = await embedder.embedBatch(texts);
+		expect(results).toHaveLength(20);
+		// All null since model doesn't exist
+		for (const r of results) {
+			expect(r).toBeNull();
+		}
+	});
+
+	it("embedBatch method exists on Embedder interface", () => {
+		const embedder = createEmbedder("/nonexistent/model.onnx", "/nonexistent/tokenizer.json");
+		expect(typeof embedder.embedBatch).toBe("function");
+	});
 });

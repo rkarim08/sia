@@ -10,12 +10,20 @@ import { applyContextMode, contentTypeChunker, lineChunker } from "@/sandbox/con
 
 function makeMockEmbedder(): Embedder {
 	let callCount = 0;
+	const embedFn = vi.fn(async () => {
+		callCount++;
+		const arr = new Float32Array(384);
+		arr[0] = callCount * 0.1;
+		return arr;
+	});
 	return {
-		embed: vi.fn(async () => {
-			callCount++;
-			const arr = new Float32Array(384);
-			arr[0] = callCount * 0.1;
-			return arr;
+		embed: embedFn,
+		embedBatch: vi.fn(async (texts: string[]) => {
+			const results: (Float32Array | null)[] = [];
+			for (const _t of texts) {
+				results.push(await embedFn());
+			}
+			return results;
 		}),
 		close: vi.fn(),
 	};

@@ -4,8 +4,10 @@ import { createCachedEmbedder } from "@/capture/embedding-cache";
 
 /** Create a mock Embedder whose embed returns a deterministic Float32Array. */
 function mockEmbedder(): Embedder {
+	const embedFn = vi.fn(async (_text: string, _trustTier?: number) => new Float32Array([1, 2, 3]));
 	return {
-		embed: vi.fn(async (_text: string, _trustTier?: number) => new Float32Array([1, 2, 3])),
+		embed: embedFn,
+		embedBatch: vi.fn(async (texts: string[]) => texts.map(() => new Float32Array([1, 2, 3]))),
 		close: vi.fn(),
 	};
 }

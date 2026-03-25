@@ -16,6 +16,7 @@ function makeTmp(): string {
 
 const mockEmbedder = {
 	embed: vi.fn(async () => new Float32Array(384)),
+	embedBatch: vi.fn(async (texts: string[]) => texts.map(() => new Float32Array(384))),
 	close: vi.fn(),
 };
 

@@ -12,7 +12,8 @@ import { handleSiaBatchExecute } from "@/mcp/tools/sia-batch-execute";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
 
 function makeMockEmbedder(): Embedder {
-	return { embed: vi.fn(async () => new Float32Array(384)), close: vi.fn() };
+	const embedFn = vi.fn(async () => new Float32Array(384));
+	return { embed: embedFn, embedBatch: vi.fn(async (texts: string[]) => texts.map(() => new Float32Array(384))), close: vi.fn() };
 }
 
 describe("handleSiaBatchExecute", () => {
