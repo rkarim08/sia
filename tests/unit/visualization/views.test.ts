@@ -33,10 +33,10 @@ describe("graph explorer view", () => {
 		expect(html).toContain("</html>");
 	});
 
-	it("includes D3.js CDN link", () => {
+	it("includes Sigma.js and Graphology CDN links", () => {
 		const html = generateGraphExplorerHtml(makeTestData());
-		expect(html).toContain("d3.v7");
-		expect(html).toContain("https://d3js.org/d3.v7.min.js");
+		expect(html).toContain("sigma");
+		expect(html).toContain("graphology");
 	});
 
 	it("includes node data in script", () => {
@@ -47,11 +47,10 @@ describe("graph explorer view", () => {
 		expect(html).toContain("Test Node 1");
 	});
 
-	it("includes trust tier filter controls", () => {
+	it("includes trust tier reference", () => {
 		const html = generateGraphExplorerHtml(makeTestData());
-		expect(html).toContain("Trust Tier");
-		// Should have tier checkboxes or filter controls
-		expect(html).toContain("tier");
+		// Sigma renderer stores trust_tier on node attributes
+		expect(html).toContain("trust_tier");
 	});
 
 	it("includes search box", () => {
@@ -62,16 +61,16 @@ describe("graph explorer view", () => {
 
 	it("includes entity detail panel", () => {
 		const html = generateGraphExplorerHtml(makeTestData());
-		expect(html).toContain("info-panel");
-		expect(html).toContain("info-name");
+		expect(html).toContain("node-detail");
+		expect(html).toContain("detail-name");
 	});
 
-	it("includes type filter checkboxes", () => {
+	it("includes type filter controls", () => {
 		const data = makeTestData();
 		const html = generateGraphExplorerHtml(data);
 		expect(html).toContain("FileNode");
 		expect(html).toContain("Decision");
-		expect(html).toContain("applyFilters");
+		expect(html).toContain("node-type-filters");
 	});
 
 	it("accepts custom title", () => {

@@ -55,37 +55,28 @@ describe("graph renderer", () => {
 	});
 
 	// ---------------------------------------------------------------
-	// Includes D3 CDN link
+	// Includes Sigma.js and Graphology CDN links
 	// ---------------------------------------------------------------
 
-	it("includes D3 CDN link", () => {
+	it("includes Sigma.js and Graphology CDN links", () => {
 		const html = renderGraphHtml({ nodes: [], edges: [] });
-		expect(html).toContain("d3.v7");
-		expect(html).toContain("https://d3js.org/d3.v7.min.js");
+		expect(html).toContain("sigma");
+		expect(html).toContain("graphology");
 	});
 
 	// ---------------------------------------------------------------
-	// Includes color legend
+	// Includes type colors for node categories
 	// ---------------------------------------------------------------
 
-	it("includes color legend", () => {
+	it("includes type colors for node categories", () => {
 		const html = renderGraphHtml({ nodes: [], edges: [] });
 
-		// Structural category
-		expect(html).toContain("Structural");
-		expect(html).toContain("#4A90D9");
-
-		// Semantic category
-		expect(html).toContain("Semantic");
-		expect(html).toContain("#5DB85D");
-
-		// Community category
+		// Structural type
+		expect(html).toContain("FileNode");
+		// Semantic type
+		expect(html).toContain("Decision");
+		// Community type
 		expect(html).toContain("Community");
-		expect(html).toContain("#9B59B6");
-
-		// Content category
-		expect(html).toContain("Content");
-		expect(html).toContain("#E67E22");
 	});
 
 	// ---------------------------------------------------------------
