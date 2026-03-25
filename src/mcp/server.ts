@@ -3,6 +3,7 @@
 // Read-heavy against graph.db. Write paths: session_flags (sia_flag),
 // graph entities/edges (sia_note), sandbox results (sia_execute*).
 
+import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -709,6 +710,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					"sia_upgrade",
 					() =>
 						handleSiaUpgrade(deps.graphDb, args, {
+							siaRoot: join(import.meta.dir, "../.."),
 							upgradeReleaseUrl: deps.config.upgradeReleaseUrl ?? undefined,
 						}),
 					maxChars,

@@ -7,4 +7,5 @@ PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 
 source "$PLUGIN_ROOT/scripts/ensure-runtime.sh" "$PLUGIN_ROOT"
 
+export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
 exec bun run "$PLUGIN_ROOT/scripts/start-mcp.ts"
