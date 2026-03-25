@@ -70,18 +70,6 @@
 				]
 			}
 		],
-		"PostCompact": [
-			{
-				"matcher": "",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/post-compact.sh",
-						"timeout": 3000
-					}
-				]
-			}
-		],
 		"SessionEnd": [
 			{
 				"matcher": "",
