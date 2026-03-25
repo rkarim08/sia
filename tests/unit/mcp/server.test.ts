@@ -8,6 +8,7 @@ import {
 	SiaCommunityInput,
 	SiaExpandInput,
 	SiaFlagInput,
+	SiaImpactInput,
 	SiaSearchInput,
 	SiaSnapshotListInput,
 	SiaSnapshotPruneInput,
@@ -47,17 +48,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(21);
+		expect(Object.keys(registered)).toHaveLength(22);
 	});
 
-	it("registers all 21 tools", () => {
+	it("registers all 22 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(21);
+		expect(registeredNames).toHaveLength(22);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -83,6 +84,7 @@ describe("createMcpServer", () => {
 			"sia_upgrade",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_impact",
 			"sia_snapshot_list",
 			"sia_snapshot_restore",
 			"sia_snapshot_prune",
@@ -107,6 +109,7 @@ describe("createMcpServer", () => {
 			"sia_doctor",
 			"sia_sync_status",
 			"sia_ast_query",
+			"sia_impact",
 			"sia_snapshot_list",
 		];
 		const writeTools = [

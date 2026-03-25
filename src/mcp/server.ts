@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { getNextStepHint } from "@/mcp/next-step-hints";
 import {
 	handleSiaAstQuery,
 	type SiaAstQueryInput as SiaAstQueryHandlerInput,
@@ -233,10 +234,11 @@ async function safeToolCall<T>(
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
 	try {
 		const result = await fn();
+		const hint = getNextStepHint(toolName);
+		const resultText = JSON.stringify(truncateResponse(result, maxChars));
+		const text = hint ? `${resultText}\n\n${hint}` : resultText;
 		return {
-			content: [
-				{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
-			],
+			content: [{ type: "text" as const, text }],
 		};
 	} catch (err) {
 		console.error(`[sia] ${toolName} error:`, err);
