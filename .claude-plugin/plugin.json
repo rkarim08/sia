@@ -6,14 +6,9 @@
 		"name": "Ramez Karim"
 	},
 	"license": "Apache-2.0",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/rkarim08/sia"
-	},
+	"repository": "https://github.com/rkarim08/sia",
 	"homepage": "https://github.com/rkarim08/sia#readme",
-	"bugs": {
-		"url": "https://github.com/rkarim08/sia/issues"
-	},
+	"bugs": "https://github.com/rkarim08/sia/issues",
 	"keywords": [
 		"claude-code",
 		"plugin",
