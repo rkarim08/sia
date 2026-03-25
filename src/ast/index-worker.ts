@@ -5,7 +5,7 @@
 // extracted facts. Includes per-file retry with exponential backoff.
 //
 // This module exports parseFileWithRetry for direct testing.
-// When run as a worker thread, it listens on parentPort for messages.
+// When run as a worker thread, it listens on parentPort (Node) or self.onmessage (Bun) for messages.
 
 import { readFileSync, statSync } from "node:fs";
 import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
@@ -78,31 +78,27 @@ export async function parseFileWithRetry(absPath: string, relPath: string): Prom
 	};
 }
 
-// --- Worker thread message handler ---
-// Only activates when this module is loaded as a worker thread.
-
-async function setupWorkerHandler() {
+// --- Worker thread auto-setup ---
+// Bun: use Web Worker API (self.onmessage). Checked first because bun also
+// exposes node:worker_threads which would falsely match the Node path.
+// Node: use worker_threads parentPort.
+if (typeof globalThis.Bun !== "undefined") {
+	if (typeof self !== "undefined" && typeof self.postMessage === "function") {
+		self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
+			const result = await parseFileWithRetry(event.data.absPath, event.data.relPath);
+			self.postMessage(result);
+		};
+	}
+} else {
 	try {
-		const { parentPort } = await import("node:worker_threads");
-		if (parentPort) {
-			parentPort.on("message", async (msg: WorkerMessage) => {
+		const wt = require("node:worker_threads") as typeof import("node:worker_threads");
+		if (!wt.isMainThread && wt.parentPort) {
+			wt.parentPort.on("message", async (msg: WorkerMessage) => {
 				const result = await parseFileWithRetry(msg.absPath, msg.relPath);
-				parentPort.postMessage(result);
+				wt.parentPort!.postMessage(result);
 			});
 		}
 	} catch {
-		// Not running as a worker thread — ignore (module is being imported for testing)
+		// Not in a worker context (imported for testing) — ignore
 	}
-}
-
-// Worker thread auto-setup.
-// Only activate when loaded as a worker — detected synchronously via require().
-// This avoids top-level await which breaks in Node/Vitest ESM context.
-try {
-	const wt = require("node:worker_threads") as typeof import("node:worker_threads");
-	if (!wt.isMainThread) {
-		setupWorkerHandler();
-	}
-} catch {
-	// Not in a worker context (imported for testing) — ignore
 }
