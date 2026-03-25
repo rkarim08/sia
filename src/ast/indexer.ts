@@ -51,7 +51,7 @@ function saveCache(cachePath: string, cache: CacheMap): void {
 
 const BATCH_SIZE = 100;
 
-interface PendingFact {
+export interface PendingFact {
 	fact: CandidateFact;
 	relPath: string;
 	packagePath: string | null;
@@ -215,7 +215,7 @@ async function processResult(
 /**
  * Resolve proposed_relationships on inserted entities into actual graph edges.
  */
-async function createEdgesFromRelationships(
+export async function createEdgesFromRelationships(
 	db: SiaDb,
 	allProcessedFacts: PendingFact[],
 ): Promise<number> {
@@ -257,7 +257,7 @@ async function createEdgesFromRelationships(
 		if (!pending.fact.proposed_relationships?.length || !pending.entityId) continue;
 		for (const rel of pending.fact.proposed_relationships) {
 			const targetId = nameMap.get(rel.target_name);
-			if (targetId) {
+			if (targetId && targetId !== pending.entityId) {
 				await insertEdge(db, {
 					from_id: pending.entityId,
 					to_id: targetId,
