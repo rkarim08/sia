@@ -28,7 +28,7 @@ function contentHash(text: string): string {
  *   returns null immediately (Tier 4 content is never embedded).
  */
 export function createCachedEmbedder(inner: Embedder, opts?: CacheOpts): Embedder {
-	const maxSize = opts?.maxSize ?? 1000;
+	const maxSize = Math.max(1, opts?.maxSize ?? 1000);
 	const noEmbed = opts?.noEmbed ?? false;
 	const paranoid = opts?.paranoid ?? false;
 
