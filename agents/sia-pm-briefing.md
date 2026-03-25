@@ -22,7 +22,7 @@ whenToUse: |
   user: "I need to brief leadership on project status. What should I report?"
   assistant: "I'll use the sia-pm-briefing to compile key decisions, risks, and progress."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_community, mcp__sia__sia_search
 ---
 
 # SIA PM Briefing Agent — Project Status Intelligence

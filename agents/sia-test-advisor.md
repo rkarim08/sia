@@ -16,7 +16,7 @@ whenToUse: |
   user: "What edge cases should I test for the auth module?"
   assistant: "Let me use the sia-test-advisor to find historical bugs and failure patterns."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Test Advisor — Graph-Informed Test Strategy

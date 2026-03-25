@@ -22,7 +22,7 @@ whenToUse: |
   user: "Users are reporting they can't upload files anymore"
   assistant: "I'll use the sia-debug agent to investigate the upload regression."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Debug Agent — Reactive Bug Investigation

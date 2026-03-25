@@ -57,7 +57,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export async function handleSiaBatchExecute(
 	db: SiaDb,
 	input: z.infer<typeof SiaBatchExecuteInput>,
-	_embedder: Embedder,
+	_embedder: Embedder | null,
 	throttle: ProgressiveThrottle,
 	sessionId: string,
 	config?: { timeoutPerOp?: number },

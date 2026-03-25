@@ -16,7 +16,7 @@ whenToUse: |
   user: "I'm moving from frontend to the backend team. What do I need to know?"
   assistant: "Let me use the sia-onboarding agent to brief you on the backend area."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_community, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Onboarding Agent — New Team Member Guide

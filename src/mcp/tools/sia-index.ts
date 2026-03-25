@@ -30,7 +30,7 @@ export interface SiaIndexResult {
 export async function handleSiaIndex(
 	db: SiaDb,
 	input: z.infer<typeof SiaIndexInput>,
-	_embedder: Embedder,
+	_embedder: Embedder | null,
 	sessionId: string,
 ): Promise<SiaIndexResult> {
 	const { content, source, tags } = input;

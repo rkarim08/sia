@@ -43,7 +43,7 @@ export interface SiaExecuteResult {
 export async function handleSiaExecute(
 	db: SiaDb,
 	input: SiaExecuteInput,
-	embedder: Embedder,
+	embedder: Embedder | null,
 	throttle: ProgressiveThrottle,
 	sessionId: string,
 	config?: Partial<SiaExecuteConfig>,
@@ -68,8 +68,8 @@ export async function handleSiaExecute(
 		outputMaxBytes: cfg.sandboxOutputMaxBytes,
 	});
 
-	// 4. Apply context mode if output large + intent provided
-	if (result.stdout.length > cfg.contextModeThreshold && input.intent !== undefined) {
+	// 4. Apply context mode if output large + intent provided + embedder available
+	if (embedder && result.stdout.length > cfg.contextModeThreshold && input.intent !== undefined) {
 		const contextMode = await applyContextMode(
 			result.stdout,
 			input.intent,
@@ -90,6 +90,12 @@ export async function handleSiaExecute(
 			runtimeMs: result.runtimeMs,
 			contextMode,
 		};
+	}
+
+	if (!embedder && result.stdout.length > cfg.contextModeThreshold && input.intent !== undefined) {
+		process.stderr.write(
+			"sia: context mode skipped — embedder not available. Large output returned as-is.\n",
+		);
 	}
 
 	// 5. Return plain result

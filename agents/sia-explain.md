@@ -22,7 +22,7 @@ whenToUse: |
   user: "How do I get the most out of SIA?"
   assistant: "I'll use the sia-explain agent for a comprehensive guide."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_ast_query, mcp__sia__sia_at_time, mcp__sia__sia_backlinks, mcp__sia__sia_by_file, mcp__sia__sia_community, mcp__sia__sia_execute, mcp__sia__sia_expand, mcp__sia__sia_flag, mcp__sia__sia_note, mcp__sia__sia_search, mcp__sia__sia_snapshot_list, mcp__sia__sia_snapshot_restore, mcp__sia__sia_snapshot_prune, mcp__sia__sia_sync_status
 ---
 
 # SIA Explain Agent — Understanding the Knowledge Graph

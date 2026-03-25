@@ -476,20 +476,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				if (!deps.embedder) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									error: "Embedder not available. Run sia_doctor to check ONNX status.",
-								}),
-							},
-						],
-						isError: true,
-					};
-				}
-				const embedder = deps.embedder;
+				const embedder = deps.embedder ?? null;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -528,20 +515,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				if (!deps.embedder) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									error: "Embedder not available. Run sia_doctor to check ONNX status.",
-								}),
-							},
-						],
-						isError: true,
-					};
-				}
-				const embedderFile = deps.embedder;
+				const embedderFile = deps.embedder ?? null;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -580,20 +554,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				if (!deps.embedder) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									error: "Embedder not available. Run sia_doctor to check ONNX status.",
-								}),
-							},
-						],
-						isError: true,
-					};
-				}
-				const embedderIndex = deps.embedder;
+				const embedderIndex = deps.embedder ?? null;
 				return safeToolCall(
 					"sia_index",
 					() => handleSiaIndex(deps.graphDb, args, embedderIndex, deps.sessionId),
@@ -622,20 +583,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				if (!deps.embedder) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									error: "Embedder not available. Run sia_doctor to check ONNX status.",
-								}),
-							},
-						],
-						isError: true,
-					};
-				}
-				const embedderBatch = deps.embedder;
+				const embedderBatch = deps.embedder ?? null;
 				const throttle = new ProgressiveThrottle(deps.graphDb, {
 					normalMax: deps.config.throttleNormalMax,
 					reducedMax: deps.config.throttleReducedMax,
@@ -676,20 +624,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				if (!deps.embedder) {
-					return {
-						content: [
-							{
-								type: "text" as const,
-								text: JSON.stringify({
-									error: "Embedder not available. Run sia_doctor to check ONNX status.",
-								}),
-							},
-						],
-						isError: true,
-					};
-				}
-				const embedderFetch = deps.embedder;
+				const embedderFetch = deps.embedder ?? null;
 				return safeToolCall(
 					"sia_fetch_and_index",
 					() => handleSiaFetchAndIndex(deps.graphDb, args, embedderFetch, deps.sessionId),

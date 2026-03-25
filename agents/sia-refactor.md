@@ -22,7 +22,7 @@ whenToUse: |
   user: "I need to change the UserProfile type to include email verification status"
   assistant: "I'll use the sia-refactor agent to find everything that depends on UserProfile."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_ast_query, mcp__sia__sia_backlinks, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Refactor Agent — Dependency-Aware Impact Analysis

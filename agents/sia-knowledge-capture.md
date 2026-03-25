@@ -16,7 +16,7 @@ whenToUse: |
   user: "Before I close this session, let's capture what we learned"
   assistant: "I'll use the sia-knowledge-capture agent to systematically capture session knowledge."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Knowledge Capture Agent — Systematic Session Knowledge Extraction

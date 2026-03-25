@@ -3,7 +3,7 @@ name: sia-orientation
 description: Answers specific architecture questions using SIA's graph — "why was X chosen?", "how does Y work?", "what are the conventions for Z?". Quick, focused Q&A for developers who need a single answer, not a full onboarding session.
 model: sonnet
 color: blue
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_community, mcp__sia__sia_note, mcp__sia__sia_search
 whenToUse: |
   Use when a developer is new to a project, needs architectural overview, or asks questions about project structure, history, or conventions.
 

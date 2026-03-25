@@ -16,7 +16,7 @@ whenToUse: |
   user: "Is the team capturing enough knowledge? Are we following our own conventions?"
   assistant: "Let me use the sia-lead-team-health for a comprehensive health check."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_community, mcp__sia__sia_search
 ---
 
 # SIA Team Health Agent — Knowledge Distribution Analysis

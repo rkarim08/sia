@@ -39,6 +39,25 @@ export interface SiaNoteResult {
 export async function handleSiaNote(db: SiaDb, input: SiaNoteInput): Promise<SiaNoteResult> {
 	const relatesTo = input.relates_to ?? [];
 
+	// Validate all referenced entity IDs exist before creating edges
+	const idsToValidate = [...relatesTo];
+	if (input.supersedes) idsToValidate.push(input.supersedes);
+
+	if (idsToValidate.length > 0) {
+		const placeholders = idsToValidate.map(() => "?").join(", ");
+		const { rows } = await db.execute(
+			`SELECT id FROM graph_nodes WHERE id IN (${placeholders}) AND t_valid_until IS NULL`,
+			idsToValidate,
+		);
+		const foundIds = new Set(rows.map((r) => r.id as string));
+		const missing = idsToValidate.filter((id) => !foundIds.has(id));
+		if (missing.length > 0) {
+			throw new Error(
+				`sia_note failed: Referenced entities not found: ${missing.join(", ")}. Use sia_search to find valid entity IDs.`,
+			);
+		}
+	}
+
 	try {
 		let entity: Entity;
 		let edgesCreated: number;
