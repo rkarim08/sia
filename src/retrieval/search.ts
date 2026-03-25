@@ -184,31 +184,41 @@ async function expandNeighbors(
 		}
 	}
 
-	// Expand each candidate
+	// Expand each candidate via batched queries
 	const candidateIds = results.map((r) => r.entityId);
-	for (const entityId of candidateIds) {
+	if (candidateIds.length > 0) {
+		// Batch fetch all edges
+		const placeholders = candidateIds.map(() => "?").join(", ");
 		const edgeResult = await db.execute(
-			"SELECT from_id, to_id FROM graph_edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
-			[entityId, entityId],
+			`SELECT from_id, to_id FROM graph_edges
+			 WHERE (from_id IN (${placeholders}) OR to_id IN (${placeholders}))
+			   AND t_valid_until IS NULL`,
+			[...candidateIds, ...candidateIds],
 		);
 
+		// Collect neighbor IDs (skip those already in scoreMap)
+		const candidateSet = new Set(candidateIds);
+		const neighborIds = new Set<string>();
 		for (const row of edgeResult.rows) {
 			const fromId = row.from_id as string;
 			const toId = row.to_id as string;
-			const neighborId = fromId === entityId ? toId : fromId;
+			const neighborId = candidateSet.has(fromId) ? toId : fromId;
+			if (!scoreMap.has(neighborId)) neighborIds.add(neighborId);
+		}
 
-			// Skip if already in the result set
-			if (scoreMap.has(neighborId)) continue;
-
-			// Validate the neighbor is active (and paranoid-safe)
+		// Batch validate neighbors
+		if (neighborIds.size > 0) {
+			const nPlaceholders = [...neighborIds].map(() => "?").join(", ");
 			const paranoidClause = paranoid ? " AND trust_tier < 4" : "";
-			const check = await db.execute(
-				`SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
-				[neighborId],
+			const validResult = await db.execute(
+				`SELECT id FROM graph_nodes
+				 WHERE id IN (${nPlaceholders})
+				   AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
+				[...neighborIds],
 			);
-			if (check.rows.length === 0) continue;
-
-			scoreMap.set(neighborId, 0.7);
+			for (const row of validResult.rows) {
+				scoreMap.set(row.id as string, 0.7);
+			}
 		}
 	}
 
