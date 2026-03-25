@@ -24,6 +24,7 @@ import { handleSiaExecuteFile } from "@/mcp/tools/sia-execute-file";
 import { handleSiaExpand } from "@/mcp/tools/sia-expand";
 import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
+import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
@@ -159,6 +160,13 @@ export const SiaAstQueryInput = z.object({
 	max_results: z.number().optional(),
 });
 
+export const SiaImpactInput = z.object({
+	entity_id: z.string(),
+	max_depth: z.number().optional(),
+	edge_types: z.array(z.string()).optional(),
+	min_confidence: z.number().optional(),
+});
+
 export const SiaSnapshotListInput = z.object({});
 
 export const SiaSnapshotRestoreInput = z.object({
@@ -192,6 +200,7 @@ export const TOOL_NAMES = [
 	"sia_upgrade",
 	"sia_sync_status",
 	"sia_ast_query",
+	"sia_impact",
 	"sia_snapshot_list",
 	"sia_snapshot_restore",
 	"sia_snapshot_prune",
@@ -759,6 +768,34 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
 				],
 				isError: result.error ? true : undefined,
+			};
+		},
+	);
+
+	// --- sia_impact --------------------------------------------------------
+	server.registerTool(
+		"sia_impact",
+		{
+			description: "Analyze the blast radius of a change to a knowledge graph entity",
+			inputSchema: SiaImpactInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_impact",
+					() => handleSiaImpact(deps.graphDb, args),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
