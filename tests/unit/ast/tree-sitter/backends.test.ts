@@ -44,14 +44,12 @@ describe("wasm backend — ESM interop", () => {
 			default: Parser,
 		}));
 
-		const { tryLoadWasmBackend: freshLoad } = await import(
-			"@/ast/tree-sitter/backends/wasm"
-		);
+		const { tryLoadWasmBackend: freshLoad } = await import("@/ast/tree-sitter/backends/wasm");
 		const backend = await freshLoad();
 
 		expect(backend).not.toBeNull();
-		expect(backend!.type).toBe("wasm");
-		expect(typeof backend!.createParser).toBe("function");
+		expect(backend?.type).toBe("wasm");
+		expect(typeof backend?.createParser).toBe("function");
 		expect(Parser.init).toHaveBeenCalled();
 
 		vi.doUnmock("web-tree-sitter");
@@ -73,14 +71,12 @@ describe("wasm backend — ESM interop", () => {
 			default: { Parser, Language: Parser.Language },
 		}));
 
-		const { tryLoadWasmBackend: freshLoad } = await import(
-			"@/ast/tree-sitter/backends/wasm"
-		);
+		const { tryLoadWasmBackend: freshLoad } = await import("@/ast/tree-sitter/backends/wasm");
 		const backend = await freshLoad();
 
 		expect(backend).not.toBeNull();
-		expect(backend!.type).toBe("wasm");
-		expect(typeof backend!.createParser).toBe("function");
+		expect(backend?.type).toBe("wasm");
+		expect(typeof backend?.createParser).toBe("function");
 		expect(Parser.init).toHaveBeenCalled();
 
 		vi.doUnmock("web-tree-sitter");
