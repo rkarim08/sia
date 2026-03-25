@@ -245,14 +245,16 @@ async function generateRiskDashboard(db: SiaDb): Promise<string> {
 
 	// Group bugs by file path to find recurring areas
 	const bugsByFile: Record<string, EntityRow[]> = {};
+	const parsedPathsMap = new Map<string, string[]>();
 	for (const bug of bugs) {
 		let filePaths: string[] = [];
 		try {
 			filePaths = JSON.parse(bug.file_paths ?? "[]");
 		} catch {
-			filePaths = [];
+			/* empty */
 		}
 		if (filePaths.length === 0) filePaths = ["unknown"];
+		parsedPathsMap.set(bug.id, filePaths);
 		for (const fp of filePaths) {
 			if (!bugsByFile[fp]) bugsByFile[fp] = [];
 			bugsByFile[fp].push(bug);
@@ -305,13 +307,7 @@ async function generateRiskDashboard(db: SiaDb): Promise<string> {
 
 	// Individual bugs (not in recurring areas)
 	const nonRecurringBugs = bugs.filter((b) => {
-		let filePaths: string[] = [];
-		try {
-			filePaths = JSON.parse(b.file_paths ?? "[]");
-		} catch {
-			filePaths = [];
-		}
-		if (filePaths.length === 0) filePaths = ["unknown"];
+		const filePaths = parsedPathsMap.get(b.id) ?? ["unknown"];
 		return filePaths.every((fp) => (bugsByFile[fp]?.length ?? 0) < 2);
 	});
 
