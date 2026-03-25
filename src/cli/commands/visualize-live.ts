@@ -131,7 +131,7 @@ export async function runVisualizeLive(db: SiaDb, args: string[]): Promise<void>
 	writeFileSync(join(screenDir, filename), html, "utf-8");
 
 	// Start the viz server
-	const serverScript = resolve(__dirname, "../../scripts/viz-server.ts");
+	const serverScript = resolve(__dirname, "../../../scripts/viz-server.ts");
 	const child = spawn(
 		"bun",
 		["run", serverScript, "--screen-dir", screenDir, "--port", String(port)],

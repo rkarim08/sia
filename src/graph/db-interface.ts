@@ -227,7 +227,7 @@ export function openDb(repoHash: string, opts: OpenDbOpts = {}): BunSqliteDb {
 	mkdirSync(dir, { recursive: true });
 
 	const dbPath = join(dir, "graph.db");
-	const db = new Database(dbPath, { readonly: opts.readonly ?? false });
+	const db = opts.readonly ? new Database(dbPath, { readonly: true }) : new Database(dbPath);
 
 	if (!opts.readonly) {
 		(db as unknown as { pragma: (s: string) => void }).pragma("journal_mode = WAL");
