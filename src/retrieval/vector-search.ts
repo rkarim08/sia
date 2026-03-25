@@ -159,14 +159,14 @@ async function bruteForceCosineSearch(
 	const params: unknown[] = [];
 
 	if (opts?.paranoid) {
-		clauses.push("trust_tier != 4");
+		clauses.push("trust_tier < 4");
 	}
 	if (opts?.packagePath) {
 		clauses.push("package_path = ?");
 		params.push(opts.packagePath);
 	}
 
-	params.push(BRUTE_FORCE_LIMIT);
+	params.push(Math.min(limit * 10, BRUTE_FORCE_LIMIT));
 
 	const sql = `SELECT id, embedding FROM graph_nodes WHERE ${clauses.join(" AND ")} LIMIT ?`;
 	const { rows } = await db.execute(sql, params);
