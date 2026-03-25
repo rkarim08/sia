@@ -249,4 +249,32 @@ describe("digest", () => {
 		expect(digest.sections).toHaveLength(0);
 		expect(digest.period).toBe("weekly");
 	});
+
+	// ---------------------------------------------------------------
+	// returns ISO date strings for startDate and endDate
+	// ---------------------------------------------------------------
+
+	it("returns ISO date strings for startDate and endDate", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("digest-iso-dates", tmpDir);
+		const now = Date.now();
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "ISO date test",
+			content: "Testing ISO date output",
+			summary: "Date format test",
+			created_at: now,
+		});
+
+		const digest = await generateDigest(db, { period: "weekly" });
+
+		// Should be ISO strings, not numbers
+		expect(typeof digest.startDate).toBe("string");
+		expect(typeof digest.endDate).toBe("string");
+
+		// Should be valid ISO date strings (round-trip through Date)
+		expect(new Date(digest.startDate).toISOString()).toBe(digest.startDate);
+		expect(new Date(digest.endDate).toISOString()).toBe(digest.endDate);
+	});
 });
