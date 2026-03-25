@@ -340,7 +340,7 @@ text.node-label.dimmed { opacity: 0.1; }
 
 		var tierCheckboxes = document.querySelectorAll(".tier-cb");
 		var activeTiers = new Set();
-		tierCheckboxes.forEach(function(cb) { if (cb.checked) activeTiers.add(parseInt(cb.value)); });
+		tierCheckboxes.forEach(function(cb) { if (cb.checked) activeTiers.add(parseInt(cb.value, 10)); });
 
 		nodeElements.style("display", function(d) {
 			return activeTypes.has(d.type) && activeTiers.has(d.trustTier || 3) ? null : "none";
