@@ -16,7 +16,7 @@ whenToUse: |
   user: "We renamed 'User' to 'Account' everywhere. SIA still references 'User'."
   assistant: "Let me use the sia-migration agent to migrate the graph entities."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_by_file, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Migration Agent — Knowledge Graph Maintenance

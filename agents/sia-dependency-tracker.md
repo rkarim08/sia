@@ -16,7 +16,7 @@ whenToUse: |
   user: "Which packages in our monorepo depend on the shared-types package?"
   assistant: "Let me use the sia-dependency-tracker to map the dependency graph."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Dependency Tracker — Cross-Boundary Dependency Agent

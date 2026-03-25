@@ -3,7 +3,7 @@ name: sia-regression
 description: Analyzes code changes for regression risk using SIA's knowledge graph — checks for known bugs, fragile areas, and historical failure patterns
 model: sonnet
 color: red
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_expand, mcp__sia__sia_flag, mcp__sia__sia_note, mcp__sia__sia_search
 whenToUse: |
   Use when checking if changes might introduce regressions, especially in areas with known bugs or past failures.
 

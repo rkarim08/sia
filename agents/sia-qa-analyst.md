@@ -22,7 +22,7 @@ whenToUse: |
   user: "What changed in the last week that I should regression test?"
   assistant: "I'll use the sia-qa-analyst to map recent changes and their risk level."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_community, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA QA Analyst Agent — Testing Intelligence

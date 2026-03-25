@@ -16,7 +16,7 @@ whenToUse: |
   user: "I need an architecture health report for the quarterly review"
   assistant: "Let me use the sia-lead-architecture-advisor for a comprehensive assessment."
   </example>
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_by_file, mcp__sia__sia_community, mcp__sia__sia_search
 ---
 
 # SIA Architecture Advisor — Drift Detection Agent
