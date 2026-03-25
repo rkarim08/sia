@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { tryLoadNativeBackend } from "@/ast/tree-sitter/backends/native";
 import { tryLoadWasmBackend } from "@/ast/tree-sitter/backends/wasm";
 
@@ -25,5 +25,64 @@ describe("wasm backend", () => {
 		} else {
 			expect(result).toBeNull();
 		}
+	});
+});
+
+describe("wasm backend — ESM interop", () => {
+	it("handles web-tree-sitter where default has init (standard ESM)", async () => {
+		vi.resetModules();
+
+		const Parser = class {
+			static init = vi.fn(async () => {});
+			static Language = { load: vi.fn(async () => ({})) };
+			setLanguage = vi.fn();
+			parse = vi.fn(() => ({ rootNode: {} }));
+			setTimeoutMicros = vi.fn();
+		};
+
+		vi.doMock("web-tree-sitter", () => ({
+			default: Parser,
+		}));
+
+		const { tryLoadWasmBackend: freshLoad } = await import(
+			"@/ast/tree-sitter/backends/wasm"
+		);
+		const backend = await freshLoad();
+
+		expect(backend).not.toBeNull();
+		expect(backend!.type).toBe("wasm");
+		expect(typeof backend!.createParser).toBe("function");
+		expect(Parser.init).toHaveBeenCalled();
+
+		vi.doUnmock("web-tree-sitter");
+	});
+
+	it("handles web-tree-sitter where default lacks init but has Parser (CJS interop)", async () => {
+		vi.resetModules();
+
+		const Parser = class {
+			static init = vi.fn(async () => {});
+			static Language = { load: vi.fn(async () => ({})) };
+			setLanguage = vi.fn();
+			parse = vi.fn(() => ({ rootNode: {} }));
+			setTimeoutMicros = vi.fn();
+		};
+
+		// Simulate CJS interop: default is a plain object wrapping Parser
+		vi.doMock("web-tree-sitter", () => ({
+			default: { Parser, Language: Parser.Language },
+		}));
+
+		const { tryLoadWasmBackend: freshLoad } = await import(
+			"@/ast/tree-sitter/backends/wasm"
+		);
+		const backend = await freshLoad();
+
+		expect(backend).not.toBeNull();
+		expect(backend!.type).toBe("wasm");
+		expect(typeof backend!.createParser).toBe("function");
+		expect(Parser.init).toHaveBeenCalled();
+
+		vi.doUnmock("web-tree-sitter");
 	});
 });
