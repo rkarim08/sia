@@ -221,20 +221,43 @@ async function createEdgesFromRelationships(
 ): Promise<number> {
 	let edgesCreated = 0;
 
+	// Collect all unique target names that need lookup
+	const targetNames = new Set<string>();
 	for (const pending of allProcessedFacts) {
-		if (!pending.fact.proposed_relationships?.length) continue;
-		if (!pending.entityId) continue; // was an update, not an insert
-
+		if (!pending.fact.proposed_relationships?.length || !pending.entityId) continue;
 		for (const rel of pending.fact.proposed_relationships) {
-			// Look up target entity by name
-			const targetRows = await db.execute(
-				`SELECT id FROM graph_nodes
-				 WHERE name = ? AND t_valid_until IS NULL AND archived_at IS NULL
-				 LIMIT 1`,
-				[rel.target_name],
-			);
-			if (targetRows.rows.length > 0) {
-				const targetId = targetRows.rows[0].id as string;
+			targetNames.add(rel.target_name);
+		}
+	}
+
+	if (targetNames.size === 0) return 0;
+
+	// Batch lookup all target names
+	const nameList = [...targetNames];
+	const nameMap = new Map<string, string>(); // name → id
+	for (let i = 0; i < nameList.length; i += 500) {
+		const batch = nameList.slice(i, i + 500);
+		const placeholders = batch.map(() => "?").join(", ");
+		const result = await db.execute(
+			`SELECT id, name FROM graph_nodes
+			 WHERE name IN (${placeholders})
+			   AND t_valid_until IS NULL AND archived_at IS NULL`,
+			batch,
+		);
+		for (const row of result.rows) {
+			// First match wins (LIMIT 1 equivalent)
+			if (!nameMap.has(row.name as string)) {
+				nameMap.set(row.name as string, row.id as string);
+			}
+		}
+	}
+
+	// Create edges using the pre-fetched map
+	for (const pending of allProcessedFacts) {
+		if (!pending.fact.proposed_relationships?.length || !pending.entityId) continue;
+		for (const rel of pending.fact.proposed_relationships) {
+			const targetId = nameMap.get(rel.target_name);
+			if (targetId) {
 				await insertEdge(db, {
 					from_id: pending.entityId,
 					to_id: targetId,
