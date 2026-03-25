@@ -6,6 +6,9 @@
 // - Bash   → ExecutionEvent entity + git commit detection + error detection
 // - Read   → touch for importance (no new entities)
 
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { extractTrackA } from "@/capture/track-a-ast";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
@@ -341,7 +344,54 @@ async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		}
 	}
 
-	return { status: "processed", nodes_created: nodesCreated };
+	// Detect git graph-mutating operations and check for staleness
+	const exitCode = event.tool_input?.exit_code ?? 0;
+	const isGitMutatingOp =
+		/\bgit\s+(commit|merge|rebase|cherry-pick|pull)(\s|$)/.test(command) && exitCode === 0;
+
+	let stalenessWarning: string | undefined;
+	if (isGitMutatingOp) {
+		stalenessWarning = checkStaleness(event.cwd);
+	}
+
+	const response: HookResponse = { status: "processed", nodes_created: nodesCreated };
+	if (stalenessWarning) {
+		response.staleness_warning = stalenessWarning;
+	}
+	return response;
+}
+
+/**
+ * Check if the SIA index is stale by comparing the last indexed commit
+ * stored in `.sia-graph/last-indexed-commit` against the current HEAD.
+ *
+ * Returns a warning message if stale, or undefined if up-to-date.
+ */
+export function checkStaleness(cwd: string): string | undefined {
+	try {
+		const siaGraphDir = join(cwd, ".sia-graph");
+		const lastIndexedPath = join(siaGraphDir, "last-indexed-commit");
+
+		if (!existsSync(lastIndexedPath)) {
+			return "SIA index may be stale. Run `/sia-learn` to update.";
+		}
+
+		const lastIndexed = readFileSync(lastIndexedPath, "utf-8").trim();
+
+		// Get current HEAD using execFileSync (no shell injection risk)
+		const currentHead = execFileSync("git", ["rev-parse", "HEAD"], {
+			cwd,
+			encoding: "utf-8",
+			timeout: 5000,
+		}).trim();
+
+		if (lastIndexed !== currentHead) {
+			return "SIA index may be stale. Run `/sia-learn` to update.";
+		}
+	} catch {
+		// If we can't determine staleness, don't warn
+	}
+	return undefined;
 }
 
 async function handleRead(db: SiaDb, event: HookEvent): Promise<HookResponse> {
