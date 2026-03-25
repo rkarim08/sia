@@ -233,14 +233,22 @@ async function expandNeighbors(
  * Only queries the DB for results where extraction_method is undefined.
  */
 async function attachProvenance(db: SiaDb, results: SiaSearchResult[]): Promise<void> {
-	for (const result of results) {
-		if (result.extraction_method === undefined) {
-			const row = await db.execute("SELECT extraction_method FROM graph_nodes WHERE id = ?", [
-				result.id,
-			]);
-			if (row.rows.length > 0) {
-				result.extraction_method = (row.rows[0].extraction_method as string | null) ?? null;
-			}
-		}
+	const needsProvenance = results.filter((r) => r.extraction_method === undefined);
+	if (needsProvenance.length === 0) return;
+
+	const ids = needsProvenance.map((r) => r.id);
+	const placeholders = ids.map(() => "?").join(", ");
+	const { rows } = await db.execute(
+		`SELECT id, extraction_method FROM graph_nodes WHERE id IN (${placeholders})`,
+		ids,
+	);
+
+	const methodMap = new Map<string, string | null>();
+	for (const row of rows) {
+		methodMap.set(row.id as string, (row.extraction_method as string | null) ?? null);
+	}
+
+	for (const result of needsProvenance) {
+		result.extraction_method = methodMap.get(result.id) ?? null;
 	}
 }
