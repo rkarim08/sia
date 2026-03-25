@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# ---------------------------------------------------------------
+# Developer-only script — NOT required for runtime usage.
+# WASM grammars are loaded from node_modules/ at runtime.
+# This script rebuilds custom grammars from source.
+#
+# Prerequisites: tree-sitter CLI, emscripten (emcc), jq
+#   brew install tree-sitter emscripten jq
+# ---------------------------------------------------------------
 # build-wasm-grammars.sh
 # Builds tree-sitter WASM grammars from npm packages.
 # Requires: tree-sitter CLI, emscripten (emcc on PATH)
