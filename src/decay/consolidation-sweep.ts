@@ -88,12 +88,16 @@ export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Pro
 		}
 	}
 
-	// Batch insert all new dedup log entries
-	for (const [aId, bId, decision, now] of toInsert) {
-		await db.execute(
-			"INSERT INTO local_dedup_log (entity_a_id, entity_b_id, decision, checked_at) VALUES (?, ?, ?, ?)",
-			[aId, bId, decision, now],
-		);
+	// Batch insert all new dedup log entries (transaction for atomicity)
+	if (toInsert.length > 0) {
+		await db.transaction(async (tx) => {
+			for (const [aId, bId, decision, now] of toInsert) {
+				await tx.execute(
+					"INSERT INTO local_dedup_log (entity_a_id, entity_b_id, decision, checked_at) VALUES (?, ?, ?, ?)",
+					[aId, bId, decision, now],
+				);
+			}
+		});
 	}
 
 	return { processed: pairsProcessed, remaining: pairsProcessed === batchSize };
