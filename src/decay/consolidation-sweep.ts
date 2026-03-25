@@ -48,8 +48,17 @@ export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Pro
 		group.push(entity);
 	}
 
-	// 3. Iterate pairs within each type group, up to batchSize
+	// 3. Pre-fetch all existing dedup pairs for O(1) lookup
+	const { rows: existingPairs } = await db.execute(
+		"SELECT entity_a_id, entity_b_id FROM local_dedup_log",
+	);
+	const processedPairs = new Set(
+		existingPairs.map((r) => `${r.entity_a_id}:${r.entity_b_id}`),
+	);
+
+	// 4. Iterate pairs within each type group, up to batchSize
 	let pairsProcessed = 0;
+	const toInsert: Array<[string, string, string, number]> = [];
 
 	for (const group of byType.values()) {
 		if (pairsProcessed >= batchSize) break;
@@ -58,13 +67,9 @@ export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Pro
 			for (let j = i + 1; j < group.length && pairsProcessed < batchSize; j++) {
 				const [aId, bId] = canonicalPair(group[i].id, group[j].id);
 
-				// Check if this pair was already processed
-				const existing = await db.execute(
-					"SELECT 1 FROM local_dedup_log WHERE entity_a_id = ? AND entity_b_id = ?",
-					[aId, bId],
-				);
-
-				if (existing.rows.length > 0) continue;
+				// Check if this pair was already processed (O(1) Set lookup)
+				const pairKey = `${aId}:${bId}`;
+				if (processedPairs.has(pairKey)) continue;
 
 				// Compute similarity
 				const similarity = wordJaccard(group[i].content, group[j].content);
@@ -78,15 +83,19 @@ export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Pro
 					decision = "different";
 				}
 
-				const now = Date.now();
-				await db.execute(
-					"INSERT INTO local_dedup_log (entity_a_id, entity_b_id, decision, checked_at) VALUES (?, ?, ?, ?)",
-					[aId, bId, decision, now],
-				);
-
+				toInsert.push([aId, bId, decision, Date.now()]);
+				processedPairs.add(pairKey);
 				pairsProcessed++;
 			}
 		}
+	}
+
+	// Batch insert all new dedup log entries
+	for (const [aId, bId, decision, now] of toInsert) {
+		await db.execute(
+			"INSERT INTO local_dedup_log (entity_a_id, entity_b_id, decision, checked_at) VALUES (?, ?, ?, ?)",
+			[aId, bId, decision, now],
+		);
 	}
 
 	return { processed: pairsProcessed, remaining: pairsProcessed === batchSize };
