@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LANGUAGE_REGISTRY } from "@/ast/languages";
 
-const QUERY_BASE = join(__dirname, "../../../../../grammars/queries");
+const QUERY_BASE = join(process.cwd(), "grammars/queries");
 
 describe("all language query files", () => {
 	for (const [name, config] of Object.entries(LANGUAGE_REGISTRY)) {

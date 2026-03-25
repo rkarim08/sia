@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const QUERY_DIR = join(__dirname, "../../../../../grammars/queries/typescript");
+const QUERY_DIR = join(process.cwd(), "grammars/queries/typescript");
 
 describe("TypeScript .scm queries", () => {
 	it("symbols.scm exists and contains function_declaration capture", () => {
