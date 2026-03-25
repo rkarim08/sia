@@ -40,6 +40,7 @@ describe("handleSiaFetchAndIndex", () => {
 
 		const mockEmbedder = {
 			embed: async () => new Float32Array(384),
+			embedBatch: async (texts: string[]) => texts.map(() => new Float32Array(384)),
 			close: () => {},
 		};
 

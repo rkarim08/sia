@@ -66,6 +66,16 @@ export function createCachedEmbedder(inner: Embedder, opts?: CacheOpts): Embedde
 			return result;
 		},
 
+		async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
+			const results: (Float32Array | null)[] = [];
+			for (let i = 0; i < texts.length; i += 16) {
+				const batch = texts.slice(i, i + 16);
+				const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
+				results.push(...batchResults);
+			}
+			return results;
+		},
+
 		close(): void {
 			inner.close();
 		},

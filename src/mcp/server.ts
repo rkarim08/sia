@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { getNextStepHint } from "@/mcp/next-step-hints";
 import {
 	handleSiaAstQuery,
 	type SiaAstQueryInput as SiaAstQueryHandlerInput,
@@ -23,7 +24,9 @@ import { handleSiaExecute } from "@/mcp/tools/sia-execute";
 import { handleSiaExecuteFile } from "@/mcp/tools/sia-execute-file";
 import { handleSiaExpand } from "@/mcp/tools/sia-expand";
 import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
+import { handleSiaDetectChanges } from "@/mcp/tools/sia-detect-changes";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
+import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
@@ -159,6 +162,18 @@ export const SiaAstQueryInput = z.object({
 	max_results: z.number().optional(),
 });
 
+export const SiaDetectChangesInput = z.object({
+	scope: z.string().optional(),
+	compare: z.string().optional(),
+});
+
+export const SiaImpactInput = z.object({
+	entity_id: z.string(),
+	max_depth: z.number().optional(),
+	edge_types: z.array(z.string()).optional(),
+	min_confidence: z.number().optional(),
+});
+
 export const SiaSnapshotListInput = z.object({});
 
 export const SiaSnapshotRestoreInput = z.object({
@@ -192,6 +207,8 @@ export const TOOL_NAMES = [
 	"sia_upgrade",
 	"sia_sync_status",
 	"sia_ast_query",
+	"sia_impact",
+	"sia_detect_changes",
 	"sia_snapshot_list",
 	"sia_snapshot_restore",
 	"sia_snapshot_prune",
@@ -224,10 +241,11 @@ async function safeToolCall<T>(
 ): Promise<{ content: { type: "text"; text: string }[]; isError?: boolean }> {
 	try {
 		const result = await fn();
+		const hint = getNextStepHint(toolName);
+		const resultText = JSON.stringify(truncateResponse(result, maxChars));
+		const text = hint ? `${resultText}\n\n${hint}` : resultText;
 		return {
-			content: [
-				{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
-			],
+			content: [{ type: "text" as const, text }],
 		};
 	} catch (err) {
 		console.error(`[sia] ${toolName} error:`, err);
@@ -759,6 +777,62 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					{ type: "text" as const, text: JSON.stringify(truncateResponse(result, maxChars)) },
 				],
 				isError: result.error ? true : undefined,
+			};
+		},
+	);
+
+	// --- sia_impact --------------------------------------------------------
+	server.registerTool(
+		"sia_impact",
+		{
+			description: "Analyze the blast radius of a change to a knowledge graph entity",
+			inputSchema: SiaImpactInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_impact",
+					() => handleSiaImpact(deps.graphDb, args),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- sia_detect_changes ------------------------------------------------
+	server.registerTool(
+		"sia_detect_changes",
+		{
+			description: "Detect changed files from git diff and map to knowledge graph entities",
+			inputSchema: SiaDetectChangesInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_detect_changes",
+					() => handleSiaDetectChanges(deps.graphDb, args),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
 			};
 		},
 	);
