@@ -267,6 +267,28 @@ function determinePackagePath(
 	return current ?? null;
 }
 
+/**
+ * Compute cohesion for a community: ratio of internal edges to total edges
+ * touching any member of the community.
+ */
+export function computeCohesion(
+	members: string[],
+	edges: Array<{ from_id: string; to_id: string }>,
+): number {
+	const memberSet = new Set(members);
+	let internal = 0;
+	let total = 0;
+	for (const edge of edges) {
+		if (memberSet.has(edge.from_id) || memberSet.has(edge.to_id)) {
+			total++;
+			if (memberSet.has(edge.from_id) && memberSet.has(edge.to_id)) {
+				internal++;
+			}
+		}
+	}
+	return total > 0 ? internal / total : 0;
+}
+
 function assignParents(levels: DetectedCommunity[][]): void {
 	for (let i = 0; i < levels.length - 1; i++) {
 		const parents = levels[i + 1];
@@ -425,6 +447,16 @@ export async function detectCommunities(
 
 	assignParents(levelCommunities);
 
+	// Compute cohesion scores for all communities
+	const rawEdges = edges.map((e) => ({ from_id: e.fromId, to_id: e.toId }));
+	const cohesionScores = new Map<string, number>();
+	for (const level of levelCommunities) {
+		for (const community of level) {
+			const members = [...community.members];
+			cohesionScores.set(community.id, computeCohesion(members, rawEdges));
+		}
+	}
+
 	// Persist communities and memberships
 	await db.transaction(async (tx) => {
 		await tx.execute("DELETE FROM community_members");
@@ -435,18 +467,20 @@ export async function detectCommunities(
 		for (const level of levelsDescending) {
 			for (const community of level) {
 				const memberCount = community.members.size;
+				const cohesion = cohesionScores.get(community.id) ?? null;
 				await tx.execute(
 					`INSERT INTO communities (
                                                 id, level, parent_id, summary, summary_hash,
                                                 member_count, last_summary_member_count,
-                                                package_path, created_at, updated_at
-                                        ) VALUES (?, ?, ?, NULL, NULL, ?, 0, ?, ?, ?)`,
+                                                package_path, cohesion, created_at, updated_at
+                                        ) VALUES (?, ?, ?, NULL, NULL, ?, 0, ?, ?, ?, ?)`,
 					[
 						community.id,
 						community.level,
 						community.parentId,
 						memberCount,
 						community.packagePath,
+						cohesion,
 						now,
 						now,
 					],
