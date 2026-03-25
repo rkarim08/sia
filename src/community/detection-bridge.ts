@@ -37,6 +37,7 @@ function loadNativeLeiden(): NativeLeidenModule | null {
 	try {
 		return require("@sia/native") as NativeLeidenModule;
 	} catch {
+		process.stderr.write("sia: native Leiden module not available, using JS fallback\n");
 		return null;
 	}
 }
@@ -335,8 +336,10 @@ export function detectCommunities(
 	if (nativeMod) {
 		try {
 			return nativeMod.detectCommunities(edges, nodeCount, resolutions);
-		} catch {
-			// Fall through to JS implementation
+		} catch (err) {
+			process.stderr.write(
+				`sia: native Leiden failed at runtime: ${err instanceof Error ? err.message : String(err)} — using JS fallback\n`,
+			);
 		}
 	}
 
