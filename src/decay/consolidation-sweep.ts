@@ -52,9 +52,7 @@ export async function consolidationSweepBatch(db: SiaDb, batchSize: number): Pro
 	const { rows: existingPairs } = await db.execute(
 		"SELECT entity_a_id, entity_b_id FROM local_dedup_log",
 	);
-	const processedPairs = new Set(
-		existingPairs.map((r) => `${r.entity_a_id}:${r.entity_b_id}`),
-	);
+	const processedPairs = new Set(existingPairs.map((r) => `${r.entity_a_id}:${r.entity_b_id}`));
 
 	// 4. Iterate pairs within each type group, up to batchSize
 	let pairsProcessed = 0;
