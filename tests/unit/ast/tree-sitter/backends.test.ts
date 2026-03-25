@@ -98,9 +98,11 @@ describe("wasm backend — ESM interop", () => {
 			setTimeoutMicros = vi.fn();
 		};
 
-		// Simulate CJS interop: default is a plain object wrapping Parser
+		// Simulate CJS interop: default is a plain object wrapping Parser.
+		// Must declare init so Vitest's strict mock doesn't throw on property access.
 		vi.doMock("web-tree-sitter", () => ({
 			default: { Parser, Language: Parser.Language },
+			init: undefined,
 		}));
 
 		const { tryLoadWasmBackend: freshLoad } = await import("@/ast/tree-sitter/backends/wasm");
