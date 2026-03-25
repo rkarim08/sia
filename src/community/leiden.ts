@@ -270,14 +270,24 @@ function determinePackagePath(
 function assignParents(levels: DetectedCommunity[][]): void {
 	for (let i = 0; i < levels.length - 1; i++) {
 		const parents = levels[i + 1];
+
+		// Build a map: member → parent community ID for O(1) lookup
+		const memberToParent = new Map<string, string>();
+		for (const parent of parents) {
+			for (const member of parent.members) {
+				memberToParent.set(member, parent.id);
+			}
+		}
+
+		// Assign parent by checking first member (all members should share the same parent)
 		for (const community of levels[i]) {
-			const parent = parents.find((p) => {
-				for (const member of community.members) {
-					if (!p.members.has(member)) return false;
-				}
-				return true;
-			});
-			community.parentId = parent?.id ?? null;
+			const firstMember = community.members.values().next().value;
+			if (firstMember !== undefined) {
+				const parentId = memberToParent.get(firstMember);
+				community.parentId = parentId ?? null;
+			} else {
+				community.parentId = null;
+			}
 		}
 	}
 }
