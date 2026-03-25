@@ -71,6 +71,21 @@ describe("handleSiaExecute", () => {
 		expect(result.error).toContain("blocked");
 	});
 
+	it("executes with null embedder — context mode skipped", async () => {
+		const deps = setup();
+		const result = await handleSiaExecute(
+			db,
+			{ code: 'echo "works"', language: "bash" },
+			null,
+			deps.throttle,
+			deps.sessionId,
+		);
+
+		expect(result.stdout?.trim()).toBe("works");
+		expect(result.exitCode).toBe(0);
+		expect(result.contextMode).toBeUndefined();
+	});
+
 	it("applies context mode for large output with intent", async () => {
 		const deps = setup();
 		const code = 'for i in $(seq 1 500); do echo "Log line $i: normal operation"; done';

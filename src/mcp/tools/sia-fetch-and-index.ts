@@ -78,7 +78,7 @@ export function isPrivateIp(ip: string): boolean {
 export async function handleSiaFetchAndIndex(
 	db: SiaDb,
 	input: z.infer<typeof SiaFetchAndIndexInput>,
-	_embedder: Embedder,
+	_embedder: Embedder | null,
 	sessionId: string,
 ): Promise<SiaFetchAndIndexResult> {
 	const { url, tags } = input;
