@@ -120,10 +120,12 @@ export async function runVisualizeLive(db: SiaDb, args: string[]): Promise<void>
 	const screenDir = resolve(".sia-graph/viz");
 	mkdirSync(screenDir, { recursive: true });
 
-	// Generate HTML view
+	// Generate HTML view — default to 500 nodes to keep the page renderable.
+	// Use --max-nodes to override (e.g. --max-nodes 0 for unlimited).
+	const defaultMax = view === "graph" ? 500 : undefined;
 	const extractOpts: ExtractOpts = {
 		scope: opts.scope,
-		maxNodes: opts.maxNodes,
+		maxNodes: opts.maxNodes ?? defaultMax,
 	};
 	const html = await generateViewHtml(db, view, extractOpts);
 

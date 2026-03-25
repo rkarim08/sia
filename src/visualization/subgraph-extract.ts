@@ -145,18 +145,38 @@ async function fetchCommunities(db: SiaDb, ids: string[]): Promise<CommunityMemb
 }
 
 /**
- * Default extraction: top N nodes by importance with edges between them.
+ * Default extraction: top N most-connected nodes with edges between them.
  * When maxNodes is undefined, load ALL active nodes (no cap).
+ * Prefers nodes that participate in edges so the graph has visible structure.
  */
 async function extractDefault(db: SiaDb, maxNodes?: number): Promise<SubgraphData> {
-	const limitClause = maxNodes != null ? " ORDER BY importance DESC LIMIT ?" : "";
-	const params = maxNodes != null ? [maxNodes] : [];
-	const { rows } = await db.execute(
-		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
-		 WHERE t_valid_until IS NULL AND archived_at IS NULL${limitClause}`,
-		params,
+	if (maxNodes == null) {
+		// No cap — load everything
+		const { rows } = await db.execute(
+			`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
+			 WHERE t_valid_until IS NULL AND archived_at IS NULL`,
+		);
+		const nodes = rows.map(toVisNode);
+		const nodeIds = nodes.map((n) => n.id);
+		const edges = await edgesBetween(db, nodeIds);
+		const communities = await fetchCommunities(db, nodeIds);
+		return { nodes, edges, communities };
+	}
+
+	// Pick nodes that actually have edges (most-connected first), then backfill
+	const { rows: connectedRows } = await db.execute(
+		`SELECT n.id, n.type, n.name, n.summary, n.importance, n.trust_tier,
+		        COUNT(e.id) AS edge_count
+		 FROM graph_nodes n
+		 JOIN graph_edges e ON (e.from_id = n.id OR e.to_id = n.id)
+		   AND e.t_valid_until IS NULL
+		 WHERE n.t_valid_until IS NULL AND n.archived_at IS NULL
+		 GROUP BY n.id
+		 ORDER BY edge_count DESC
+		 LIMIT ?`,
+		[maxNodes],
 	);
-	const nodes = rows.map(toVisNode);
+	const nodes = connectedRows.map(toVisNode);
 	const nodeIds = nodes.map((n) => n.id);
 	const edges = await edgesBetween(db, nodeIds);
 	const communities = await fetchCommunities(db, nodeIds);

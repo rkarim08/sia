@@ -33,10 +33,9 @@ export function renderSigmaHtml(data: SubgraphData, opts?: RenderOpts): string {
 <head>
 <meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
-<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/build/sigma.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/build/graphology-layout-forceatlas2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-layout-noverlap@0.4.2/build/graphology-layout-noverlap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.4.0/build/graphology-layout-forceatlas2.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; }
@@ -167,6 +166,10 @@ rawCommunities.forEach(function(c) { communityIdSet[c.communityId] = true; });
 var communityIds = Object.keys(communityIdSet);
 communityIds.forEach(function(id, i) { communityColorMap[id] = COMMUNITY_PALETTE[i % 12]; });
 
+// === PRE-INDEX COMMUNITY MEMBERSHIP (O(n) lookup instead of O(n*m)) ===
+var communityByNode = {};
+rawCommunities.forEach(function(c) { communityByNode[c.nodeId] = c; });
+
 // === BUILD GRAPHOLOGY GRAPH ===
 var graph = new graphology.Graph();
 var nodeCount = rawNodes.length;
@@ -179,25 +182,22 @@ rawNodes.forEach(function(n, i) {
     var x, y;
     if (structuralTypes[n.type]) {
         var angle = structIdx * 2.399963;
-        var radius = Math.sqrt(structIdx) * 15;
+        var radius = Math.sqrt(structIdx + 1) * 5;
         x = Math.cos(angle) * radius;
         y = Math.sin(angle) * radius;
         structIdx++;
     } else {
         var angle2 = i * 2.399963;
-        var radius2 = Math.sqrt(i) * 10;
-        x = Math.cos(angle2) * radius2 + (Math.random() - 0.5) * 5;
-        y = Math.sin(angle2) * radius2 + (Math.random() - 0.5) * 5;
+        var radius2 = Math.sqrt(i + 1) * 3;
+        x = Math.cos(angle2) * radius2 + (Math.random() - 0.5) * 0.5;
+        y = Math.sin(angle2) * radius2 + (Math.random() - 0.5) * 0.5;
     }
 
     var importance = n.importance != null ? n.importance : 0.5;
     var size = 3 + importance * 12;
 
     // Get community color for symbol nodes
-    var comm = null;
-    for (var ci = 0; ci < rawCommunities.length; ci++) {
-        if (rawCommunities[ci].nodeId === n.id) { comm = rawCommunities[ci]; break; }
-    }
+    var comm = communityByNode[n.id] || null;
     var color = TYPE_COLORS[n.type] || DEFAULT_TYPE_COLOR;
     if (comm && !structuralTypes[n.type]) {
         color = communityColorMap[comm.communityId] || color;
@@ -209,7 +209,7 @@ rawNodes.forEach(function(n, i) {
         label: n.name,
         x: x, y: y, size: size, color: color,
         mass: massMap[n.type] || 1,
-        type: n.type,
+        nodeType: n.type,
         originalColor: color,
         originalSize: size,
         summary: n.summary || '',
@@ -226,7 +226,7 @@ rawEdges.forEach(function(e, i) {
     graph.addEdge(e.from_id, e.to_id, {
         key: edgeKey, color: color, originalColor: color,
         size: (e.weight || 0.5) * 2,
-        type: e.type, label: e.type,
+        edgeType: e.type, label: e.type,
         weight: e.weight
     });
 });
@@ -237,10 +237,11 @@ var layoutIterations = 0;
 var maxIterations = nodeCount < 500 ? 3000 : nodeCount < 2000 ? 5000 : 8000;
 
 function getFA2Settings() {
-    if (nodeCount < 500) return { gravity: 1, scalingRatio: 2, slowDown: 5, barnesHutOptimize: false };
-    if (nodeCount < 2000) return { gravity: 1.5, scalingRatio: 5, slowDown: 8, barnesHutOptimize: true, barnesHutTheta: 0.5 };
-    if (nodeCount < 10000) return { gravity: 2, scalingRatio: 10, slowDown: 10, barnesHutOptimize: true, barnesHutTheta: 0.8 };
-    return { gravity: 3, scalingRatio: 20, slowDown: 15, barnesHutOptimize: true, barnesHutTheta: 1.2 };
+    if (nodeCount < 100) return { gravity: 0.5, scalingRatio: 10, slowDown: 5, barnesHutOptimize: false };
+    if (nodeCount < 500) return { gravity: 0.5, scalingRatio: 20, slowDown: 5, barnesHutOptimize: true, barnesHutTheta: 0.5 };
+    if (nodeCount < 2000) return { gravity: 1, scalingRatio: 50, slowDown: 8, barnesHutOptimize: true, barnesHutTheta: 0.5 };
+    if (nodeCount < 10000) return { gravity: 1, scalingRatio: 100, slowDown: 10, barnesHutOptimize: true, barnesHutTheta: 0.8 };
+    return { gravity: 2, scalingRatio: 200, slowDown: 15, barnesHutOptimize: true, barnesHutTheta: 1.2 };
 }
 
 var fa2Settings = Object.assign({}, getFA2Settings(), { adjustSizes: true, linLogMode: false });
@@ -249,7 +250,7 @@ function runLayoutFrame() {
     if (!layoutRunning) return;
     var iterPerFrame = 50;
     for (var li = 0; li < iterPerFrame && layoutIterations < maxIterations; li++) {
-        graphologyLayoutForceAtlas2.assign(graph, { settings: fa2Settings, iterations: 1 });
+        forceAtlas2.assign(graph, { settings: fa2Settings, iterations: 1 });
         layoutIterations++;
     }
     if (layoutIterations >= maxIterations) {
@@ -280,7 +281,10 @@ var hiddenNodeTypes = {};
 var hiddenEdgeTypes = {};
 var animatedNodes = {};
 
-var renderer = new Sigma(graph, container, {
+if (!container) { document.body.textContent = 'Error: #sigma-container not found'; return; }
+if (nodeCount === 0) { container.textContent = 'No nodes in graph. Run /sia-learn first.'; return; }
+var SigmaConstructor = Sigma.Sigma || Sigma.default || Sigma;
+var renderer = new SigmaConstructor(graph, container, {
     renderLabels: true,
     labelRenderedSizeThreshold: 8,
     labelDensity: 0.1,
@@ -290,7 +294,7 @@ var renderer = new Sigma(graph, container, {
         var res = Object.assign({}, data);
 
         // Type filter
-        if (hiddenNodeTypes[data.type]) {
+        if (hiddenNodeTypes[data.nodeType]) {
             res.hidden = true;
             return res;
         }
@@ -350,7 +354,7 @@ var renderer = new Sigma(graph, container, {
     edgeReducer: function(edge, data) {
         var res = Object.assign({}, data);
 
-        if (hiddenEdgeTypes[data.type]) {
+        if (hiddenEdgeTypes[data.edgeType]) {
             res.hidden = true;
             return res;
         }
@@ -398,8 +402,8 @@ function showNodeDetail(nodeId) {
     typeEl.textContent = '';
     var badge = document.createElement('span');
     badge.className = 'type-badge';
-    badge.style.background = TYPE_COLORS[data.type] || DEFAULT_TYPE_COLOR;
-    badge.textContent = data.type || '';
+    badge.style.background = TYPE_COLORS[data.nodeType] || DEFAULT_TYPE_COLOR;
+    badge.textContent = data.nodeType || '';
     typeEl.appendChild(badge);
 
     document.getElementById('detail-summary').textContent = data.summary || '';
@@ -429,7 +433,7 @@ function showNodeDetail(nodeId) {
         var otherData = graph.getNodeAttributes(otherNode);
         var dir = source === nodeId ? '\\u2192' : '\\u2190';
         var row = document.createElement('div');
-        row.textContent = dir + ' ' + (otherData.label || '') + ' (' + attrs.type + ')';
+        row.textContent = dir + ' ' + (otherData.label || '') + ' (' + attrs.edgeType + ')';
         row.addEventListener('click', function() { focusNode(otherNode); });
         edgesEl.appendChild(row);
     });
@@ -446,7 +450,7 @@ function showEdgeDetail(edgeId) {
     var srcData = graph.getNodeAttributes(source);
     var tgtData = graph.getNodeAttributes(target);
 
-    document.getElementById('edge-detail-title').textContent = data.type || '';
+    document.getElementById('edge-detail-title').textContent = data.edgeType || '';
     var contentEl = document.getElementById('edge-detail-content');
     contentEl.textContent = '';
 
@@ -454,8 +458,8 @@ function showEdgeDetail(edgeId) {
     badgeWrap.style.margin = '8px 0';
     var badge = document.createElement('span');
     badge.className = 'type-badge';
-    badge.style.background = EDGE_COLORS[data.type] || DEFAULT_EDGE_COLOR;
-    badge.textContent = data.type || '';
+    badge.style.background = EDGE_COLORS[data.edgeType] || DEFAULT_EDGE_COLOR;
+    badge.textContent = data.edgeType || '';
     badgeWrap.appendChild(badge);
     contentEl.appendChild(badgeWrap);
 
@@ -507,7 +511,7 @@ searchInput.addEventListener('input', function() {
     searchResultItems = [];
     graph.forEachNode(function(node, attrs) {
         if ((attrs.label || '').toLowerCase().indexOf(query) !== -1) {
-            searchResultItems.push({ id: node, name: attrs.label || '', type: attrs.type });
+            searchResultItems.push({ id: node, name: attrs.label || '', type: attrs.nodeType });
         }
     });
     searchResultItems = searchResultItems.slice(0, 10);
@@ -562,8 +566,8 @@ window.selectSearchResult = function(index) {
 function buildFilters() {
     var nodeTypes = {};
     var edgeTypes = {};
-    graph.forEachNode(function(n, attrs) { nodeTypes[attrs.type] = true; });
-    graph.forEachEdge(function(e, attrs) { edgeTypes[attrs.type] = true; });
+    graph.forEachNode(function(n, attrs) { nodeTypes[attrs.nodeType] = true; });
+    graph.forEachEdge(function(e, attrs) { edgeTypes[attrs.edgeType] = true; });
 
     var ntContainer = document.getElementById('node-type-filters');
     ntContainer.textContent = '';
@@ -617,7 +621,7 @@ window.toggleEdgeType = function(type) {
 function buildFileTree() {
     var tree = {};
     graph.forEachNode(function(node, attrs) {
-        if (attrs.type !== 'FileNode' || !attrs.file_paths) return;
+        if (attrs.nodeType !== 'FileNode' || !attrs.file_paths) return;
         var paths = [];
         var fp = attrs.file_paths;
         if (typeof fp === 'string') {
@@ -790,9 +794,8 @@ function animationLoop() {
 // === INIT ===
 buildFilters();
 buildFileTree();
-layoutRunning = true;
-document.getElementById('layout-toggle').textContent = '\\u23F8';
-requestAnimationFrame(runLayoutFrame);
+
+// Start with spiral layout visible, user can click play to run FA2
 requestAnimationFrame(animationLoop);
 })();
 </script>
