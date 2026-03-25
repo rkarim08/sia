@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the bm25-search module
@@ -19,9 +19,9 @@ vi.mock("@/capture/hook", () => ({
 	resolveRepoHash: vi.fn(() => "test-repo-hash"),
 }));
 
+import { openGraphDb } from "@/graph/semantic-db";
 import { augment } from "@/hooks/augmentation/engine";
 import { bm25Search } from "@/retrieval/bm25-search";
-import { openGraphDb } from "@/graph/semantic-db";
 
 describe("hooks/augmentation/engine", () => {
 	let tmpDir: string;
@@ -64,9 +64,7 @@ describe("hooks/augmentation/engine", () => {
 	// Known entity: returns formatted context
 	// ---------------------------------------------------------------
 	it("returns formatted context for a known entity", async () => {
-		(bm25Search as ReturnType<typeof vi.fn>).mockResolvedValue([
-			{ entityId: "e1", score: 0.9 },
-		]);
+		(bm25Search as ReturnType<typeof vi.fn>).mockResolvedValue([{ entityId: "e1", score: 0.9 }]);
 
 		// Mock entity lookup
 		mockDb.execute
@@ -84,9 +82,7 @@ describe("hooks/augmentation/engine", () => {
 			})
 			// Mock edge lookup
 			.mockResolvedValueOnce({
-				rows: [
-					{ target_name: "validateToken", type: "calls" },
-				],
+				rows: [{ target_name: "validateToken", type: "calls" }],
 			});
 
 		const result = await augment("handleAuth", siaGraphDir);
@@ -123,7 +119,7 @@ describe("hooks/augmentation/engine", () => {
 	it("is enabled by default when augment-enabled file does not exist", async () => {
 		(bm25Search as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
-		const result = await augment("handleAuth", siaGraphDir);
+		const _result = await augment("handleAuth", siaGraphDir);
 		// Should have proceeded to search (even though results are empty)
 		expect(bm25Search).toHaveBeenCalled();
 	});

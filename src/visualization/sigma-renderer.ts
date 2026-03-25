@@ -33,10 +33,10 @@ export function renderSigmaHtml(data: SubgraphData, opts?: RenderOpts): string {
 <head>
 <meta charset="UTF-8">
 <title>${escapeHtml(title)}</title>
-<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/build/sigma.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/build/graphology-layout-forceatlas2.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-layout-noverlap@0.4.2/build/graphology-layout-noverlap.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/build/sigma.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-layout-forceatlas2@0.10.1/build/graphology-layout-forceatlas2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-layout-noverlap@0.4.2/build/graphology-layout-noverlap.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; }
@@ -795,7 +795,7 @@ document.getElementById('layout-toggle').textContent = '\\u23F8';
 requestAnimationFrame(runLayoutFrame);
 requestAnimationFrame(animationLoop);
 })();
-<\/script>
+</script>
 </body>
 </html>`;
 }

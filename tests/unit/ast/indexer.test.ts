@@ -345,9 +345,7 @@ describe("createEdgesFromRelationships — self-loop prevention", () => {
 					file_paths: ["src/axios.ts"],
 					trust_tier: 2,
 					confidence: 0.9,
-					proposed_relationships: [
-						{ target_name: "axios", type: "imports", weight: 0.8 },
-					],
+					proposed_relationships: [{ target_name: "axios", type: "imports", weight: 0.8 }],
 				},
 				relPath: "src/axios.ts",
 				packagePath: null,
@@ -394,9 +392,7 @@ describe("createEdgesFromRelationships — self-loop prevention", () => {
 					file_paths: ["src/apiClient.ts"],
 					trust_tier: 2,
 					confidence: 0.9,
-					proposed_relationships: [
-						{ target_name: "axios", type: "imports", weight: 0.8 },
-					],
+					proposed_relationships: [{ target_name: "axios", type: "imports", weight: 0.8 }],
 				},
 				relPath: "src/apiClient.ts",
 				packagePath: null,

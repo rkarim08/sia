@@ -49,11 +49,7 @@ export class SessionCache {
 			const parsed = JSON.parse(raw) as CacheData;
 
 			// Validate structure
-			if (
-				!parsed ||
-				typeof parsed.session_start !== "number" ||
-				!Array.isArray(parsed.augmented)
-			) {
+			if (!parsed || typeof parsed.session_start !== "number" || !Array.isArray(parsed.augmented)) {
 				return this.freshCache();
 			}
 

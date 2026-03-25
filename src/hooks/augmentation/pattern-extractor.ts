@@ -9,7 +9,10 @@ const MIN_PATTERN_LENGTH = 3;
  * Returns null if no meaningful pattern can be extracted or the pattern
  * is shorter than 3 characters.
  */
-export function extractPattern(toolName: string, toolInput: Record<string, unknown>): string | null {
+export function extractPattern(
+	toolName: string,
+	toolInput: Record<string, unknown>,
+): string | null {
 	let pattern: string | null = null;
 
 	switch (toolName) {
@@ -106,9 +109,22 @@ function extractBashPattern(toolInput: Record<string, unknown>): string | null {
 
 	// Flags that consume the next token as their argument
 	const flagsWithArgs = new Set([
-		"--type", "-t", "--glob", "-g", "--max-count", "-m",
-		"--context", "-C", "-A", "-B", "--file", "-f",
-		"--replace", "-r", "--max-depth", "-e",
+		"--type",
+		"-t",
+		"--glob",
+		"-g",
+		"--max-count",
+		"-m",
+		"--context",
+		"-C",
+		"-A",
+		"-B",
+		"--file",
+		"-f",
+		"--replace",
+		"-r",
+		"--max-depth",
+		"-e",
 	]);
 
 	for (const token of tokens) {

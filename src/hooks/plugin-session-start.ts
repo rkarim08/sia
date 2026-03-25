@@ -5,7 +5,7 @@
 // at the beginning of a Claude Code session.
 // Also ensures the MCP server is configured in the project.
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
@@ -65,7 +65,7 @@ function ensureMcpConfig(cwd: string): void {
 			mcpJson = JSON.parse(readFileSync(projectMcpPath, "utf8"));
 		}
 		mcpJson.sia = siaConfig;
-		writeFileSync(projectMcpPath, JSON.stringify(mcpJson, null, "\t") + "\n");
+		writeFileSync(projectMcpPath, `${JSON.stringify(mcpJson, null, "\t")}\n`);
 		process.stderr.write("[sia] MCP server auto-configured in .mcp.json\n");
 	} catch (err) {
 		process.stderr.write(`[sia] MCP auto-config failed (non-fatal): ${err}\n`);

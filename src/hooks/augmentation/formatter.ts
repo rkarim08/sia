@@ -64,7 +64,7 @@ export function formatContext(pattern: string, entities: AugmentEntity[]): strin
 
 	// Truncate to budget if needed
 	if (result.length > MAX_OUTPUT_CHARS) {
-		return result.slice(0, MAX_OUTPUT_CHARS - 3) + "...";
+		return `${result.slice(0, MAX_OUTPUT_CHARS - 3)}...`;
 	}
 
 	return result;

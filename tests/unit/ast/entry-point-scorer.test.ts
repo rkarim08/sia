@@ -3,11 +3,11 @@ import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { scoreEntryPoints } from "@/ast/entry-point-scorer";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import { scoreEntryPoints, type EntryPointScore } from "@/ast/entry-point-scorer";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-ep-test-${randomUUID()}`);
@@ -51,7 +51,7 @@ describe("entry point scorer", () => {
 
 		const handleScore = scores.find((s) => s.reasons.length > 0);
 		expect(handleScore).toBeDefined();
-		expect(handleScore!.score).toBeGreaterThan(0.7);
+		expect(handleScore?.score).toBeGreaterThan(0.7);
 	});
 
 	// ---------------------------------------------------------------
@@ -74,7 +74,7 @@ describe("entry point scorer", () => {
 		const scores = await scoreEntryPoints(db);
 		const internalScore = scores.find((s) => s.entityId !== undefined);
 		expect(internalScore).toBeDefined();
-		expect(internalScore!.score).toBeLessThan(0.3);
+		expect(internalScore?.score).toBeLessThan(0.3);
 	});
 
 	// ---------------------------------------------------------------
@@ -97,7 +97,7 @@ describe("entry point scorer", () => {
 		const scores = await scoreEntryPoints(db);
 		const mainScore = scores.find((s) => s.reasons.some((r) => r.includes("main")));
 		expect(mainScore).toBeDefined();
-		expect(mainScore!.score).toBeGreaterThan(0.8);
+		expect(mainScore?.score).toBeGreaterThan(0.8);
 	});
 
 	it("function named index scores > 0.8", async () => {
@@ -116,7 +116,7 @@ describe("entry point scorer", () => {
 		const scores = await scoreEntryPoints(db);
 		const indexScore = scores.find((s) => s.reasons.some((r) => r.includes("index")));
 		expect(indexScore).toBeDefined();
-		expect(indexScore!.score).toBeGreaterThan(0.8);
+		expect(indexScore?.score).toBeGreaterThan(0.8);
 	});
 
 	// ---------------------------------------------------------------
@@ -141,7 +141,7 @@ describe("entry point scorer", () => {
 			s.reasons.some((r) => r.toLowerCase().includes("framework")),
 		);
 		expect(frameworkScore).toBeDefined();
-		expect(frameworkScore!.score).toBeGreaterThan(0.8);
+		expect(frameworkScore?.score).toBeGreaterThan(0.8);
 	});
 
 	// ---------------------------------------------------------------
@@ -214,7 +214,7 @@ describe("entry point scorer", () => {
 
 		expect(highScore).toBeDefined();
 		expect(lowScore).toBeDefined();
-		expect(highScore!.score).toBeGreaterThan(lowScore!.score);
+		expect(highScore?.score).toBeGreaterThan(lowScore?.score);
 	});
 
 	// ---------------------------------------------------------------
@@ -236,10 +236,9 @@ describe("entry point scorer", () => {
 
 		await scoreEntryPoints(db);
 
-		const result = await db.execute(
-			"SELECT entry_point_score FROM graph_nodes WHERE id = ?",
-			[entity.id],
-		);
+		const result = await db.execute("SELECT entry_point_score FROM graph_nodes WHERE id = ?", [
+			entity.id,
+		]);
 		expect(result.rows.length).toBe(1);
 		expect(result.rows[0].entry_point_score).not.toBeNull();
 		expect(typeof result.rows[0].entry_point_score).toBe("number");

@@ -20,13 +20,13 @@ function patternToRegExp(pattern: string): RegExp {
 	if (!trimmed) return /^$/; // unused
 
 	// First replace ** and * with placeholders, then escape regex chars, then restore
-	const withPlaceholders = trimmed
-		.replace(/\*\*/g, "\x00GLOBSTAR\x00")
-		.replace(/\*/g, "\x00STAR\x00");
+	const GLOBSTAR = "<<GLOBSTAR>>";
+	const STAR = "<<STAR>>";
+	const withPlaceholders = trimmed.replace(/\*\*/g, GLOBSTAR).replace(/\*/g, STAR);
 	const escaped = withPlaceholders.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
 	const wildcarded = escaped
-		.replace(/\x00GLOBSTAR\x00/g, ".*")
-		.replace(/\x00STAR\x00/g, "[^/]*");
+		.replace(new RegExp(GLOBSTAR.replace(/[<>]/g, "\\$&"), "g"), ".*")
+		.replace(new RegExp(STAR.replace(/[<>]/g, "\\$&"), "g"), "[^/]*");
 
 	if (trimmed.startsWith("/")) {
 		return new RegExp(`^${wildcarded.slice(1)}(/.*)?$`);

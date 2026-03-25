@@ -13,7 +13,11 @@ import { ProgressiveThrottle } from "@/retrieval/throttle";
 
 function makeMockEmbedder(): Embedder {
 	const embedFn = vi.fn(async () => new Float32Array(384));
-	return { embed: embedFn, embedBatch: vi.fn(async (texts: string[]) => texts.map(() => new Float32Array(384))), close: vi.fn() };
+	return {
+		embed: embedFn,
+		embedBatch: vi.fn(async (texts: string[]) => texts.map(() => new Float32Array(384))),
+		close: vi.fn(),
+	};
 }
 
 describe("handleSiaExecute", () => {
@@ -112,12 +116,10 @@ describe("handleSiaExecute", () => {
 		);
 
 		expect(result.stdout).toBeDefined();
-		expect(result.stdout!.length).toBeGreaterThan(100);
+		expect(result.stdout?.length).toBeGreaterThan(100);
 		expect(result.contextMode).toBeUndefined();
 
-		expect(stderrSpy).toHaveBeenCalledWith(
-			expect.stringContaining("context mode skipped"),
-		);
+		expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("context mode skipped"));
 
 		stderrSpy.mockRestore();
 	});

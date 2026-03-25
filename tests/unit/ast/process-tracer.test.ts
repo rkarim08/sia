@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { EntryPointScore } from "@/ast/entry-point-scorer";
-import { traceProcesses, type TracedProcess } from "@/ast/process-tracer";
+import { traceProcesses } from "@/ast/process-tracer";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
@@ -61,9 +61,7 @@ describe("process tracer", () => {
 		await insertEdge(db, { from_id: a.id, to_id: b.id, type: "calls", confidence: 0.9 });
 		await insertEdge(db, { from_id: b.id, to_id: c.id, type: "calls", confidence: 0.8 });
 
-		const entryPoints: EntryPointScore[] = [
-			{ entityId: a.id, score: 0.9, reasons: ["exported"] },
-		];
+		const entryPoints: EntryPointScore[] = [{ entityId: a.id, score: 0.9, reasons: ["exported"] }];
 
 		const processes = await traceProcesses(db, entryPoints);
 		expect(processes.length).toBe(1);
@@ -191,9 +189,7 @@ describe("process tracer", () => {
 		await insertEdge(db, { from_id: a.id, to_id: a.id, type: "calls", confidence: 0.9 });
 		await insertEdge(db, { from_id: a.id, to_id: b.id, type: "calls", confidence: 0.9 });
 
-		const entryPoints: EntryPointScore[] = [
-			{ entityId: a.id, score: 0.8, reasons: ["entry"] },
-		];
+		const entryPoints: EntryPointScore[] = [{ entityId: a.id, score: 0.8, reasons: ["entry"] }];
 
 		const processes = await traceProcesses(db, entryPoints);
 		// Should have a process A -> B but no self-loop
@@ -264,9 +260,7 @@ describe("process tracer", () => {
 			summary: "Weak entry",
 		});
 
-		const entryPoints: EntryPointScore[] = [
-			{ entityId: a.id, score: 0.3, reasons: ["weak"] },
-		];
+		const entryPoints: EntryPointScore[] = [{ entityId: a.id, score: 0.3, reasons: ["weak"] }];
 
 		const processes = await traceProcesses(db, entryPoints);
 		expect(processes.length).toBe(0);
@@ -295,9 +289,7 @@ describe("process tracer", () => {
 
 		await insertEdge(db, { from_id: a.id, to_id: b.id, type: "calls", confidence: 0.9 });
 
-		const entryPoints: EntryPointScore[] = [
-			{ entityId: a.id, score: 0.8, reasons: ["handler"] },
-		];
+		const entryPoints: EntryPointScore[] = [{ entityId: a.id, score: 0.8, reasons: ["handler"] }];
 
 		await traceProcesses(db, entryPoints);
 

@@ -191,9 +191,10 @@ async function extractScoped(db: SiaDb, scope: string, maxNodes?: number): Promi
 	const extraNodes = await fetchEntitiesById(db, extraIds);
 
 	// Merge and optionally cap
-	const allNodes = maxNodes != null
-		? [...seedNodes, ...extraNodes].slice(0, maxNodes)
-		: [...seedNodes, ...extraNodes];
+	const allNodes =
+		maxNodes != null
+			? [...seedNodes, ...extraNodes].slice(0, maxNodes)
+			: [...seedNodes, ...extraNodes];
 	const cappedIds = allNodes.map((n) => n.id);
 	const edges = await edgesBetween(db, cappedIds);
 	const communities = await fetchCommunities(db, cappedIds);
@@ -204,7 +205,11 @@ async function extractScoped(db: SiaDb, scope: string, maxNodes?: number): Promi
 /**
  * NodeType extraction: all nodes of that type + direct (1-hop) neighbors.
  */
-async function extractByType(db: SiaDb, nodeType: string, maxNodes?: number): Promise<SubgraphData> {
+async function extractByType(
+	db: SiaDb,
+	nodeType: string,
+	maxNodes?: number,
+): Promise<SubgraphData> {
 	const { rows: typeRows } = await db.execute(
 		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE type = ?
@@ -220,9 +225,10 @@ async function extractByType(db: SiaDb, nodeType: string, maxNodes?: number): Pr
 	const extraNodes = await fetchEntitiesById(db, extraIds);
 
 	// Merge and optionally cap
-	const allNodes = maxNodes != null
-		? [...typeNodes, ...extraNodes].slice(0, maxNodes)
-		: [...typeNodes, ...extraNodes];
+	const allNodes =
+		maxNodes != null
+			? [...typeNodes, ...extraNodes].slice(0, maxNodes)
+			: [...typeNodes, ...extraNodes];
 	const cappedIds = allNodes.map((n) => n.id);
 	const edges = await edgesBetween(db, cappedIds);
 	const communities = await fetchCommunities(db, cappedIds);

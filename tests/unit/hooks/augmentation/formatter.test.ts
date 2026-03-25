@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatContext, type AugmentEntity, type AugmentEdge } from "@/hooks/augmentation/formatter";
+import { type AugmentEntity, formatContext } from "@/hooks/augmentation/formatter";
 
 describe("hooks/augmentation/formatter", () => {
 	// ---------------------------------------------------------------

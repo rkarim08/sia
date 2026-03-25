@@ -128,7 +128,8 @@ export async function downloadModel(siaHome: string = SIA_HOME): Promise<string>
 		console.log("Downloading ONNX model...");
 		await downloadFile(MODEL_URL, modelPath);
 		if (!process.env.SIA_SKIP_CHECKSUM) {
-			const MODEL_EXPECTED_HASH = "afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1";
+			const MODEL_EXPECTED_HASH =
+				"afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1";
 			verifyModelChecksum(modelPath, MODEL_EXPECTED_HASH);
 		}
 	}
@@ -138,7 +139,8 @@ export async function downloadModel(siaHome: string = SIA_HOME): Promise<string>
 		console.log("Downloading tokenizer...");
 		await downloadFile(TOKENIZER_URL, tokenizerPath);
 		if (!process.env.SIA_SKIP_CHECKSUM) {
-			const TOKENIZER_EXPECTED_HASH = "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0";
+			const TOKENIZER_EXPECTED_HASH =
+				"da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0";
 			verifyModelChecksum(tokenizerPath, TOKENIZER_EXPECTED_HASH);
 		}
 	}

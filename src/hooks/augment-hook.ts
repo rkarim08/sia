@@ -1,14 +1,15 @@
 #!/usr/bin/env bun
+
 // Plugin hook wrapper: PreToolUse — Auto-augmentation
 //
 // Reads a Claude Code PreToolUse hook event from stdin, extracts the
 // search pattern, queries the SIA graph, and injects compact context
 // via additionalContext in the hook response.
 
-import { extractPattern } from "@/hooks/augmentation/pattern-extractor";
 import { augment } from "@/hooks/augmentation/engine";
-import { resolveProjectGraphDir } from "@/shared/git-utils";
+import { extractPattern } from "@/hooks/augmentation/pattern-extractor";
 import { readStdin } from "@/hooks/plugin-common";
+import { resolveProjectGraphDir } from "@/shared/git-utils";
 
 async function main() {
 	try {

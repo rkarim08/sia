@@ -8,7 +8,6 @@ import {
 	SiaCommunityInput,
 	SiaExpandInput,
 	SiaFlagInput,
-	SiaImpactInput,
 	SiaSearchInput,
 	SiaSnapshotListInput,
 	SiaSnapshotPruneInput,

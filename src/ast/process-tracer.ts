@@ -79,9 +79,7 @@ export async function traceProcesses(
 	}
 
 	// Fetch community memberships for scope detection
-	const communityResult = await db.execute(
-		"SELECT entity_id, community_id FROM community_members",
-	);
+	const communityResult = await db.execute("SELECT entity_id, community_id FROM community_members");
 	const entityToCommunity = new Map<string, string>();
 	for (const row of communityResult.rows as Array<{
 		entity_id: string;
@@ -94,12 +92,7 @@ export async function traceProcesses(
 	const allProcesses: TracedProcess[] = [];
 
 	for (const entry of validEntries) {
-		const paths = tracePaths(
-			entry.entityId,
-			adjacency,
-			maxDepth,
-			maxBranches,
-		);
+		const paths = tracePaths(entry.entityId, adjacency, maxDepth, maxBranches);
 
 		for (const path of paths) {
 			if (path.length < 2) continue; // Skip single-node paths

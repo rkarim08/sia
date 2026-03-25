@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
@@ -84,16 +84,20 @@ describe("sia_detect_changes tool", () => {
 
 		const gitDiffOutput = "M\tsrc/auth.ts\nM\tsrc/user.ts\n";
 
-		const result = await handleSiaDetectChanges(db, { scope: "HEAD~1..HEAD" }, async () => gitDiffOutput);
+		const result = await handleSiaDetectChanges(
+			db,
+			{ scope: "HEAD~1..HEAD" },
+			async () => gitDiffOutput,
+		);
 
 		expect(result.files_changed.length).toBe(2);
 		expect(result.total_entities_affected).toBe(2);
 
 		const authFile = result.files_changed.find((f) => f.path === "src/auth.ts");
 		expect(authFile).toBeDefined();
-		expect(authFile!.status).toBe("modified");
-		expect(authFile!.entities.length).toBe(1);
-		expect(authFile!.entities[0].name).toBe("AuthModule");
+		expect(authFile?.status).toBe("modified");
+		expect(authFile?.entities.length).toBe(1);
+		expect(authFile?.entities[0].name).toBe("AuthModule");
 	});
 
 	// ---------------------------------------------------------------
@@ -106,7 +110,11 @@ describe("sia_detect_changes tool", () => {
 
 		const gitDiffOutput = "M\tsrc/unknown.ts\n";
 
-		const result = await handleSiaDetectChanges(db, { scope: "HEAD~1..HEAD" }, async () => gitDiffOutput);
+		const result = await handleSiaDetectChanges(
+			db,
+			{ scope: "HEAD~1..HEAD" },
+			async () => gitDiffOutput,
+		);
 
 		expect(result.files_changed.length).toBe(1);
 		expect(result.files_changed[0].entities.length).toBe(0);
@@ -121,11 +129,9 @@ describe("sia_detect_changes tool", () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("dc-error", tmpDir);
 
-		const result = await handleSiaDetectChanges(
-			db,
-			{ scope: "HEAD~1..HEAD" },
-			async () => { throw new Error("git not found"); },
-		);
+		const result = await handleSiaDetectChanges(db, { scope: "HEAD~1..HEAD" }, async () => {
+			throw new Error("git not found");
+		});
 
 		expect(result.files_changed.length).toBe(0);
 		expect(result.total_entities_affected).toBe(0);

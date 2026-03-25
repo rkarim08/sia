@@ -4,9 +4,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
-import { bm25Search } from "@/retrieval/bm25-search";
-import { formatContext, type AugmentEntity, type AugmentEdge } from "@/hooks/augmentation/formatter";
+import {
+	type AugmentEdge,
+	type AugmentEntity,
+	formatContext,
+} from "@/hooks/augmentation/formatter";
 import { SessionCache } from "@/hooks/augmentation/session-cache";
+import { bm25Search } from "@/retrieval/bm25-search";
 
 /** Maximum number of entities to fetch details for. */
 const MAX_ENTITIES = 3;
@@ -112,7 +116,14 @@ async function fetchEntityWithEdges(
 	);
 
 	const row = entityResult.rows[0] as
-		| { id: string; name: string; type: string; file_paths: string; trust_tier: number; summary: string }
+		| {
+				id: string;
+				name: string;
+				type: string;
+				file_paths: string;
+				trust_tier: number;
+				summary: string;
+		  }
 		| undefined;
 
 	if (!row) return null;
@@ -134,12 +145,12 @@ async function fetchEntityWithEdges(
 		[entityId],
 	);
 
-	const edges: AugmentEdge[] = (edgeResult.rows as Array<{ target_name: string; type: string }>).map(
-		(e) => ({
-			targetName: e.target_name,
-			edgeType: e.type,
-		}),
-	);
+	const edges: AugmentEdge[] = (
+		edgeResult.rows as Array<{ target_name: string; type: string }>
+	).map((e) => ({
+		targetName: e.target_name,
+		edgeType: e.type,
+	}));
 
 	// Check if entity is a Decision or Convention type for annotation
 	let decision: { description: string; date: string } | undefined;

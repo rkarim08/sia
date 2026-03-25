@@ -43,18 +43,14 @@ function labelForDepth(depth: number): string {
 	return DEPTH_LABELS[depth] ?? "MAY NEED TESTING";
 }
 
-export async function handleSiaImpact(
-	db: SiaDb,
-	input: SiaImpactInput,
-): Promise<SiaImpactResult> {
+export async function handleSiaImpact(db: SiaDb, input: SiaImpactInput): Promise<SiaImpactResult> {
 	const maxDepth = input.max_depth ?? 3;
 	const minConfidence = input.min_confidence ?? 0.5;
 
 	// Fetch the root entity
-	const rootResult = await db.execute(
-		"SELECT id, name, type FROM graph_nodes WHERE id = ?",
-		[input.entity_id],
-	);
+	const rootResult = await db.execute("SELECT id, name, type FROM graph_nodes WHERE id = ?", [
+		input.entity_id,
+	]);
 	if (rootResult.rows.length === 0) {
 		return {
 			entity: { id: input.entity_id, name: "Unknown", type: "Unknown" },
@@ -87,8 +83,8 @@ export async function handleSiaImpact(
 	for (const row of edgeResult.rows as Array<{ from_id: string; to_id: string }>) {
 		if (!adjacency.has(row.from_id)) adjacency.set(row.from_id, new Set());
 		if (!adjacency.has(row.to_id)) adjacency.set(row.to_id, new Set());
-		adjacency.get(row.from_id)!.add(row.to_id);
-		adjacency.get(row.to_id)!.add(row.from_id);
+		adjacency.get(row.from_id)?.add(row.to_id);
+		adjacency.get(row.to_id)?.add(row.from_id);
 	}
 
 	// BFS from entity_id up to max_depth

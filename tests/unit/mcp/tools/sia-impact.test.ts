@@ -99,9 +99,9 @@ describe("sia_impact tool", () => {
 		expect(result.impact.length).toBeGreaterThanOrEqual(1);
 		const depth1 = result.impact.find((i) => i.depth === 1);
 		expect(depth1).toBeDefined();
-		expect(depth1!.entities.length).toBe(3);
+		expect(depth1?.entities.length).toBe(3);
 
-		const neighborIds = depth1!.entities.map((e) => e.id).sort();
+		const neighborIds = depth1?.entities.map((e) => e.id).sort();
 		expect(neighborIds).toContain(n1.id);
 		expect(neighborIds).toContain(n2.id);
 		expect(neighborIds).toContain(n3.id);

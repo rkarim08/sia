@@ -19,12 +19,12 @@ import { handleSiaBacklinks } from "@/mcp/tools/sia-backlinks";
 import { handleSiaBatchExecute } from "@/mcp/tools/sia-batch-execute";
 import { handleSiaByFile } from "@/mcp/tools/sia-by-file";
 import { handleSiaCommunity } from "@/mcp/tools/sia-community";
+import { handleSiaDetectChanges } from "@/mcp/tools/sia-detect-changes";
 import { handleSiaDoctor } from "@/mcp/tools/sia-doctor";
 import { handleSiaExecute } from "@/mcp/tools/sia-execute";
 import { handleSiaExecuteFile } from "@/mcp/tools/sia-execute-file";
 import { handleSiaExpand } from "@/mcp/tools/sia-expand";
 import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
-import { handleSiaDetectChanges } from "@/mcp/tools/sia-detect-changes";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
 import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
@@ -791,11 +791,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall(
-					"sia_impact",
-					() => handleSiaImpact(deps.graphDb, args),
-					maxChars,
-				);
+				return safeToolCall("sia_impact", () => handleSiaImpact(deps.graphDb, args), maxChars);
 			}
 			return {
 				content: [
