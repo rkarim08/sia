@@ -123,7 +123,7 @@ export async function promoteFailedSessions(graphDb: SiaDb, episodicDb: SiaDb): 
 	let total = 0;
 
 	for (;;) {
-		const { processed, remaining } = await promoteBatch(graphDb, episodicDb, 1);
+		const { processed, remaining } = await promoteBatch(graphDb, episodicDb, 10);
 		total += processed;
 		if (!remaining) break;
 	}
