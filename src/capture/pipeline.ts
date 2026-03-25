@@ -210,22 +210,25 @@ async function applySharingRules(
 		}
 	}
 
-	// Apply rules to newly created entities
-	for (const entityId of entityIds) {
+	// Apply rules to newly created entities (batch fetch)
+	if (entityIds.length > 0) {
+		const placeholders = entityIds.map(() => "?").join(", ");
 		const { rows } = await graphDb.execute(
-			"SELECT type, visibility FROM graph_nodes WHERE id = ?",
-			[entityId],
+			`SELECT id, type, visibility FROM graph_nodes WHERE id IN (${placeholders})`,
+			entityIds,
 		);
-		if (rows.length === 0) continue;
 
-		const entityType = rows[0].type as string;
-		const currentVisibility = rows[0].visibility as string;
+		for (const row of rows) {
+			const entityId = row.id as string;
+			const entityType = row.type as string;
+			const currentVisibility = row.visibility as string;
 
-		// Check type-specific rule first, then wildcard (null type)
-		const newVisibility = ruleMap.get(entityType) ?? ruleMap.get(null);
-		if (newVisibility && newVisibility !== currentVisibility) {
-			await updateEntity(graphDb, entityId, { visibility: newVisibility });
-			await writeAuditEntry(graphDb, "UPDATE", { entity_id: entityId });
+			// Check type-specific rule first, then wildcard (null type)
+			const newVisibility = ruleMap.get(entityType) ?? ruleMap.get(null);
+			if (newVisibility && newVisibility !== currentVisibility) {
+				await updateEntity(graphDb, entityId, { visibility: newVisibility });
+				await writeAuditEntry(graphDb, "UPDATE", { entity_id: entityId });
+			}
 		}
 	}
 }
