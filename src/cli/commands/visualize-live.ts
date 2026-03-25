@@ -75,20 +75,21 @@ export async function generateViewHtml(
 		case "communities": {
 			// Fetch community data from the graph
 			const { rows: commRows } = await db.execute(
-				`SELECT id, name, level, summary, member_count FROM communities
-				 WHERE t_valid_until IS NULL
+				`SELECT id, level, summary, member_count FROM communities
 				 ORDER BY level ASC, member_count DESC
 				 LIMIT 50`,
 			);
 			const { rows: memberRows } = await db.execute(
-				`SELECT entity_id, community_id, entity_name, entity_type FROM community_members
-				 WHERE t_valid_until IS NULL
+				`SELECT cm.entity_id, cm.community_id, gn.name AS entity_name, gn.type AS entity_type
+				 FROM community_members cm
+				 JOIN graph_nodes gn ON cm.entity_id = gn.id
+				 WHERE gn.t_valid_until IS NULL AND gn.archived_at IS NULL
 				 LIMIT 500`,
 			);
 			const communityData: CommunityData = {
 				communities: commRows.map((r) => ({
 					id: r.id as string,
-					name: r.name as string,
+					name: (r.summary as string) ?? `Community ${r.id}`,
 					level: (r.level as number) ?? 1,
 					summary: (r.summary as string) ?? "",
 					memberCount: (r.member_count as number) ?? 0,
