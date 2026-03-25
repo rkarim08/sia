@@ -214,7 +214,7 @@ describe("entry point scorer", () => {
 
 		expect(highScore).toBeDefined();
 		expect(lowScore).toBeDefined();
-		expect(highScore?.score).toBeGreaterThan(lowScore?.score);
+		expect(highScore!.score).toBeGreaterThan(lowScore!.score);
 	});
 
 	// ---------------------------------------------------------------
