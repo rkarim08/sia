@@ -229,4 +229,94 @@ describe("inferEdges", () => {
 		);
 		expect(edges2.rows.length).toBeGreaterThanOrEqual(1);
 	});
+
+	// ---------------------------------------------------------------
+	// Stopword names get no edges
+	// ---------------------------------------------------------------
+
+	it("should skip entities with stopword names (constructor, Set, Map)", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edge-inf-stopword", tmpDir);
+
+		// Create a "constructor" entity (stopword) with some tags
+		const ctor = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "constructor",
+			content: "Built-in constructor",
+			summary: "constructor",
+			tags: JSON.stringify(["typescript", "class", "auth"]),
+		});
+
+		// Create a target entity that would normally match
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "AuthService",
+			content: "Authentication service",
+			summary: "Auth service",
+			tags: JSON.stringify(["typescript", "class", "auth"]),
+		});
+
+		const count = await inferEdges(db, [ctor.id]);
+		expect(count).toBe(0);
+	});
+
+	// ---------------------------------------------------------------
+	// Domain-specific tags still get edges
+	// ---------------------------------------------------------------
+
+	it("should create edges for entities with domain-specific tags", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edge-inf-specific", tmpDir);
+
+		// Create "MyService" with domain-specific tag "auth"
+		const myService = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "MyService",
+			content: "Service for authentication",
+			summary: "Auth service",
+			tags: JSON.stringify(["typescript", "class", "auth"]),
+		});
+
+		// Create "AuthValidator" with matching domain-specific tag "auth"
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "AuthValidator",
+			content: "Validates auth tokens",
+			summary: "Auth validator",
+			tags: JSON.stringify(["typescript", "class", "auth"]),
+		});
+
+		const count = await inferEdges(db, [myService.id]);
+		expect(count).toBeGreaterThan(0);
+	});
+
+	// ---------------------------------------------------------------
+	// Generic-only tag pairs skipped
+	// ---------------------------------------------------------------
+
+	it("should skip entity pairs where both have only generic tags", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("edge-inf-generic", tmpDir);
+
+		// Create "myHelper" with only generic tags
+		const helper = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "myHelper",
+			content: "A helper function",
+			summary: "helper",
+			tags: JSON.stringify(["typescript", "function"]),
+		});
+
+		// Create "anotherHelper" with only generic tags
+		await insertEntity(db, {
+			type: "CodeEntity",
+			name: "anotherHelper",
+			content: "Another helper function",
+			summary: "another helper",
+			tags: JSON.stringify(["typescript", "function"]),
+		});
+
+		const count = await inferEdges(db, [helper.id]);
+		expect(count).toBe(0);
+	});
 });

@@ -230,9 +230,9 @@ export function openDb(repoHash: string, opts: OpenDbOpts = {}): BunSqliteDb {
 	const db = opts.readonly ? new Database(dbPath, { readonly: true }) : new Database(dbPath);
 
 	if (!opts.readonly) {
-		(db as unknown as { pragma: (s: string) => void }).pragma("journal_mode = WAL");
-		(db as unknown as { pragma: (s: string) => void }).pragma("synchronous = NORMAL");
-		(db as unknown as { pragma: (s: string) => void }).pragma("foreign_keys = ON");
+		db.exec("PRAGMA journal_mode = WAL");
+		db.exec("PRAGMA synchronous = NORMAL");
+		db.exec("PRAGMA foreign_keys = ON");
 	}
 
 	return new BunSqliteDb(db);

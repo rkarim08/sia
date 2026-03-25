@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { indexRepository } from "@/ast/indexer";
+import { createEdgesFromRelationships, indexRepository, type PendingFact } from "@/ast/indexer";
+import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 import { DEFAULT_CONFIG, type SiaConfig } from "@/shared/config";
 
@@ -305,5 +306,111 @@ describe("indexRepository", () => {
 			["delta"],
 		);
 		expect(result.rows[0]?.package_path).toBe("packages/app");
+	});
+});
+
+describe("createEdgesFromRelationships — self-loop prevention", () => {
+	let siaHome: string;
+	let db: ReturnType<typeof openGraphDb>;
+
+	beforeEach(() => {
+		siaHome = mkdtempSync(join(tmpdir(), "sia-selfloop-"));
+		db = openGraphDb("selfloop-test", siaHome);
+	});
+
+	afterEach(async () => {
+		await db.close();
+		rmSync(siaHome, { recursive: true, force: true });
+	});
+
+	it("should NOT create self-loop edges when target name matches own entity", async () => {
+		// Create an entity "axios"
+		const axios = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "axios",
+			content: "HTTP client library",
+			summary: "axios http client",
+			tags: JSON.stringify(["http", "client"]),
+		});
+
+		// Build a PendingFact where axios imports itself
+		const pending: PendingFact[] = [
+			{
+				fact: {
+					type: "CodeEntity",
+					name: "axios",
+					content: "HTTP client library",
+					summary: "axios http client",
+					tags: ["http", "client"],
+					file_paths: ["src/axios.ts"],
+					trust_tier: 2,
+					confidence: 0.9,
+					proposed_relationships: [
+						{ target_name: "axios", type: "imports", weight: 0.8 },
+					],
+				},
+				relPath: "src/axios.ts",
+				packagePath: null,
+				entityId: axios.id,
+			},
+		];
+
+		const edgesCreated = await createEdgesFromRelationships(db, pending);
+		expect(edgesCreated).toBe(0);
+
+		const edges = await db.execute(
+			"SELECT * FROM graph_edges WHERE from_id = ? AND t_valid_until IS NULL",
+			[axios.id],
+		);
+		expect(edges.rows).toHaveLength(0);
+	});
+
+	it("should create imports edge when target is a different entity", async () => {
+		// Create entityA "apiClient" and entityB "axios"
+		const apiClient = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "apiClient",
+			content: "API client wrapper",
+			summary: "api client",
+			tags: JSON.stringify(["http", "api"]),
+		});
+		const axios = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "axios",
+			content: "HTTP client library",
+			summary: "axios http client",
+			tags: JSON.stringify(["http", "client"]),
+		});
+
+		// apiClient imports axios -> should create 1 edge
+		const pending: PendingFact[] = [
+			{
+				fact: {
+					type: "CodeEntity",
+					name: "apiClient",
+					content: "API client wrapper",
+					summary: "api client",
+					tags: ["http", "api"],
+					file_paths: ["src/apiClient.ts"],
+					trust_tier: 2,
+					confidence: 0.9,
+					proposed_relationships: [
+						{ target_name: "axios", type: "imports", weight: 0.8 },
+					],
+				},
+				relPath: "src/apiClient.ts",
+				packagePath: null,
+				entityId: apiClient.id,
+			},
+		];
+
+		const edgesCreated = await createEdgesFromRelationships(db, pending);
+		expect(edgesCreated).toBe(1);
+
+		const edges = await db.execute(
+			"SELECT * FROM graph_edges WHERE from_id = ? AND to_id = ? AND type = 'imports' AND t_valid_until IS NULL",
+			[apiClient.id, axios.id],
+		);
+		expect(edges.rows).toHaveLength(1);
 	});
 });

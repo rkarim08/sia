@@ -16,6 +16,33 @@ const TYPE_AFFINITY: Record<string, { target: string; label: string }> = {
 	Bug: { target: "Solution", label: "solved_by" },
 };
 
+/** Common built-in names that should never form relates_to edges. */
+const STOPWORD_NAMES = new Set([
+	"constructor", "tostring", "valueof", "hasownproperty",
+	"set", "get", "map", "array", "promise", "object", "error",
+	"string", "number", "boolean", "symbol", "undefined", "null",
+	"true", "false", "render", "post", "put", "delete",
+	"index", "default", "module", "exports",
+	"then", "catch", "finally", "apply", "bind", "call",
+	"length", "name", "type", "value", "key", "data", "id",
+	"new", "this", "self", "super", "init", "setup",
+]);
+
+/** Generic language/category tags that don't indicate domain specificity. */
+const GENERIC_TAGS = new Set([
+	"typescript", "javascript", "python", "go", "rust", "java",
+	"kotlin", "swift", "ruby", "php", "scala", "elixir", "dart",
+	"c", "cpp", "csharp", "haskell", "lua", "ocaml", "zig",
+	"function", "class", "method", "variable", "call", "import",
+	"type", "interface", "enum", "constant", "property", "module",
+	"export", "declaration", "expression", "statement", "parameter",
+]);
+
+/** Returns true if the tag array contains at least one domain-specific tag. */
+function hasSpecificTags(tags: string[]): boolean {
+	return tags.some((t) => !GENERIC_TAGS.has(t.toLowerCase()));
+}
+
 /**
  * Compute tag overlap weight between two tag sets.
  * Returns |intersection| / |union| (Jaccard similarity on tags).
@@ -85,19 +112,23 @@ export async function inferEdges(db: SiaDb, newEntityIds: string[]): Promise<num
 
 		// Skip entities with no tags and no type affinity
 		if (tags.length === 0 && !hasTypeAffinity) continue;
+		if (STOPWORD_NAMES.has(entity.name.toLowerCase())) continue;
 
 		const candidates: EdgeCandidate[] = [];
 
 		for (const other of allActive) {
 			// Skip self-edges
 			if (other.id === entityId) continue;
+			if (STOPWORD_NAMES.has(other.name.toLowerCase())) continue;
+
+			const otherTags = parseTags(other.tags);
+			if (!hasSpecificTags(tags) && !hasSpecificTags(otherTags)) continue;
 
 			let bestWeight = 0;
 			let bestEdgeType = "relates_to";
 
 			// 1. Same package_path
 			if (entity.package_path && other.package_path && entity.package_path === other.package_path) {
-				const otherTags = parseTags(other.tags);
 				const overlap = tagOverlap(tags, otherTags);
 				// Package path match gives a base weight of 0.3, boosted by tag overlap
 				const w = 0.3 + overlap * 0.4;
@@ -109,7 +140,6 @@ export async function inferEdges(db: SiaDb, newEntityIds: string[]): Promise<num
 
 			// 2. Tag overlap (regardless of package path)
 			if (tags.length > 0) {
-				const otherTags = parseTags(other.tags);
 				const overlap = tagOverlap(tags, otherTags);
 				if (overlap > bestWeight) {
 					bestWeight = overlap;
@@ -121,7 +151,6 @@ export async function inferEdges(db: SiaDb, newEntityIds: string[]): Promise<num
 			if (hasTypeAffinity) {
 				const affinity = TYPE_AFFINITY[entity.type];
 				if (other.type === affinity.target) {
-					const otherTags = parseTags(other.tags);
 					const overlap = tagOverlap(tags, otherTags);
 					// Type affinity gives a base boost of 0.35 + tag overlap contribution
 					const w = 0.35 + overlap * 0.55;
