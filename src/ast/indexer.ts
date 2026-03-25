@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { join, relative, resolve } from "node:path";
-import type { WorkerMessage, WorkerResult } from "@/ast/index-worker";
 import { parseFileWithRetry } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
@@ -11,6 +10,68 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
+
+import type { WorkerMessage, WorkerResult } from "@/ast/index-worker";
+
+/**
+ * Runtime-agnostic handle to a single worker.
+ * `raw` holds the underlying runtime-specific worker object.
+ */
+interface WorkerHandle {
+	postMessage(msg: WorkerMessage): void;
+	terminate(): void;
+	/** The underlying runtime worker (bun Worker or Node Worker). */
+	readonly raw: unknown;
+}
+
+interface WorkerAdapter {
+	create(workerPath: string | URL): WorkerHandle;
+	onMessage(worker: WorkerHandle, handler: (result: WorkerResult) => void): void;
+	onError(worker: WorkerHandle, handler: (err: Error) => void): void;
+}
+
+function getBunAdapter(): WorkerAdapter {
+	return {
+		create(workerPath: string | URL): WorkerHandle {
+			const w = new Worker(workerPath);
+			return {
+				postMessage: (msg) => w.postMessage(msg),
+				terminate: () => w.terminate(),
+				raw: w,
+			};
+		},
+		onMessage(worker: WorkerHandle, handler: (result: WorkerResult) => void): void {
+			(worker.raw as InstanceType<typeof Worker>).onmessage = (event: MessageEvent) =>
+				handler(event.data);
+		},
+		onError(worker: WorkerHandle, handler: (err: Error) => void): void {
+			(worker.raw as InstanceType<typeof Worker>).onerror = (event: ErrorEvent) =>
+				handler(new Error(event.message));
+		},
+	};
+}
+
+function getNodeAdapter(): WorkerAdapter {
+	const { Worker } = require("node:worker_threads") as typeof import("node:worker_threads");
+	type NodeWorker = InstanceType<typeof Worker>;
+
+	return {
+		create(workerPath: string | URL): WorkerHandle {
+			const w = new Worker(typeof workerPath === "string" ? workerPath : workerPath.pathname);
+			return {
+				postMessage: (msg) => w.postMessage(msg),
+				terminate: () => { w.terminate(); },
+				raw: w,
+			};
+		},
+		onMessage(worker: WorkerHandle, handler: (result: WorkerResult) => void): void {
+			(worker.raw as NodeWorker).on("message", handler);
+		},
+		onError(worker: WorkerHandle, handler: (err: Error) => void): void {
+			(worker.raw as NodeWorker).on("error", handler);
+		},
+	};
+}
 
 export interface IndexResult {
 	filesProcessed: number;
@@ -276,19 +337,23 @@ export async function createEdgesFromRelationships(
 }
 
 /**
- * Dispatch files to a pool of Worker threads for parallel parsing.
- * Uses round-robin with backpressure: each worker gets one file at a time,
+ * Dispatch files to a pool of workers for parallel parsing.
+ * Uses the runtime's native worker API (Bun Web Workers or Node worker_threads).
+ * Round-robin with backpressure: each worker gets one file at a time,
  * receives the next when it reports completion.
  */
 async function dispatchToWorkerPool(
 	filesToProcess: Array<{ absPath: string; relPath: string }>,
 	numWorkers: number,
 ): Promise<WorkerResult[]> {
-	const { Worker } = await import("node:worker_threads");
-	const workerPath = new URL("./index-worker.ts", import.meta.url).pathname;
-	const workers: InstanceType<typeof Worker>[] = [];
+	const isBun = typeof globalThis.Bun !== "undefined";
+	const adapter = isBun ? getBunAdapter() : getNodeAdapter();
+	const workerUrl = new URL("./index-worker.ts", import.meta.url);
+	const workerPath = isBun ? workerUrl : workerUrl.pathname;
+
+	const workers: WorkerHandle[] = [];
 	for (let i = 0; i < numWorkers; i++) {
-		workers.push(new Worker(workerPath));
+		workers.push(adapter.create(workerPath));
 	}
 
 	const results: WorkerResult[] = [];
@@ -303,7 +368,7 @@ async function dispatchToWorkerPool(
 
 		let completed = 0;
 		for (const worker of workers) {
-			worker.on("message", (result: WorkerResult) => {
+			adapter.onMessage(worker, (result: WorkerResult) => {
 				results.push(result);
 				completed++;
 
@@ -315,7 +380,7 @@ async function dispatchToWorkerPool(
 				}
 			});
 
-			worker.on("error", (err) => {
+			adapter.onError(worker, (err: Error) => {
 				reject(err);
 			});
 
@@ -329,7 +394,7 @@ async function dispatchToWorkerPool(
 
 	// Terminate workers
 	for (const worker of workers) {
-		await worker.terminate();
+		worker.terminate();
 	}
 
 	return results;
@@ -405,8 +470,8 @@ export async function indexRepository(
 	filesProcessed = 0;
 
 	// Phase 2: Process files
-	// Use worker threads when explicitly requested and there are enough files.
-	// Otherwise fall back to sequential processing (always used in tests).
+	// Use native worker pool when there are enough files and workers aren't disabled.
+	// Each runtime uses its own worker API (Bun Web Workers / Node worker_threads).
 	const numWorkers = opts.workerCount ?? Math.max(1, cpus().length - 1);
 	const useWorkers = numWorkers > 0 && filesToProcess.length > 10 && opts.workerCount !== 0;
 
