@@ -70,15 +70,30 @@ async function mergeImport(db: SiaDb, data: ExportData): Promise<ImportResult> {
 	result.entitiesImported = consolidationResult.added + consolidationResult.updated;
 
 	// 2. Import edges — only if both endpoints exist in the graph
+	// Pre-fetch all node IDs referenced by edges
+	const allEdgeNodeIds = new Set<string>();
+	for (const edge of data.edges) {
+		if (edge.from_id) allEdgeNodeIds.add(edge.from_id as string);
+		if (edge.to_id) allEdgeNodeIds.add(edge.to_id as string);
+	}
+	const existingNodeIds = new Set<string>();
+	const idList = [...allEdgeNodeIds];
+	for (let i = 0; i < idList.length; i += 500) {
+		const batch = idList.slice(i, i + 500);
+		const placeholders = batch.map(() => "?").join(", ");
+		const { rows } = await db.execute(
+			`SELECT id FROM graph_nodes WHERE id IN (${placeholders})`,
+			batch,
+		);
+		for (const r of rows) existingNodeIds.add(r.id as string);
+	}
+
 	for (const edge of data.edges) {
 		const fromId = edge.from_id as string;
 		const toId = edge.to_id as string;
 		if (!fromId || !toId) continue;
 
-		const fromExists = await db.execute("SELECT 1 FROM graph_nodes WHERE id = ?", [fromId]);
-		const toExists = await db.execute("SELECT 1 FROM graph_nodes WHERE id = ?", [toId]);
-
-		if (fromExists.rows.length > 0 && toExists.rows.length > 0) {
+		if (existingNodeIds.has(fromId) && existingNodeIds.has(toId)) {
 			await db.execute(
 				`INSERT INTO graph_edges (id, from_id, to_id, type, weight, confidence, trust_tier,
 					t_created, t_expired, t_valid_from, t_valid_until,
