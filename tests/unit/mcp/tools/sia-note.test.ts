@@ -237,4 +237,40 @@ describe("sia_note tool", () => {
 		expect(old?.t_valid_until).not.toBeNull();
 		expect(old?.t_expired).not.toBeNull();
 	});
+
+	// ---------------------------------------------------------------
+	// Returns descriptive error for non-existent relates_to ID
+	// ---------------------------------------------------------------
+
+	it("returns descriptive error for non-existent relates_to ID", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("note-bad-relates", tmpDir);
+
+		await expect(
+			handleSiaNote(db, {
+				kind: "Solution",
+				name: "test-fix",
+				content: "some fix",
+				relates_to: ["nonexistent-entity-id-12345"],
+			}),
+		).rejects.toThrow("Referenced entities not found: nonexistent-entity-id-12345");
+	});
+
+	// ---------------------------------------------------------------
+	// Returns descriptive error for non-existent supersedes ID
+	// ---------------------------------------------------------------
+
+	it("returns descriptive error for non-existent supersedes ID", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("note-bad-supersedes", tmpDir);
+
+		await expect(
+			handleSiaNote(db, {
+				kind: "Decision",
+				name: "test-decision",
+				content: "decided X",
+				supersedes: "nonexistent-entity-id-99999",
+			}),
+		).rejects.toThrow("Referenced entities not found: nonexistent-entity-id-99999");
+	});
 });
