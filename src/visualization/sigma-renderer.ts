@@ -221,14 +221,16 @@ rawNodes.forEach(function(n, i) {
 
 rawEdges.forEach(function(e, i) {
     if (!graph.hasNode(e.from_id) || !graph.hasNode(e.to_id)) return;
-    var edgeKey = 'e' + i;
-    var color = EDGE_COLORS[e.type] || DEFAULT_EDGE_COLOR;
-    graph.addEdge(e.from_id, e.to_id, {
-        key: edgeKey, color: color, originalColor: color,
-        size: (e.weight || 0.5) * 2,
-        edgeType: e.type, label: e.type,
-        weight: e.weight
-    });
+    try {
+        var edgeKey = 'e' + i;
+        var color = EDGE_COLORS[e.type] || DEFAULT_EDGE_COLOR;
+        graph.addEdge(e.from_id, e.to_id, {
+            key: edgeKey, color: color, originalColor: color,
+            size: (e.weight || 0.5) * 2,
+            edgeType: e.type, label: e.type,
+            weight: e.weight
+        });
+    } catch(x) { /* skip duplicate edges */ }
 });
 
 // === FORCEATLAS2 LAYOUT ===
