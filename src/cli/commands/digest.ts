@@ -25,8 +25,8 @@ export interface DigestItem {
 
 export interface DigestResult {
 	period: DigestPeriod;
-	startDate: number;
-	endDate: number;
+	startDate: string;
+	endDate: string;
 	sections: DigestSection[];
 	totalEntities: number;
 }
@@ -151,18 +151,11 @@ export async function generateDigest(db: SiaDb, opts?: DigestOpts): Promise<Dige
 
 	return {
 		period,
-		startDate,
-		endDate,
+		startDate: new Date(startDate).toISOString(),
+		endDate: new Date(endDate).toISOString(),
 		sections,
 		totalEntities,
 	};
-}
-
-/**
- * Format a Unix-ms timestamp as an ISO date string (date portion only).
- */
-function formatDate(ms: number): string {
-	return new Date(ms).toISOString().slice(0, 10);
 }
 
 /**
@@ -173,7 +166,7 @@ export function renderDigestMarkdown(digest: DigestResult): string {
 
 	lines.push(`# Knowledge Digest — ${digest.period}`);
 	lines.push("");
-	lines.push(`**Period:** ${formatDate(digest.startDate)} to ${formatDate(digest.endDate)}`);
+	lines.push(`**Period:** ${digest.startDate.slice(0, 10)} to ${digest.endDate.slice(0, 10)}`);
 	lines.push("");
 	lines.push(`**Total new entities:** ${digest.totalEntities}`);
 
