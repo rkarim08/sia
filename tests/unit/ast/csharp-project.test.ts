@@ -12,11 +12,15 @@ vi.mock("node:fs", () => ({
 import * as fs from "node:fs";
 import { extractCSharpProject } from "@/ast/extractors/csharp-project";
 
+const existsSyncMock = fs.existsSync as ReturnType<typeof vi.fn>;
+const readFileSyncMock = fs.readFileSync as ReturnType<typeof vi.fn>;
+const readdirSyncMock = fs.readdirSync as ReturnType<typeof vi.fn>;
+
 describe("extractCSharpProject", () => {
 	beforeEach(() => {
-		vi.mocked(fs.existsSync).mockReturnValue(false);
-		vi.mocked(fs.readFileSync).mockReturnValue("");
-		vi.mocked(fs.readdirSync).mockReturnValue([]);
+		existsSyncMock.mockReturnValue(false);
+		readFileSyncMock.mockReturnValue("");
+		readdirSyncMock.mockReturnValue([]);
 	});
 
 	afterEach(() => {
@@ -159,15 +163,15 @@ public class MyClass {
 
 		it("extracts ProjectReference from adjacent .csproj", () => {
 			// Simulate finding a .csproj in the same directory
-			vi.mocked(fs.readdirSync).mockImplementation((dir) => {
+			readdirSyncMock.mockImplementation((dir) => {
 				if (String(dir) === "/project/src")
 					return ["MyApp.csproj", "Service.cs"] as unknown as ReturnType<typeof fs.readdirSync>;
 				return [] as unknown as ReturnType<typeof fs.readdirSync>;
 			});
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				return String(p) === "/project/src/MyApp.csproj";
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p) === "/project/src/MyApp.csproj") return csprojContent;
 				return "";
 			});
@@ -191,15 +195,15 @@ public class MyClass {
 		});
 
 		it("extracts PackageReference with version", () => {
-			vi.mocked(fs.readdirSync).mockImplementation((dir) => {
+			readdirSyncMock.mockImplementation((dir) => {
 				if (String(dir) === "/project/src")
 					return ["MyApp.csproj", "Service.cs"] as unknown as ReturnType<typeof fs.readdirSync>;
 				return [] as unknown as ReturnType<typeof fs.readdirSync>;
 			});
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				return String(p) === "/project/src/MyApp.csproj";
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p) === "/project/src/MyApp.csproj") return csprojContent;
 				return "";
 			});
@@ -227,15 +231,15 @@ public class MyClass {
 		});
 
 		it("PackageReference without version still extracted", () => {
-			vi.mocked(fs.readdirSync).mockImplementation((dir) => {
+			readdirSyncMock.mockImplementation((dir) => {
 				if (String(dir) === "/project/src")
 					return ["MyApp.csproj", "Service.cs"] as unknown as ReturnType<typeof fs.readdirSync>;
 				return [] as unknown as ReturnType<typeof fs.readdirSync>;
 			});
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				return String(p) === "/project/src/MyApp.csproj";
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p) === "/project/src/MyApp.csproj") return csprojContent;
 				return "";
 			});
@@ -252,17 +256,17 @@ public class MyClass {
 
 		it("walks UP directories to find .csproj (not just same dir)", () => {
 			// .csproj in parent directory, not same dir
-			vi.mocked(fs.readdirSync).mockImplementation((dir) => {
+			readdirSyncMock.mockImplementation((dir) => {
 				if (String(dir) === "/project/src")
 					return ["Service.cs"] as unknown as ReturnType<typeof fs.readdirSync>;
 				if (String(dir) === "/project")
 					return ["MyApp.csproj", "src"] as unknown as ReturnType<typeof fs.readdirSync>;
 				return [] as unknown as ReturnType<typeof fs.readdirSync>;
 			});
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				return String(p) === "/project/MyApp.csproj";
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p) === "/project/MyApp.csproj") {
 					return `<Project><ItemGroup><PackageReference Include="Serilog" Version="3.1.1" /></ItemGroup></Project>`;
 				}

@@ -11,11 +11,14 @@ vi.mock("node:fs", () => ({
 import * as fs from "node:fs";
 import { extractCIncludes } from "@/ast/extractors/c-include";
 
+const existsSyncMock = fs.existsSync as ReturnType<typeof vi.fn>;
+const readFileSyncMock = fs.readFileSync as ReturnType<typeof vi.fn>;
+
 describe("extractCIncludes", () => {
 	beforeEach(() => {
 		// Reset all mocks to safe defaults before each test
-		vi.mocked(fs.existsSync).mockReturnValue(false);
-		vi.mocked(fs.readFileSync).mockReturnValue("");
+		existsSyncMock.mockReturnValue(false);
+		readFileSyncMock.mockReturnValue("");
 	});
 
 	afterEach(() => {
@@ -96,7 +99,7 @@ int main(void) {
 		});
 
 		it("local include confidence is 0.85 when resolved via same-dir fallback", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				if (String(p).endsWith("compile_commands.json")) return false;
 				if (String(p).endsWith("myheader.h")) return true;
 				return false;
@@ -169,11 +172,11 @@ int main(void) {
 
 		it("does NOT warn when compile_commands.json is found", () => {
 			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				if (String(p).endsWith("compile_commands.json")) return true;
 				return false;
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p).endsWith("compile_commands.json")) {
 					return JSON.stringify([
 						{
@@ -192,12 +195,12 @@ int main(void) {
 		});
 
 		it("uses -I flags from compile_commands to resolve local includes", () => {
-			vi.mocked(fs.existsSync).mockImplementation((p) => {
+			existsSyncMock.mockImplementation((p) => {
 				if (String(p).endsWith("compile_commands.json")) return true;
 				if (String(p) === "/project/include/header.h") return true;
 				return false;
 			});
-			vi.mocked(fs.readFileSync).mockImplementation((p) => {
+			readFileSyncMock.mockImplementation((p) => {
 				if (String(p).endsWith("compile_commands.json")) {
 					return JSON.stringify([
 						{

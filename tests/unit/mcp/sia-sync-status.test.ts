@@ -1,13 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// Mock @/shared/config at top level — reconfigure per test
+const mockGetConfig = vi.fn();
+const mockResolveSiaHome = vi.fn().mockReturnValue("/tmp/sia-test");
+
+vi.mock("@/shared/config", () => ({
+	getConfig: mockGetConfig,
+	resolveSiaHome: mockResolveSiaHome,
+}));
+
+import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
+
 afterEach(() => {
 	vi.restoreAllMocks();
-	vi.resetModules();
+	mockGetConfig.mockReset();
+	mockResolveSiaHome.mockReset().mockReturnValue("/tmp/sia-test");
 });
 
 describe("handleSiaSyncStatus", () => {
 	it("should return sync disabled when not configured", async () => {
-		const { handleSiaSyncStatus } = await import("@/mcp/tools/sia-sync-status");
+		mockGetConfig.mockReturnValue({
+			sync: { enabled: false, serverUrl: null, developerId: null, syncInterval: 30 },
+		});
 		const result = await handleSiaSyncStatus();
 		expect(result.enabled).toBe(false);
 		expect(result.status).toBe("not_configured");
@@ -15,7 +29,9 @@ describe("handleSiaSyncStatus", () => {
 	});
 
 	it("should return the expected shape", async () => {
-		const { handleSiaSyncStatus } = await import("@/mcp/tools/sia-sync-status");
+		mockGetConfig.mockReturnValue({
+			sync: { enabled: false, serverUrl: null, developerId: null, syncInterval: 30 },
+		});
 		const result = await handleSiaSyncStatus();
 		expect(result).toHaveProperty("enabled");
 		expect(result).toHaveProperty("status");
@@ -23,18 +39,14 @@ describe("handleSiaSyncStatus", () => {
 	});
 
 	it("should return active status when sync is configured", async () => {
-		vi.doMock("@/shared/config", () => ({
-			getConfig: vi.fn().mockReturnValue({
-				sync: {
-					enabled: true,
-					serverUrl: "http://localhost:8080",
-					developerId: "dev-123",
-					syncInterval: 30,
-				},
-			}),
-			resolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
-		}));
-		const { handleSiaSyncStatus } = await import("@/mcp/tools/sia-sync-status");
+		mockGetConfig.mockReturnValue({
+			sync: {
+				enabled: true,
+				serverUrl: "http://localhost:8080",
+				developerId: "dev-123",
+				syncInterval: 30,
+			},
+		});
 		const result = await handleSiaSyncStatus();
 		expect(result.enabled).toBe(true);
 		expect(result.status).toBe("active");
@@ -44,13 +56,9 @@ describe("handleSiaSyncStatus", () => {
 	});
 
 	it("should return error status when config throws", async () => {
-		vi.doMock("@/shared/config", () => ({
-			getConfig: vi.fn().mockImplementation(() => {
-				throw new Error("config file corrupt");
-			}),
-			resolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
-		}));
-		const { handleSiaSyncStatus } = await import("@/mcp/tools/sia-sync-status");
+		mockGetConfig.mockImplementation(() => {
+			throw new Error("config file corrupt");
+		});
 		const result = await handleSiaSyncStatus();
 		expect(result.enabled).toBe(false);
 		expect(result.status).toBe("error");

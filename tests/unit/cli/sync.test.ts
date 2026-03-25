@@ -1,89 +1,110 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Shared mock factories — each test gets fresh instances via vi.doMock + resetModules
-function mockSyncModules() {
-	vi.doMock("@/sync/push", () => ({
-		pushChanges: vi.fn().mockResolvedValue({
-			entitiesPushed: 3,
-			edgesPushed: 5,
-			bridgeEdgesPushed: 0,
-		}),
-	}));
-	vi.doMock("@/sync/pull", () => ({
-		pullChanges: vi.fn().mockResolvedValue({
-			entitiesReceived: 2,
-			edgesReceived: 4,
-			vssRefreshed: 1,
-		}),
-	}));
-	vi.doMock("@/sync/client", () => ({
-		createSiaDb: vi.fn().mockResolvedValue({
-			close: vi.fn().mockResolvedValue(undefined),
-			execute: vi.fn(),
-			query: vi.fn(),
-			run: vi.fn(),
-		}),
-	}));
-	vi.doMock("@/graph/bridge-db", () => ({
-		openBridgeDb: vi.fn().mockReturnValue({
-			close: vi.fn().mockResolvedValue(undefined),
-			execute: vi.fn(),
-		}),
-	}));
-	vi.doMock("@/graph/meta-db", () => ({
-		openMetaDb: vi.fn().mockReturnValue({
-			close: vi.fn().mockResolvedValue(undefined),
-			execute: vi.fn(),
-		}),
-	}));
-	vi.doMock("@/capture/hook", () => ({
-		resolveRepoHash: vi.fn().mockReturnValue("abc123"),
-	}));
+// ---- Top-level mock fns ----
+const mockPushChanges = vi.fn().mockResolvedValue({
+	entitiesPushed: 3,
+	edgesPushed: 5,
+	bridgeEdgesPushed: 0,
+});
+const mockPullChanges = vi.fn().mockResolvedValue({
+	entitiesReceived: 2,
+	edgesReceived: 4,
+	vssRefreshed: 1,
+});
+const mockCreateSiaDb = vi.fn().mockResolvedValue({
+	close: vi.fn().mockResolvedValue(undefined),
+	execute: vi.fn(),
+	query: vi.fn(),
+	run: vi.fn(),
+});
+const mockOpenBridgeDb = vi.fn().mockReturnValue({
+	close: vi.fn().mockResolvedValue(undefined),
+	execute: vi.fn(),
+});
+const mockOpenMetaDb = vi.fn().mockReturnValue({
+	close: vi.fn().mockResolvedValue(undefined),
+	execute: vi.fn(),
+});
+const mockResolveRepoHash = vi.fn().mockReturnValue("abc123");
+const mockGetConfig = vi.fn();
+const mockResolveSiaHome = vi.fn().mockReturnValue("/tmp/sia-test");
+
+// ---- vi.mock at top level ----
+vi.mock("@/sync/push", () => ({ pushChanges: mockPushChanges }));
+vi.mock("@/sync/pull", () => ({ pullChanges: mockPullChanges }));
+vi.mock("@/sync/client", () => ({ createSiaDb: mockCreateSiaDb }));
+vi.mock("@/graph/bridge-db", () => ({ openBridgeDb: mockOpenBridgeDb }));
+vi.mock("@/graph/meta-db", () => ({ openMetaDb: mockOpenMetaDb }));
+vi.mock("@/capture/hook", () => ({ resolveRepoHash: mockResolveRepoHash }));
+vi.mock("@/shared/config", () => ({
+	getConfig: mockGetConfig,
+	resolveSiaHome: mockResolveSiaHome,
+	SIA_HOME: "/tmp/sia-test",
+}));
+
+import { runSync } from "@/cli/commands/sync";
+import { pullChanges } from "@/sync/pull";
+import { pushChanges } from "@/sync/push";
+
+// ---- Helpers to set config per test ----
+function configEnabled() {
+	mockGetConfig.mockReturnValue({
+		sync: {
+			enabled: true,
+			serverUrl: "http://localhost:8080",
+			developerId: "dev-1",
+			syncInterval: 30,
+		},
+	});
 }
 
-function mockConfigEnabled() {
-	vi.doMock("@/shared/config", () => ({
-		getConfig: vi.fn().mockReturnValue({
-			sync: {
-				enabled: true,
-				serverUrl: "http://localhost:8080",
-				developerId: "dev-1",
-				syncInterval: 30,
-			},
-		}),
-		resolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
-		SIA_HOME: "/tmp/sia-test",
-	}));
-}
-
-function mockConfigDisabled() {
-	vi.doMock("@/shared/config", () => ({
-		getConfig: vi.fn().mockReturnValue({
-			sync: { enabled: false, serverUrl: null, developerId: null, syncInterval: 30 },
-		}),
-		resolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
-		SIA_HOME: "/tmp/sia-test",
-	}));
+function configDisabled() {
+	mockGetConfig.mockReturnValue({
+		sync: { enabled: false, serverUrl: null, developerId: null, syncInterval: 30 },
+	});
 }
 
 afterEach(() => {
 	vi.restoreAllMocks();
-	vi.resetModules();
+	// Reset mock implementations to defaults
+	mockPushChanges.mockReset().mockResolvedValue({
+		entitiesPushed: 3,
+		edgesPushed: 5,
+		bridgeEdgesPushed: 0,
+	});
+	mockPullChanges.mockReset().mockResolvedValue({
+		entitiesReceived: 2,
+		edgesReceived: 4,
+		vssRefreshed: 1,
+	});
+	mockCreateSiaDb.mockReset().mockResolvedValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+		query: vi.fn(),
+		run: vi.fn(),
+	});
+	mockOpenBridgeDb.mockReset().mockReturnValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+	});
+	mockOpenMetaDb.mockReset().mockReturnValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+	});
+	mockResolveRepoHash.mockReset().mockReturnValue("abc123");
+	mockGetConfig.mockReset();
+	mockResolveSiaHome.mockReset().mockReturnValue("/tmp/sia-test");
 });
 
 describe("sia sync CLI", () => {
 	it("should export runSync function", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		expect(runSync).toBeDefined();
 		expect(typeof runSync).toBe("function");
 	});
 
 	it("should handle 'push' subcommand", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		const output: string[] = [];
 		const spy = vi.spyOn(process.stdout, "write").mockImplementation((s: string | Uint8Array) => {
 			output.push(String(s));
@@ -100,9 +121,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should handle 'pull' subcommand", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		const output: string[] = [];
 		const spy = vi.spyOn(process.stdout, "write").mockImplementation((s: string | Uint8Array) => {
 			output.push(String(s));
@@ -119,11 +138,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should push then pull when no args given", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
-		const { pushChanges } = await import("@/sync/push");
-		const { pullChanges } = await import("@/sync/pull");
+		configEnabled();
 		// suppress stdout
 		const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
 		await runSync([]);
@@ -133,9 +148,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should output both push and pull summaries when no args given", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		const output: string[] = [];
 		const spy = vi.spyOn(process.stdout, "write").mockImplementation((s: string | Uint8Array) => {
 			output.push(String(s));
@@ -152,9 +165,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should exit with error for unknown subcommand", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
@@ -165,9 +176,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should exit with error when sync is not configured", async () => {
-		mockSyncModules();
-		mockConfigDisabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configDisabled();
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
@@ -178,30 +187,8 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should print actionable error when pushChanges fails", async () => {
-		vi.doMock("@/sync/push", () => ({
-			pushChanges: vi.fn().mockRejectedValue(new Error("fetch failed: ECONNREFUSED")),
-		}));
-		vi.doMock("@/sync/pull", () => ({
-			pullChanges: vi
-				.fn()
-				.mockResolvedValue({ entitiesReceived: 0, edgesReceived: 0, vssRefreshed: 0 }),
-		}));
-		vi.doMock("@/sync/client", () => ({
-			createSiaDb: vi.fn().mockResolvedValue({
-				close: vi.fn().mockResolvedValue(undefined),
-			}),
-		}));
-		vi.doMock("@/graph/bridge-db", () => ({
-			openBridgeDb: vi.fn().mockReturnValue({ close: vi.fn().mockResolvedValue(undefined) }),
-		}));
-		vi.doMock("@/graph/meta-db", () => ({
-			openMetaDb: vi.fn().mockReturnValue({ close: vi.fn().mockResolvedValue(undefined) }),
-		}));
-		vi.doMock("@/capture/hook", () => ({
-			resolveRepoHash: vi.fn().mockReturnValue("abc123"),
-		}));
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
+		mockPushChanges.mockReset().mockRejectedValue(new Error("fetch failed: ECONNREFUSED"));
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
@@ -214,9 +201,7 @@ describe("sia sync CLI", () => {
 	});
 
 	it("should print help with --help flag", async () => {
-		mockSyncModules();
-		mockConfigEnabled();
-		const { runSync } = await import("@/cli/commands/sync");
+		configEnabled();
 		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		await runSync(["--help"]);
 		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Usage: sia sync"));

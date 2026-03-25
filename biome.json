@@ -10,7 +10,10 @@
 				"noUnusedImports": "warn"
 			},
 			"style": {
-				"noNonNullAssertion": "warn"
+				"noNonNullAssertion": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
 			}
 		}
 	},

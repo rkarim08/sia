@@ -267,7 +267,7 @@ describe("file-watcher-layer (Layer 1)", () => {
 			expect(tracker.getState("debounce-node")).toBe("clean");
 
 			// Advance past debounce window
-			await vi.advanceTimersByTimeAsync(100);
+			vi.advanceTimersByTime(100);
 
 			// After debounce, the latest event should have been processed
 			expect(tracker.getState("debounce-node")).toBe("dirty");
@@ -302,7 +302,7 @@ describe("file-watcher-layer (Layer 1)", () => {
 			handler({ filePath: "src/x.ts", type: "modify" });
 			handler({ filePath: "src/y.ts", type: "modify" });
 
-			await vi.advanceTimersByTimeAsync(100);
+			vi.advanceTimersByTime(100);
 
 			expect(tracker.getState("node-x")).toBe("dirty");
 			expect(tracker.getState("node-y")).toBe("dirty");

@@ -73,7 +73,6 @@ export function createLlmClient(config: SiaConfig): LlmClient {
 			const { default: Anthropic } = await import("@anthropic-ai/sdk");
 			anthropicClient = new Anthropic({ apiKey }) as unknown as typeof anthropicClient;
 		}
-		// biome-ignore lint/style/noNonNullAssertion: assigned above
 		return anthropicClient!;
 	}
 
