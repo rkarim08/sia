@@ -219,6 +219,77 @@ describe("indexRepository", () => {
 		expect(result.edgesCreated).toBeDefined();
 	});
 
+	it("falls back to sequential processing when workerCount is 0", async () => {
+		const fixtureDir = join(repoRoot, "src");
+		mkdirSync(fixtureDir, { recursive: true });
+		writeFileSync(
+			join(fixtureDir, "example.ts"),
+			`export function greetUser(name: string): string {\n    return \`Hello, \${name}!\`;\n}\n`,
+			"utf-8",
+		);
+		writeFileSync(
+			join(fixtureDir, "utils.ts"),
+			`export function add(a: number, b: number): number {\n    return a + b;\n}\n`,
+			"utf-8",
+		);
+
+		const result = await indexRepository(repoRoot, db, config, {
+			repoHash,
+			workerCount: 0,
+		});
+
+		expect(result.entitiesCreated).toBeGreaterThan(0);
+		expect(result.filesProcessed).toBe(2);
+
+		const rows = await db.execute(
+			"SELECT name FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		);
+		const names = rows.rows.map((r) => r.name);
+		expect(names).toContain("greetUser");
+		expect(names).toContain("add");
+	});
+
+	it("integration: indexes a fixture directory and produces entities", async () => {
+		mkdirSync(join(repoRoot, "lib"), { recursive: true });
+		writeFileSync(
+			join(repoRoot, "lib", "math.ts"),
+			[
+				"export function multiply(a: number, b: number): number {",
+				"    return a * b;",
+				"}",
+				"",
+				"export function divide(a: number, b: number): number {",
+				"    if (b === 0) throw new Error('Division by zero');",
+				"    return a / b;",
+				"}",
+			].join("\n"),
+			"utf-8",
+		);
+		writeFileSync(
+			join(repoRoot, "lib", "strings.ts"),
+			[
+				"export function capitalize(s: string): string {",
+				"    return s.charAt(0).toUpperCase() + s.slice(1);",
+				"}",
+			].join("\n"),
+			"utf-8",
+		);
+
+		const result = await indexRepository(repoRoot, db, config, { repoHash });
+
+		expect(result.entitiesCreated).toBeGreaterThan(0);
+		expect(result.filesProcessed).toBe(2);
+		expect(result.durationMs).toBeGreaterThan(0);
+
+		const rows = await db.execute(
+			"SELECT name, file_paths FROM graph_nodes WHERE t_valid_until IS NULL AND archived_at IS NULL",
+		);
+		const names = rows.rows.map((r) => r.name);
+		expect(names).toContain("multiply");
+		expect(names).toContain("divide");
+		expect(names).toContain("capitalize");
+	});
+
 	it("sets package_path when file is inside packages/*", async () => {
 		mkdirSync(join(repoRoot, "packages", "app", "src"), { recursive: true });
 		writeFileSync(
