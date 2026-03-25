@@ -397,7 +397,15 @@ export async function indexRepository(
 		}
 	}
 
-	if (workerResults) {
+	// Safety net: if workers returned results but extracted 0 facts, fall back to sequential
+	if (workerResults && workerResults.length > 0 && !workerResults.some(r => r.facts.length > 0)) {
+		process.stderr.write(
+			`sia: worker pool processed ${workerResults.length} files but extracted 0 facts — falling back to sequential\n`,
+		);
+		workerResults = null;
+	}
+
+	if (workerResults && workerResults.some(r => r.facts.length > 0)) {
 		// Process all worker results
 		for (const result of workerResults) {
 			const updated = await processResult(result, {
