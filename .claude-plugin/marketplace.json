@@ -1,36 +1,36 @@
 {
-  "name": "sia-plugins",
-  "owner": {
-    "name": "Ramez Karim"
-  },
-  "metadata": {
-    "description": "Sia — persistent graph memory for AI coding agents",
-    "version": "1.0.13"
-  },
-  "plugins": [
-    {
-      "name": "sia",
-      "source": "./",
-      "description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
-      "version": "1.0.13",
-      "author": {
-        "name": "Ramez Karim"
-      },
-      "homepage": "https://github.com/rkarim08/sia",
-      "repository": "https://github.com/rkarim08/sia",
-      "license": "Apache-2.0",
-      "category": "development",
-      "keywords": [
-        "memory",
-        "knowledge-graph",
-        "mcp",
-        "ai-coding",
-        "persistent-memory",
-        "bi-temporal",
-        "tree-sitter",
-        "cross-session"
-      ]
-    }
-  ],
-  "version": "1.0.13"
+	"name": "sia-plugins",
+	"owner": {
+		"name": "Ramez Karim"
+	},
+	"metadata": {
+		"description": "Sia — persistent graph memory for AI coding agents",
+		"version": "1.0.13"
+	},
+	"plugins": [
+		{
+			"name": "sia",
+			"source": "./",
+			"description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
+			"version": "1.0.13",
+			"author": {
+				"name": "Ramez Karim"
+			},
+			"homepage": "https://github.com/rkarim08/sia",
+			"repository": "https://github.com/rkarim08/sia",
+			"license": "Apache-2.0",
+			"category": "development",
+			"keywords": [
+				"memory",
+				"knowledge-graph",
+				"mcp",
+				"ai-coding",
+				"persistent-memory",
+				"bi-temporal",
+				"tree-sitter",
+				"cross-session"
+			]
+		}
+	],
+	"version": "1.0.13"
 }
