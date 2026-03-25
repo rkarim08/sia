@@ -1,6 +1,6 @@
 {
 	"name": "@rkarim08/sia",
-	"version": "1.0.11",
+	"version": "1.0.12",
 	"description": "Persistent graph memory for AI coding agents",
 	"type": "module",
 	"license": "Apache-2.0",
