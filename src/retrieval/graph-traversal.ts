@@ -129,32 +129,41 @@ export async function graphTraversalSearch(
 	}
 
 	// Stage 3: 1-hop expansion via edges (score 0.7)
-	for (const entityId of directMatchIds) {
+	if (directMatchIds.length > 0) {
+		// Batch fetch all edges for all direct matches
+		const placeholders = directMatchIds.map(() => "?").join(", ");
 		const edgeResult = await db.execute(
-			"SELECT from_id, to_id FROM graph_edges WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL",
-			[entityId, entityId],
+			`SELECT from_id, to_id FROM graph_edges
+			 WHERE (from_id IN (${placeholders}) OR to_id IN (${placeholders}))
+			   AND t_valid_until IS NULL`,
+			[...directMatchIds, ...directMatchIds],
 		);
+
+		// Collect all neighbor IDs
+		const directMatchSet = new Set(directMatchIds);
+		const neighborIds = new Set<string>();
 		for (const row of edgeResult.rows) {
 			const fromId = row.from_id as string;
 			const toId = row.to_id as string;
-			const neighborId = fromId === entityId ? toId : fromId;
+			if (directMatchSet.has(fromId)) neighborIds.add(toId);
+			if (directMatchSet.has(toId)) neighborIds.add(fromId);
+		}
 
-			// Only add neighbor if it is an active, non-archived entity
-			if (paranoid) {
-				const check = await db.execute(
-					"SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL AND trust_tier < 4",
-					[neighborId],
-				);
-				if (check.rows.length === 0) continue;
-			} else {
-				const check = await db.execute(
-					"SELECT id FROM graph_nodes WHERE id = ? AND t_valid_until IS NULL AND archived_at IS NULL",
-					[neighborId],
-				);
-				if (check.rows.length === 0) continue;
+		// Batch validate all neighbors in one query
+		if (neighborIds.size > 0) {
+			const nPlaceholders = [...neighborIds].map(() => "?").join(", ");
+			const paranoidClause = paranoid ? " AND trust_tier < 4" : "";
+			const validResult = await db.execute(
+				`SELECT id FROM graph_nodes
+				 WHERE id IN (${nPlaceholders})
+				   AND t_valid_until IS NULL AND archived_at IS NULL${paranoidClause}`,
+				[...neighborIds],
+			);
+			const validIds = new Set(validResult.rows.map((r) => r.id as string));
+
+			for (const neighborId of validIds) {
+				addScore(neighborId, 0.7);
 			}
-
-			addScore(neighborId, 0.7);
 		}
 	}
 
