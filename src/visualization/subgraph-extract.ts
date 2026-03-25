@@ -145,25 +145,81 @@ async function fetchCommunities(db: SiaDb, ids: string[]): Promise<CommunityMemb
 }
 
 /**
- * Default extraction: top N most-connected nodes with edges between them.
+ * Filter out low-value entities (generic imports, stdlib calls, test boilerplate).
+ * Keeps: functions, classes, interfaces, type aliases, named exports, decisions,
+ * conventions, bugs, solutions. Filters out: bare imports, generic call sites
+ * (join, map, push, etc.), test utilities (describe, it, expect, afterEach).
+ */
+const NOISE_SUMMARY_PREFIXES = ["import ", "call "];
+const NOISE_NAMES = new Set([
+	// JS/TS stdlib and builtins
+	"join", "resolve", "map", "filter", "push", "pop", "slice", "includes",
+	"find", "forEach", "reduce", "some", "every", "entries", "keys", "values",
+	"set", "get", "has", "delete", "add", "clear", "toString", "valueOf",
+	"stringify", "parse", "now", "create", "assign", "freeze",
+	"startsWith", "endsWith", "indexOf", "trim", "split", "replace",
+	"charAt", "substring", "toLowerCase", "toUpperCase",
+	"setTimeout", "setInterval", "clearTimeout", "clearInterval",
+	"console", "log", "warn", "error", "info", "debug",
+	"require", "import", "export", "default", "module",
+	// Node stdlib
+	"readFileSync", "writeFileSync", "existsSync", "mkdirSync", "mkdtempSync",
+	"rmSync", "statSync", "readdirSync", "appendFileSync",
+	"cpus", "tmpdir", "homedir", "platform",
+	"basename", "dirname", "extname", "relative", "normalize",
+	"createHash", "randomUUID", "randomBytes",
+	"execFileSync", "spawn", "exec",
+	// Test utilities
+	"describe", "it", "test", "expect", "beforeEach", "afterEach",
+	"beforeAll", "afterAll", "vi", "jest", "mock", "spy",
+	"toBe", "toEqual", "toContain", "toHaveLength", "toBeDefined",
+	"toBeNull", "toBeUndefined", "toBeGreaterThan", "toThrow",
+	"toBeGreaterThanOrEqual", "toBeLessThan", "toHaveBeenCalled",
+	// Generic method calls
+	"close", "open", "read", "write", "end", "on", "emit", "once",
+	"then", "catch", "finally", "reject", "all",
+	"length", "size", "count",
+]);
+
+function isNoiseEntity(name: string, summary: string): boolean {
+	if (NOISE_NAMES.has(name)) return true;
+	for (const prefix of NOISE_SUMMARY_PREFIXES) {
+		if (summary.startsWith(prefix)) return true;
+	}
+	return false;
+}
+
+/**
+ * Default extraction: top N most-connected meaningful nodes with edges between them.
+ * Filters out low-value entities (imports, generic calls, test boilerplate).
  * When maxNodes is undefined, load ALL active nodes (no cap).
- * Prefers nodes that participate in edges so the graph has visible structure.
  */
 async function extractDefault(db: SiaDb, maxNodes?: number): Promise<SubgraphData> {
+	// Query meaningful entities — functions, classes, interfaces, types, and non-CodeEntity types
+	// (Decision, Convention, Bug, Solution, FileNode, etc.)
+	const summaryFilter = `AND (
+		n.type != 'CodeEntity'
+		OR n.summary LIKE 'function %'
+		OR n.summary LIKE 'class %'
+		OR n.summary LIKE 'interface %'
+		OR n.summary LIKE 'type %'
+		OR n.summary LIKE 'enum %'
+		OR n.summary LIKE 'const %'
+	)`;
+
 	if (maxNodes == null) {
-		// No cap — load everything
 		const { rows } = await db.execute(
-			`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
-			 WHERE t_valid_until IS NULL AND archived_at IS NULL`,
+			`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes n
+			 WHERE t_valid_until IS NULL AND archived_at IS NULL ${summaryFilter}`,
 		);
-		const nodes = rows.map(toVisNode);
+		const nodes = rows.map(toVisNode).filter((n) => !isNoiseEntity(n.name, n.summary));
 		const nodeIds = nodes.map((n) => n.id);
 		const edges = await edgesBetween(db, nodeIds);
 		const communities = await fetchCommunities(db, nodeIds);
 		return { nodes, edges, communities };
 	}
 
-	// Pick nodes that actually have edges (most-connected first), then backfill
+	// Pick most-connected meaningful nodes
 	const { rows: connectedRows } = await db.execute(
 		`SELECT n.id, n.type, n.name, n.summary, n.importance, n.trust_tier,
 		        COUNT(e.id) AS edge_count
@@ -171,16 +227,21 @@ async function extractDefault(db: SiaDb, maxNodes?: number): Promise<SubgraphDat
 		 JOIN graph_edges e ON (e.from_id = n.id OR e.to_id = n.id)
 		   AND e.t_valid_until IS NULL
 		 WHERE n.t_valid_until IS NULL AND n.archived_at IS NULL
+		   ${summaryFilter}
 		 GROUP BY n.id
 		 ORDER BY edge_count DESC
 		 LIMIT ?`,
-		[maxNodes],
+		[maxNodes * 2],
 	);
-	const nodes = connectedRows.map(toVisNode);
-	const nodeIds = nodes.map((n) => n.id);
+	// Post-filter noise names, then cap
+	const filtered = connectedRows
+		.map(toVisNode)
+		.filter((n) => !isNoiseEntity(n.name, n.summary))
+		.slice(0, maxNodes);
+	const nodeIds = filtered.map((n) => n.id);
 	const edges = await edgesBetween(db, nodeIds);
 	const communities = await fetchCommunities(db, nodeIds);
-	return { nodes, edges, communities };
+	return { nodes: filtered, edges, communities };
 }
 
 /**

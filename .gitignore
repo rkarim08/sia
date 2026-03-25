@@ -15,3 +15,4 @@ sia-native/node_modules/
 .worktrees/
 .sia-learn-progress.json
 .sia-graph/augment-cache.json
+.sia-graph/*
