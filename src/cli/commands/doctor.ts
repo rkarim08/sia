@@ -8,6 +8,7 @@
 // and (optionally) LLM provider health.
 
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import type { SiaDb } from "@/graph/db-interface";
 import { detectAgent, getRecommendedCaptureMode } from "@/hooks/agent-detect";
@@ -78,7 +79,7 @@ export async function runDoctor(
 
 	// 4. ONNX model
 	const modelPath = join(
-		process.env.SIA_HOME ?? join(process.env.HOME ?? "~", ".sia"),
+		process.env.SIA_HOME ?? join(process.env.HOME ?? homedir(), ".sia"),
 		"models",
 		"all-MiniLM-L6-v2.onnx",
 	);
