@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Mock @/shared/config at top level — reconfigure per test
-const mockGetConfig = vi.fn();
-const mockResolveSiaHome = vi.fn().mockReturnValue("/tmp/sia-test");
+// Hoisted mock fns so vi.mock factory can reference them
+const { mockGetConfig, mockResolveSiaHome } = vi.hoisted(() => ({
+	mockGetConfig: vi.fn(),
+	mockResolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
+}));
 
 vi.mock("@/shared/config", () => ({
 	getConfig: mockGetConfig,

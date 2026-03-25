@@ -1,33 +1,44 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// ---- Top-level mock fns ----
-const mockPushChanges = vi.fn().mockResolvedValue({
-	entitiesPushed: 3,
-	edgesPushed: 5,
-	bridgeEdgesPushed: 0,
-});
-const mockPullChanges = vi.fn().mockResolvedValue({
-	entitiesReceived: 2,
-	edgesReceived: 4,
-	vssRefreshed: 1,
-});
-const mockCreateSiaDb = vi.fn().mockResolvedValue({
-	close: vi.fn().mockResolvedValue(undefined),
-	execute: vi.fn(),
-	query: vi.fn(),
-	run: vi.fn(),
-});
-const mockOpenBridgeDb = vi.fn().mockReturnValue({
-	close: vi.fn().mockResolvedValue(undefined),
-	execute: vi.fn(),
-});
-const mockOpenMetaDb = vi.fn().mockReturnValue({
-	close: vi.fn().mockResolvedValue(undefined),
-	execute: vi.fn(),
-});
-const mockResolveRepoHash = vi.fn().mockReturnValue("abc123");
-const mockGetConfig = vi.fn();
-const mockResolveSiaHome = vi.fn().mockReturnValue("/tmp/sia-test");
+// ---- Hoisted mock fns (declared in hoisted scope so vi.mock factories can reference them) ----
+const {
+	mockPushChanges,
+	mockPullChanges,
+	mockCreateSiaDb,
+	mockOpenBridgeDb,
+	mockOpenMetaDb,
+	mockResolveRepoHash,
+	mockGetConfig,
+	mockResolveSiaHome,
+} = vi.hoisted(() => ({
+	mockPushChanges: vi.fn().mockResolvedValue({
+		entitiesPushed: 3,
+		edgesPushed: 5,
+		bridgeEdgesPushed: 0,
+	}),
+	mockPullChanges: vi.fn().mockResolvedValue({
+		entitiesReceived: 2,
+		edgesReceived: 4,
+		vssRefreshed: 1,
+	}),
+	mockCreateSiaDb: vi.fn().mockResolvedValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+		query: vi.fn(),
+		run: vi.fn(),
+	}),
+	mockOpenBridgeDb: vi.fn().mockReturnValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+	}),
+	mockOpenMetaDb: vi.fn().mockReturnValue({
+		close: vi.fn().mockResolvedValue(undefined),
+		execute: vi.fn(),
+	}),
+	mockResolveRepoHash: vi.fn().mockReturnValue("abc123"),
+	mockGetConfig: vi.fn(),
+	mockResolveSiaHome: vi.fn().mockReturnValue("/tmp/sia-test"),
+}));
 
 // ---- vi.mock at top level ----
 vi.mock("@/sync/push", () => ({ pushChanges: mockPushChanges }));
