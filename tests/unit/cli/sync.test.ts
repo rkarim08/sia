@@ -164,17 +164,17 @@ describe("sia sync CLI", () => {
 		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Unknown subcommand: bogus"));
 	});
 
-	it("should exit cleanly when sync is not configured", async () => {
+	it("should exit with error when sync is not configured", async () => {
 		mockSyncModules();
 		mockConfigDisabled();
 		const { runSync } = await import("@/cli/commands/sync");
 		const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});
-		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		await expect(runSync(["push"])).rejects.toThrow("process.exit");
-		expect(exitSpy).toHaveBeenCalledWith(0);
-		expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Sync not configured"));
+		expect(exitSpy).toHaveBeenCalledWith(1);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("Sync not configured"));
 	});
 
 	it("should print actionable error when pushChanges fails", async () => {

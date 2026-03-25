@@ -37,8 +37,8 @@ export async function runSync(args: string[]): Promise<void> {
 	const config = getConfig(siaHome);
 
 	if (!config.sync.enabled || !config.sync.serverUrl) {
-		console.log("Sync not configured. Run 'sia team join <url> <token>' to enable.");
-		process.exit(0);
+		console.error("Sync not configured. Run 'sia team join <url> <token>' to enable.");
+		process.exit(1);
 	}
 
 	const cwd = process.cwd();
