@@ -307,6 +307,39 @@ describe("indexRepository", () => {
 		);
 		expect(result.rows[0]?.package_path).toBe("packages/app");
 	});
+
+	it("should use bun-native workers and not fall back to sequential", async () => {
+		// Create enough files to exceed the worker pool threshold (>10)
+		const srcDir = join(repoRoot, "src");
+		mkdirSync(srcDir, { recursive: true });
+		for (let i = 0; i < 15; i++) {
+			writeFileSync(join(srcDir, `w${i}.ts`), `export function w${i}() { return ${i}; }`);
+		}
+
+		// Capture stderr to check for the sequential fallback warning
+		const originalWrite = process.stderr.write;
+		let stderrOutput = "";
+		process.stderr.write = ((chunk: string | Uint8Array) => {
+			stderrOutput += typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
+			return true;
+		}) as typeof process.stderr.write;
+
+		try {
+			const result = await indexRepository(repoRoot, db, config, {
+				repoHash,
+				workerCount: 2,
+			});
+
+			// Workers should produce entities — not fall back to sequential with 0 facts
+			expect(result.entitiesCreated).toBeGreaterThanOrEqual(15);
+			expect(result.filesProcessed).toBe(15);
+
+			// The safety-net fallback message should NOT appear
+			expect(stderrOutput).not.toContain("falling back to sequential");
+		} finally {
+			process.stderr.write = originalWrite;
+		}
+	});
 });
 
 describe("createEdgesFromRelationships — self-loop prevention", () => {
