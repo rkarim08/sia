@@ -17,11 +17,21 @@ export interface VisEdge {
 	to_id: string;
 	type: string;
 	weight: number;
+	confidence?: number;
+	extraction_method?: string;
+}
+
+export interface CommunityMembership {
+	nodeId: string;
+	communityId: string;
+	communityLevel: number;
+	communitySummary: string;
 }
 
 export interface SubgraphData {
 	nodes: VisNode[];
 	edges: VisEdge[];
+	communities?: CommunityMembership[];
 }
 
 export interface ExtractOpts {
@@ -29,8 +39,6 @@ export interface ExtractOpts {
 	nodeType?: string;
 	maxNodes?: number;
 }
-
-const DEFAULT_MAX_NODES = 200;
 
 /**
  * Build a safe SQL IN clause from an array of hex-UUID strings.
@@ -61,6 +69,8 @@ function toVisEdge(row: Record<string, unknown>): VisEdge {
 		to_id: row.to_id as string,
 		type: row.type as string,
 		weight: (row.weight as number) ?? 1.0,
+		confidence: row.confidence as number | undefined,
+		extraction_method: row.extraction_method as string | undefined,
 	};
 }
 
@@ -71,7 +81,7 @@ async function edgesBetween(db: SiaDb, ids: string[]): Promise<VisEdge[]> {
 	if (ids.length === 0) return [];
 	const list = inClause(ids);
 	const { rows } = await db.execute(
-		`SELECT id, from_id, to_id, type, weight FROM graph_edges
+		`SELECT id, from_id, to_id, type, weight, confidence, extraction_method FROM graph_edges
 		 WHERE from_id IN (${list}) AND to_id IN (${list})
 		   AND t_valid_until IS NULL`,
 	);
@@ -109,25 +119,54 @@ async function fetchEntitiesById(db: SiaDb, ids: string[]): Promise<VisNode[]> {
 }
 
 /**
- * Default extraction: top N nodes by importance with edges between them.
+ * Fetch community memberships for a set of node IDs.
  */
-async function extractDefault(db: SiaDb, maxNodes: number): Promise<SubgraphData> {
+async function fetchCommunities(db: SiaDb, ids: string[]): Promise<CommunityMembership[]> {
+	if (ids.length === 0) return [];
+	const list = inClause(ids);
+	try {
+		const { rows } = await db.execute(
+			`SELECT cm.entity_id AS nodeId, cm.community_id AS communityId,
+			        c.level AS communityLevel, COALESCE(c.summary, '') AS communitySummary
+			 FROM community_members cm
+			 JOIN communities c ON cm.community_id = c.id
+			 WHERE cm.entity_id IN (${list})`,
+		);
+		return rows.map((r) => ({
+			nodeId: r.nodeId as string,
+			communityId: r.communityId as string,
+			communityLevel: r.communityLevel as number,
+			communitySummary: r.communitySummary as string,
+		}));
+	} catch {
+		// Community tables may not exist yet — return empty
+		return [];
+	}
+}
+
+/**
+ * Default extraction: top N nodes by importance with edges between them.
+ * When maxNodes is undefined, load ALL active nodes (no cap).
+ */
+async function extractDefault(db: SiaDb, maxNodes?: number): Promise<SubgraphData> {
+	const limitClause = maxNodes != null ? " ORDER BY importance DESC LIMIT ?" : "";
+	const params = maxNodes != null ? [maxNodes] : [];
 	const { rows } = await db.execute(
 		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
-		 WHERE t_valid_until IS NULL AND archived_at IS NULL
-		 ORDER BY importance DESC LIMIT ?`,
-		[maxNodes],
+		 WHERE t_valid_until IS NULL AND archived_at IS NULL${limitClause}`,
+		params,
 	);
 	const nodes = rows.map(toVisNode);
 	const nodeIds = nodes.map((n) => n.id);
 	const edges = await edgesBetween(db, nodeIds);
-	return { nodes, edges };
+	const communities = await fetchCommunities(db, nodeIds);
+	return { nodes, edges, communities };
 }
 
 /**
  * Scope extraction: FileNode/CodeEntity under path + 2-hop neighbors.
  */
-async function extractScoped(db: SiaDb, scope: string, maxNodes: number): Promise<SubgraphData> {
+async function extractScoped(db: SiaDb, scope: string, maxNodes?: number): Promise<SubgraphData> {
 	// Find seed entities whose file_paths contain the scope prefix
 	const { rows: seedRows } = await db.execute(
 		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
@@ -151,18 +190,21 @@ async function extractScoped(db: SiaDb, scope: string, maxNodes: number): Promis
 	const extraIds = [...allIds].filter((id) => !seedIds.includes(id));
 	const extraNodes = await fetchEntitiesById(db, extraIds);
 
-	// Merge and cap
-	const allNodes = [...seedNodes, ...extraNodes].slice(0, maxNodes);
+	// Merge and optionally cap
+	const allNodes = maxNodes != null
+		? [...seedNodes, ...extraNodes].slice(0, maxNodes)
+		: [...seedNodes, ...extraNodes];
 	const cappedIds = allNodes.map((n) => n.id);
 	const edges = await edgesBetween(db, cappedIds);
+	const communities = await fetchCommunities(db, cappedIds);
 
-	return { nodes: allNodes, edges };
+	return { nodes: allNodes, edges, communities };
 }
 
 /**
  * NodeType extraction: all nodes of that type + direct (1-hop) neighbors.
  */
-async function extractByType(db: SiaDb, nodeType: string, maxNodes: number): Promise<SubgraphData> {
+async function extractByType(db: SiaDb, nodeType: string, maxNodes?: number): Promise<SubgraphData> {
 	const { rows: typeRows } = await db.execute(
 		`SELECT id, type, name, summary, importance, trust_tier FROM graph_nodes
 		 WHERE type = ?
@@ -177,24 +219,27 @@ async function extractByType(db: SiaDb, nodeType: string, maxNodes: number): Pro
 	const extraIds = hop1Ids.filter((id) => !typeIds.includes(id));
 	const extraNodes = await fetchEntitiesById(db, extraIds);
 
-	// Merge and cap
-	const allNodes = [...typeNodes, ...extraNodes].slice(0, maxNodes);
+	// Merge and optionally cap
+	const allNodes = maxNodes != null
+		? [...typeNodes, ...extraNodes].slice(0, maxNodes)
+		: [...typeNodes, ...extraNodes];
 	const cappedIds = allNodes.map((n) => n.id);
 	const edges = await edgesBetween(db, cappedIds);
+	const communities = await fetchCommunities(db, cappedIds);
 
-	return { nodes: allNodes, edges };
+	return { nodes: allNodes, edges, communities };
 }
 
 /**
  * Extract a relevant subgraph for visualization.
  *
  * Three modes:
- * - Default (no scope/type): top N nodes by importance + edges between them
- * - With scope: FileNode/CodeEntity under path + 2-hop neighbors, capped at maxNodes
- * - With nodeType: all nodes of that type + direct neighbors, capped at maxNodes
+ * - Default (no scope/type): all active nodes (or top N if maxNodes set) + edges between them
+ * - With scope: FileNode/CodeEntity under path + 2-hop neighbors, optionally capped at maxNodes
+ * - With nodeType: all nodes of that type + direct neighbors, optionally capped at maxNodes
  */
 export async function extractSubgraph(db: SiaDb, opts?: ExtractOpts): Promise<SubgraphData> {
-	const maxNodes = opts?.maxNodes ?? DEFAULT_MAX_NODES;
+	const maxNodes = opts?.maxNodes;
 
 	if (opts?.scope) {
 		return extractScoped(db, opts.scope, maxNodes);
