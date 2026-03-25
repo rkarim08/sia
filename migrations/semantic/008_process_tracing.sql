@@ -29,6 +29,9 @@ CREATE INDEX IF NOT EXISTS idx_process_steps_node ON process_steps(node_id);
 -- Entry point scoring on graph_nodes
 ALTER TABLE graph_nodes ADD COLUMN entry_point_score REAL DEFAULT NULL;
 
+-- Keep current_nodes shadow table in sync with graph_nodes
+ALTER TABLE current_nodes ADD COLUMN entry_point_score REAL DEFAULT NULL;
+
 -- Community cohesion
 ALTER TABLE communities ADD COLUMN cohesion REAL DEFAULT NULL;
 
