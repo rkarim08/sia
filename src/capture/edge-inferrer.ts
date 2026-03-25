@@ -73,6 +73,9 @@ interface EdgeCandidate {
 export async function inferEdges(db: SiaDb, newEntityIds: string[]): Promise<number> {
 	let totalCreated = 0;
 
+	// Fetch all active entities ONCE outside the loop (was O(n²) when inside)
+	const allActive = await getActiveEntities(db);
+
 	for (const entityId of newEntityIds) {
 		const entity = await getEntity(db, entityId);
 		if (!entity) continue;
@@ -82,9 +85,6 @@ export async function inferEdges(db: SiaDb, newEntityIds: string[]): Promise<num
 
 		// Skip entities with no tags and no type affinity
 		if (tags.length === 0 && !hasTypeAffinity) continue;
-
-		// Gather all active entities to find candidates
-		const allActive = await getActiveEntities(db);
 
 		const candidates: EdgeCandidate[] = [];
 
