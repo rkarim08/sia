@@ -5,14 +5,18 @@ Persistent graph memory for AI coding agents. SIA gives Claude Code cross-sessio
 ## Installation
 
 ```bash
-claude plugin add sia
+# From marketplace (installs at user scope — available in all projects)
+/plugin install sia@sia-plugins
 ```
 
-Or for local development:
+Or for local development (project-scoped by design):
 
 ```bash
 claude --plugin-dir /path/to/sia
 ```
+
+> **Note:** Local development mode (`--plugin-dir`) is project-scoped.
+> For cross-project usage, install from the marketplace.
 
 ## Features
 
