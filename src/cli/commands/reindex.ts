@@ -90,6 +90,11 @@ export async function siaReindex(opts: ReindexOptions = {}): Promise<ReindexResu
 		console.log(
 			`${prefix}Reindex complete: ${result.filesProcessed} files, ${result.entitiesCreated} entities, ${packagesDetected} packages, ${contractsDetected} contracts.`,
 		);
+		if (result.entitiesCreated === 0 && result.filesProcessed > 0) {
+			console.warn(
+				"Warning: 0 entities created despite processing files. Run 'sia doctor' to check tree-sitter status.",
+			);
+		}
 
 		return {
 			...result,

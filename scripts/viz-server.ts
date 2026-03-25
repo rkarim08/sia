@@ -135,7 +135,7 @@ const isDirectRun =
 
 if (isDirectRun) {
 	const args = process.argv.slice(2);
-	let screenDir = "";
+	let screenDir = ".sia-graph/viz";
 	let port = 52742;
 
 	for (let i = 0; i < args.length; i++) {
@@ -143,10 +143,7 @@ if (isDirectRun) {
 		if (args[i] === "--port" && args[i + 1]) port = parseInt(args[++i], 10);
 	}
 
-	if (!screenDir) {
-		console.error("Usage: bun run viz-server.ts --screen-dir <dir>");
-		process.exit(1);
-	}
+	mkdirSync(screenDir, { recursive: true });
 
 	startServer(screenDir, port);
 }
