@@ -12,7 +12,8 @@
  * Must be run in a separate DB connection — never blocks the MCP server.
  */
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
+import { stat } from "node:fs/promises";
 import { computePageRank } from "@/ast/pagerank-builder";
 import type { SiaDb } from "@/graph/db-interface";
 import { invalidateEntity } from "@/graph/entities";
@@ -148,9 +149,8 @@ export async function validateDocumentation(
 			if (!existsSync(absPath)) continue;
 
 			try {
-				const stat = statSync(absPath);
-				const mtimeMs = stat.mtimeMs;
-				if (mtimeMs > tCreated) {
+				const fileStat = await stat(absPath);
+				if (fileStat.mtimeMs > tCreated) {
 					isStale = true;
 					break;
 				}
