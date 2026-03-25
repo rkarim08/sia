@@ -24,6 +24,7 @@ import { handleSiaExecute } from "@/mcp/tools/sia-execute";
 import { handleSiaExecuteFile } from "@/mcp/tools/sia-execute-file";
 import { handleSiaExpand } from "@/mcp/tools/sia-expand";
 import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
+import { handleSiaDetectChanges } from "@/mcp/tools/sia-detect-changes";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
 import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
@@ -161,6 +162,11 @@ export const SiaAstQueryInput = z.object({
 	max_results: z.number().optional(),
 });
 
+export const SiaDetectChangesInput = z.object({
+	scope: z.string().optional(),
+	compare: z.string().optional(),
+});
+
 export const SiaImpactInput = z.object({
 	entity_id: z.string(),
 	max_depth: z.number().optional(),
@@ -202,6 +208,7 @@ export const TOOL_NAMES = [
 	"sia_sync_status",
 	"sia_ast_query",
 	"sia_impact",
+	"sia_detect_changes",
 	"sia_snapshot_list",
 	"sia_snapshot_restore",
 	"sia_snapshot_prune",
@@ -787,6 +794,34 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return safeToolCall(
 					"sia_impact",
 					() => handleSiaImpact(deps.graphDb, args),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- sia_detect_changes ------------------------------------------------
+	server.registerTool(
+		"sia_detect_changes",
+		{
+			description: "Detect changed files from git diff and map to knowledge graph entities",
+			inputSchema: SiaDetectChangesInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"sia_detect_changes",
+					() => handleSiaDetectChanges(deps.graphDb, args),
 					maxChars,
 				);
 			}
