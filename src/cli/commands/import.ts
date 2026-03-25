@@ -119,24 +119,26 @@ async function mergeImport(db: SiaDb, data: ExportData): Promise<ImportResult> {
 		}
 	}
 
-	// 3. Import communities — INSERT OR IGNORE
-	for (const community of data.communities) {
-		await db.execute(
-			`INSERT OR IGNORE INTO communities (id, level, parent_id, summary, member_count, package_path, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			[
-				community.id ?? null,
-				community.level ?? 0,
-				community.parent_id ?? null,
-				community.summary ?? "",
-				community.member_count ?? 0,
-				community.package_path ?? null,
-				community.created_at ?? Date.now(),
-				community.updated_at ?? Date.now(),
-			],
-		);
-		result.communitiesImported++;
-	}
+	// 3. Import communities — INSERT OR IGNORE (wrapped in transaction for speed)
+	await db.transaction(async (tx) => {
+		for (const community of data.communities) {
+			await tx.execute(
+				`INSERT OR IGNORE INTO communities (id, level, parent_id, summary, member_count, package_path, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				[
+					community.id ?? null,
+					community.level ?? 0,
+					community.parent_id ?? null,
+					community.summary ?? "",
+					community.member_count ?? 0,
+					community.package_path ?? null,
+					community.created_at ?? Date.now(),
+					community.updated_at ?? Date.now(),
+				],
+			);
+			result.communitiesImported++;
+		}
+	});
 
 	// 4. Audit log
 	await writeAuditEntry(db, "ADD", {
