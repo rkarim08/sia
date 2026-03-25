@@ -237,4 +237,50 @@ describe("subgraph extraction", () => {
 
 		expect(result.nodes.length).toBeLessThanOrEqual(5);
 	});
+
+	// ---------------------------------------------------------------
+	// No cap when maxNodes is undefined — loads all active nodes
+	// ---------------------------------------------------------------
+
+	it("loads all active nodes when maxNodes is undefined", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("vis-no-cap", tmpDir);
+
+		// Insert 10 entities
+		for (let i = 0; i < 10; i++) {
+			await insertEntity(db, {
+				type: "Concept",
+				name: `All Entity ${i}`,
+				content: `Content ${i}`,
+				summary: `Summary ${i}`,
+				importance: (i + 1) * 0.08,
+			});
+		}
+
+		const result = await extractSubgraph(db);
+
+		expect(result.nodes).toHaveLength(10);
+	});
+
+	// ---------------------------------------------------------------
+	// Result includes communities array
+	// ---------------------------------------------------------------
+
+	it("result includes communities array", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("vis-communities", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept",
+			name: "Node with community",
+			content: "content",
+			summary: "summary",
+			importance: 0.8,
+		});
+
+		const result = await extractSubgraph(db, { maxNodes: 10 });
+
+		// communities should be an array (possibly empty if no community data)
+		expect(Array.isArray(result.communities)).toBe(true);
+	});
 });

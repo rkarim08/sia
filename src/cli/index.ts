@@ -207,10 +207,11 @@ async function main(): Promise<void> {
 			return;
 		}
 		case "graph": {
-			const { generateGraphVisualization } = await import("@/cli/commands/graph");
+			const { generateGraphVisualization, parseGraphArgs } = await import("@/cli/commands/graph");
 			const db = await openDb();
 			try {
-				const output = await generateGraphVisualization(db);
+				const opts = parseGraphArgs(rest);
+				const output = await generateGraphVisualization(db, opts);
 				console.log(output);
 			} finally {
 				await db.close();

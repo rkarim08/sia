@@ -13,6 +13,22 @@ export interface GraphCommandOpts {
 	maxNodes?: number;
 }
 
+export function parseGraphArgs(args: string[]): GraphCommandOpts {
+	const opts: GraphCommandOpts = {};
+	for (let i = 0; i < args.length; i++) {
+		if (args[i] === "--max-nodes" && args[i + 1]) {
+			opts.maxNodes = parseInt(args[++i], 10);
+		} else if (args[i] === "--scope" && args[i + 1]) {
+			opts.scope = args[++i];
+		} else if (args[i] === "--node-type" && args[i + 1]) {
+			opts.nodeType = args[++i];
+		} else if (args[i] === "--output" && args[i + 1]) {
+			opts.output = args[++i];
+		}
+	}
+	return opts;
+}
+
 /**
  * Generate a knowledge graph visualization as a self-contained HTML file.
  *
