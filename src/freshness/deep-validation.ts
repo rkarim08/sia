@@ -14,6 +14,7 @@
 
 import { existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
+import { join } from "node:path";
 import { computePageRank } from "@/ast/pagerank-builder";
 import type { SiaDb } from "@/graph/db-interface";
 import { invalidateEntity } from "@/graph/entities";
@@ -144,7 +145,7 @@ export async function validateDocumentation(
 			if (typeof rawPath !== "string" || rawPath.length === 0) continue;
 
 			// Resolve relative paths against repoRoot
-			const absPath = rawPath.startsWith("/") ? rawPath : `${repoRoot}/${rawPath}`;
+			const absPath = rawPath.startsWith("/") ? rawPath : join(repoRoot, rawPath);
 
 			if (!existsSync(absPath)) continue;
 
