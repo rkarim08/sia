@@ -964,6 +964,33 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           <span style={{ flexShrink: 0 }}>Show all</span>
         </div>
 
+        {/* Node size legend — bottom-left, above status bar */}
+        {!selectedNodeId && (
+          <div style={{
+            position: 'absolute', bottom: 64, left: 14,
+            display: 'flex', alignItems: 'flex-end', gap: 8,
+            fontSize: 9, color: 'rgba(255,255,255,0.2)',
+            pointerEvents: 'none', userSelect: 'none', zIndex: 10,
+          }}>
+            {[
+              { type: 'function', size: 4, label: 'fn' },
+              { type: 'file', size: 6, label: 'file' },
+              { type: 'class', size: 8, label: 'class' },
+              { type: 'decision', size: 10, label: 'decision' },
+            ].map(item => (
+              <div key={item.type} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <div style={{
+                  width: item.size * 1.5, height: item.size * 1.5,
+                  borderRadius: '50%',
+                  background: NODE_COLORS[item.type as SiaNodeType],
+                  opacity: 0.4,
+                }} />
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Status bar */}
         <div style={{
           position: 'absolute', bottom: 36, left: 0, right: 0,
