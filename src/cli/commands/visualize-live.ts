@@ -115,6 +115,19 @@ export async function runVisualizeLive(db: SiaDb, args: string[]): Promise<void>
 		const projectRoot = process.cwd();
 		const server = await createVizApiServer(db, projectRoot, port);
 		console.log(`SIA Graph Visualizer running at: http://localhost:${server.port}`);
+		console.log("Press Ctrl+C to stop.");
+		// Keep the process alive so the DB stays open for API requests.
+		// The server runs until the user kills the process.
+		await new Promise<void>((resolve) => {
+			process.on("SIGINT", () => {
+				server.stop();
+				resolve();
+			});
+			process.on("SIGTERM", () => {
+				server.stop();
+				resolve();
+			});
+		});
 		return;
 	}
 

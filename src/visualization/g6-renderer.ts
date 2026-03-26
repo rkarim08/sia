@@ -606,18 +606,27 @@ function adjustBrightness(hex, factor) {
 // ── Convert API graph to G6 format ───────────────────────────────────────────
 
 function convertToG6Data(apiData) {
-  const nodes = (apiData.nodes || []).map(n => ({
-    id: String(n.id),
-    data: {
-      label:     n.label || n.id,
-      nodeType:  n.nodeType || n.type || 'file',
-      filePath:  n.filePath || n.path || '',
-      importance: n.importance || 0.5,
-      fill:      nodeColor(n.nodeType || n.type || 'file'),
-      size:      nodeSize(n.importance),
-    },
-    combo: n.comboId ? String(n.comboId) : undefined,
-  }));
+  // Build set of valid combo IDs so we only assign nodes to existing combos
+  const comboIds = new Set((apiData.combos || []).map(c => String(c.id)));
+
+  const nodes = (apiData.nodes || []).map(n => {
+    const parentId = n.parentId ? String(n.parentId) : undefined;
+    // Use the folder color from the API for file nodes; fall back to type-based color for knowledge nodes
+    const isKnowledge = ['decision','bug','convention','solution'].includes(n.nodeType || '');
+    const fill = isKnowledge ? nodeColor(n.nodeType) : (n.color || nodeColor(n.nodeType || 'file'));
+    return {
+      id: String(n.id),
+      data: {
+        label:     n.label || n.id,
+        nodeType:  n.nodeType || n.type || 'file',
+        filePath:  n.filePath || n.path || '',
+        importance: n.importance || 0.5,
+        fill:      fill,
+        size:      nodeSize(n.importance),
+      },
+      combo: (parentId && comboIds.has(parentId)) ? parentId : undefined,
+    };
+  });
 
   const edges = (apiData.edges || []).map((e, i) => ({
     id: e.id ? String(e.id) : 'e' + i,
@@ -629,13 +638,23 @@ function convertToG6Data(apiData) {
     },
   }));
 
-  const combos = (apiData.combos || []).map(c => ({
-    id: String(c.id),
-    data: {
-      label:      c.label || c.id,
-      childCount: c.childCount || 0,
-    },
-  }));
+  const combos = (apiData.combos || []).map(c => {
+    const parentId = c.parentId ? String(c.parentId) : undefined;
+    const isTopLevel = !parentId || !comboIds.has(parentId);
+    return {
+      id: String(c.id),
+      data: {
+        label:      c.label || c.id,
+        childCount: c.childCount || 0,
+        color:      c.color || '#7986cb',
+        collapsed:  isTopLevel,  // Start top-level combos collapsed
+      },
+      style: {
+        collapsed: isTopLevel,
+      },
+      combo: (parentId && comboIds.has(parentId)) ? parentId : undefined,
+    };
+  });
 
   return { nodes, edges, combos };
 }
@@ -643,6 +662,7 @@ function convertToG6Data(apiData) {
 // ── Graph initialization ──────────────────────────────────────────────────────
 
 let graph = null;
+window._g6graph = null; // exposed for debugging
 let activeTab = 'code';
 
 async function initGraph() {
@@ -661,51 +681,70 @@ async function initGraph() {
   try {
     graph = new G6.Graph({
       container: 'graph-canvas',
-      renderer: 'canvas',
       autoFit: 'view',
       layout: {
-        type: 'combo-combined',
-        spacing: 20,
-        comboPadding: 10,
+        type: 'force',
+        preventOverlap: true,
+        nodeSize: 40,
+        linkDistance: 150,
+        nodeStrength: -800,
+        edgeStrength: 0.1,
+        collideStrength: 0.8,
+        alphaDecay: 0.02,
       },
       node: {
         style: {
           size:         d => d.data.size || 18,
           fill:         d => d.data.fill || '#7986cb',
           stroke:       d => adjustBrightness(d.data.fill || '#7986cb', 0.7),
-          lineWidth:    1.5,
-          labelText:    d => d.data.label || d.id,
+          lineWidth:    1,
+          labelText:    d => (d.data.size || 18) >= 16 ? (d.data.label || '') : '',
           labelFill:    '#ccc',
-          labelFontSize: 10,
-          labelOffsetY: 14,
+          labelFontSize: 9,
+          labelOffsetY: 12,
+          labelBackground: true,
+          labelBackgroundFill: 'rgba(26,26,46,0.8)',
+          labelBackgroundRadius: 2,
           cursor:       'pointer',
         },
       },
       edge: {
         style: {
           stroke:       d => d.data.stroke || '#555',
-          lineWidth:    1,
+          lineWidth:    0.5,
           endArrow:     true,
-          endArrowSize: 6,
-          opacity:      0.7,
+          endArrowSize: 4,
+          opacity:      0.15,
         },
       },
       combo: {
         style: {
-          fill:         'rgba(121,134,203,0.06)',
-          stroke:       '#3f4a8a',
-          lineWidth:    1,
-          labelText:    d => d.data.label || d.id,
-          labelFill:    '#aaa',
-          labelFontSize: 10,
-          padding:      10,
+          fill:         d => (d.data.color || '#7986cb') + '15',
+          stroke:       d => (d.data.color || '#7986cb') + 'aa',
+          lineWidth:    2,
+          radius:       16,
+          labelText:    d => {
+            const label = d.data.label || d.id;
+            const count = d.data.childCount || 0;
+            return count > 0 ? label + '/ (' + count + ')' : label + '/';
+          },
+          labelFill:    d => d.data.color || '#aaa',
+          labelFontSize: 11,
+          labelFontWeight: 600,
+          labelPlacement: 'top',
+          padding:      20,
           cursor:       'pointer',
+          collapsedFill:       d => (d.data.color || '#7986cb') + '40',
+          collapsedStroke:     d => (d.data.color || '#7986cb') + 'cc',
+          collapsedLineWidth:  2.5,
+          collapsedRadius:     12,
         },
       },
       behaviors: ['drag-canvas', 'zoom-canvas', 'drag-element', 'collapse-expand'],
       data: g6Data,
     });
 
+    window._g6graph = graph;
     await graph.render();
     bindGraphEvents();
   } catch (err) {
@@ -733,7 +772,7 @@ function buildFileTree(combos, nodes) {
     el.textContent = '\uD83D\uDCC1 ' + label;
     el.dataset.comboId = String(combo.id || '');
     el.addEventListener('click', () => {
-      if (graph) { try { graph.focusItem(String(combo.id), { animate: true, padding: 40 }); } catch {} }
+      if (graph) { try { graph.focusElement(String(combo.id), { animate: true, padding: 40 }); } catch {} }
     });
     treeEl.appendChild(el);
   }
@@ -747,7 +786,7 @@ function buildFileTree(combos, nodes) {
     el.title = label;
     el.textContent = '\uD83D\uDCC4 ' + label;
     el.addEventListener('click', () => {
-      if (graph) { try { graph.focusItem(String(node.id), { animate: true, padding: 40 }); } catch {} }
+      if (graph) { try { graph.focusElement(String(node.id), { animate: true, padding: 40 }); } catch {} }
     });
     treeEl.appendChild(el);
   }
@@ -766,11 +805,13 @@ function bindGraphEvents() {
   if (!graph) return;
 
   graph.on('node:click', async evt => {
-    const model = evt.itemModel || (evt.item && evt.item.getModel && evt.item.getModel()) || {};
-    const data = model.data || model;
-    const nodeType = data.nodeType || data.type || '';
-    const nodeId = String(model.id || (evt.item && evt.item.getID && evt.item.getID()) || '');
-    const filePath = data.filePath || data.path || '';
+    const nodeId = evt.target?.id || '';
+    if (!nodeId) return;
+    const nodeData = graph.getNodeData(nodeId);
+    if (!nodeData) return;
+    const data = nodeData.data || {};
+    const nodeType = data.nodeType || '';
+    const filePath = data.filePath || '';
 
     if (nodeType === 'file' && filePath) {
       await openInspector(nodeId, filePath);
@@ -782,6 +823,7 @@ function bindGraphEvents() {
 
 // ── Inspector ─────────────────────────────────────────────────────────────────
 
+window.openInspector = openInspector;
 async function openInspector(nodeId, filePath) {
   // Use textContent to safely set path — no HTML injection
   document.getElementById('inspector-path').textContent = filePath;
@@ -797,7 +839,7 @@ async function openInspector(nodeId, filePath) {
   ]);
 
   if (fileData) renderCodeViewer(fileData.content);
-  renderEntityList(entityData ? (entityData.entities || entityData) : []);
+  renderEntityList(entityData ? (entityData.nodes || []) : []);
   showTab(activeTab);
 }
 
@@ -1054,7 +1096,7 @@ function renderSearchResults(results) {
     const nodeId = String(r.id || '');
     item.addEventListener('click', () => {
       if (nodeId && graph) {
-        try { graph.focusItem(nodeId, { animate: true, padding: 60 }); } catch {}
+        try { graph.focusElement(nodeId, { animate: true, padding: 60 }); } catch {}
       }
       closeSearchOverlay();
     });
