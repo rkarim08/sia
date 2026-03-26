@@ -13,6 +13,9 @@ export interface SigmaNodeAttributes {
   cluster: string; // top-level folder for grouping
   mass: number;    // ForceAtlas2 mass
   hidden?: boolean;
+  // Sigma display properties (set by reducers, not stored in graph)
+  highlighted?: boolean;
+  zIndex?: number;
 }
 
 export interface SigmaEdgeAttributes {
@@ -20,4 +23,6 @@ export interface SigmaEdgeAttributes {
   color: string;
   edgeType: string;
   hidden?: boolean;
+  // Sigma display properties (set by reducers, not stored in graph)
+  zIndex?: number;
 }
