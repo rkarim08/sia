@@ -206,18 +206,6 @@ async function main(): Promise<void> {
 			}
 			return;
 		}
-		case "graph": {
-			const { generateGraphVisualization, parseGraphArgs } = await import("@/cli/commands/graph");
-			const db = await openDb();
-			try {
-				const opts = parseGraphArgs(rest);
-				const output = await generateGraphVisualization(db, opts);
-				console.log(output);
-			} finally {
-				await db.close();
-			}
-			return;
-		}
 		case "visualize-live": {
 			const { runVisualizeLive } = await import("@/cli/commands/visualize-live");
 			const db = await openDb();
