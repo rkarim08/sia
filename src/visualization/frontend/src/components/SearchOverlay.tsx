@@ -84,8 +84,8 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'blur(4px)',
+        background: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(20px)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
@@ -97,10 +97,11 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
         style={{
           width: 520,
           maxWidth: '90vw',
-          background: '#1e1e32',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 12,
-          boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+          background: 'rgba(14,14,28,0.9)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 14,
+          boxShadow: '0 32px 100px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(24px)',
           overflow: 'hidden',
         }}
       >

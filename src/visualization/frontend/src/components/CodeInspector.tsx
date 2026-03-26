@@ -3,7 +3,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { fetchFile, fetchEntities } from '../lib/api';
 import type { GraphNode, GraphEdge } from '../lib/api';
-import { NODE_COLORS, BG_SIDEBAR } from '../lib/constants';
+import { NODE_COLORS, BG_PANEL } from '../lib/constants';
 import type { SiaNodeType } from '../lib/constants';
 
 interface Props {
@@ -174,12 +174,13 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
     <div style={{
       width: panelWidth,
       height: '100%',
-      background: BG_SIDEBAR,
+      background: BG_PANEL,
+      backdropFilter: 'blur(20px)',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
       position: 'relative',
-      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      borderLeft: '1px solid rgba(255,255,255,0.04)',
     }}>
       {/* Resize handle — left edge */}
       <div

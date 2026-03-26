@@ -69,11 +69,12 @@ export default function Sidebar({
       width: '100%',
       height: '100%',
       background: BG_SIDEBAR,
+      backdropFilter: 'blur(20px)',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      borderRight: '1px solid rgba(255,255,255,0.08)',
-      color: '#c8d0e0',
+      borderRight: '1px solid rgba(255,255,255,0.04)',
+      color: '#b0bcd0',
     }}>
       {/* Search */}
       <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>

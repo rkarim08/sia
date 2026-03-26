@@ -6,7 +6,7 @@ import Sidebar from './components/Sidebar';
 import SearchOverlay from './components/SearchOverlay';
 import { fetchGraph } from './lib/api';
 import type { GraphResponse, GraphNode } from './lib/api';
-import { BG_PRIMARY, BG_SIDEBAR } from './lib/constants';
+import { BG_PRIMARY } from './lib/constants';
 
 export default function App() {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
@@ -38,7 +38,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // Cmd+K / Ctrl+K to open search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -87,37 +86,44 @@ export default function App() {
       background: BG_PRIMARY,
     }}>
       {/* Header bar */}
-      <div style={{
-        height: 48,
+      <header style={{
+        height: 44,
         flexShrink: 0,
-        background: BG_SIDEBAR,
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(10,10,22,0.6)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px',
-        color: '#e4e4ed',
+        padding: '0 20px',
+        zIndex: 20,
       }}>
-        {/* Left: branding */}
+        {/* Branding */}
         <div style={{
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: 700,
-          letterSpacing: '0.08em',
-          color: '#e4e4ed',
+          letterSpacing: '0.18em',
+          background: 'linear-gradient(135deg, #818cf8, #6366f1, #a78bfa)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          textTransform: 'uppercase',
         }}>
-          SIA
+          Sia
         </div>
 
-        {/* Center: stats */}
+        {/* Stats */}
         <div style={{
-          fontSize: 12,
-          color: 'rgba(255,255,255,0.45)',
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.28)',
           fontFamily: '"JetBrains Mono", monospace',
+          fontWeight: 400,
+          letterSpacing: '0.02em',
+          fontVariantNumeric: 'tabular-nums',
         }}>
           {nodeCount} nodes &middot; {edgeCount} edges
         </div>
 
-        {/* Right: search trigger */}
+        {/* Search trigger */}
         <button
           onClick={() => setSearchOpen(true)}
           style={{
@@ -125,53 +131,52 @@ export default function App() {
             alignItems: 'center',
             gap: 8,
             padding: '5px 12px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 6,
-            color: '#6b7a99',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 8,
+            color: 'rgba(255,255,255,0.35)',
             fontSize: 12,
             cursor: 'pointer',
-            transition: 'background 0.15s, border-color 0.15s',
+            transition: 'all 0.2s ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.55)';
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+            e.currentTarget.style.color = 'rgba(255,255,255,0.35)';
           }}
         >
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="7" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <span>Search</span>
           <kbd style={{
-            fontSize: 10,
+            fontSize: 9,
             padding: '1px 5px',
             borderRadius: 3,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#6b7a99',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.3)',
+            fontFamily: '"DM Sans", sans-serif',
           }}>
             &#8984;K
           </kbd>
         </button>
-      </div>
+      </header>
 
-      {/* Main content: 3-column layout */}
+      {/* Main content */}
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: showInspector ? '240px 1fr auto' : '240px 1fr 0px',
+        gridTemplateColumns: showInspector ? '220px 1fr auto' : '220px 1fr 0px',
         overflow: 'hidden',
-        transition: 'grid-template-columns 0.2s ease',
+        transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        {/* Left sidebar */}
         <Sidebar
           combos={graphData?.combos ?? []}
           hiddenTypes={hiddenTypes}
@@ -181,7 +186,6 @@ export default function App() {
           onFocusDepthChange={setFocusDepth}
         />
 
-        {/* Center: graph canvas */}
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           {loading && (
             <div style={{
@@ -190,8 +194,10 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#888',
-              fontSize: 16,
+              color: 'rgba(255,255,255,0.2)',
+              fontSize: 13,
+              fontWeight: 500,
+              letterSpacing: '0.05em',
               zIndex: 10,
             }}>
               Loading graph...
@@ -204,8 +210,8 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ef5350',
-              fontSize: 14,
+              color: '#ef4444',
+              fontSize: 13,
               zIndex: 10,
               padding: 32,
               textAlign: 'center',
@@ -225,8 +231,11 @@ export default function App() {
           )}
         </div>
 
-        {/* Right: code inspector */}
-        <div style={{ overflow: 'hidden' }}>
+        {/* Inspector with slide animation */}
+        <div style={{
+          overflow: 'hidden',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
           {selectedNode && (
             <CodeInspector
               node={selectedNode}
@@ -237,7 +246,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Search overlay */}
       {searchOpen && (
         <SearchOverlay
           onSelect={handleSearchSelect}

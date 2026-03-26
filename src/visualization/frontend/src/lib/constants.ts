@@ -76,9 +76,9 @@ export const DEFAULT_VISIBLE_EDGES: SiaEdgeType[] = [
 // Edge display info for UI
 // Per-type edge styling for UI
 export const EDGE_INFO: Record<SiaEdgeType, { color: string; label: string }> = {
-  imports: { color: '#1d4ed8', label: 'Imports' },
-  calls: { color: '#7c3aed', label: 'Calls' },
-  relates_to: { color: '#0e7490', label: 'Relates To' },
+  imports: { color: 'rgba(59,130,246,0.12)', label: 'Imports' },
+  calls: { color: 'rgba(139,92,246,0.12)', label: 'Calls' },
+  relates_to: { color: 'rgba(99,102,241,0.08)', label: 'Relates To' },
 };
 
 // Default visible node types
@@ -105,10 +105,11 @@ export const FILTERABLE_TYPES: SiaNodeType[] = [
   'solution',
 ];
 
-// Edge styling defaults
-export const EDGE_DEFAULT_COLOR = 'rgba(255,255,255,0.15)';
-export const EDGE_HOVER_COLOR = 'rgba(255,255,255,0.6)';
+// Edge styling defaults — very low opacity so the graph isn't a hairball
+export const EDGE_DEFAULT_COLOR = 'rgba(255,255,255,0.018)';
+export const EDGE_HOVER_COLOR = 'rgba(255,255,255,0.55)';
 
 // Background colors
-export const BG_PRIMARY = '#1a1a2e';
-export const BG_SIDEBAR = '#16213e';
+export const BG_PRIMARY = '#0c0c1a';
+export const BG_SIDEBAR = 'rgba(14,17,32,0.72)';
+export const BG_PANEL = 'rgba(14,17,32,0.85)';

@@ -36,7 +36,7 @@ const rgbToHex = (r: number, g: number, b: number): string => {
 /** Dim a color by mixing towards a dark background. `amount` 0 = fully dark, 1 = original. */
 const dimColor = (hex: string, amount: number): string => {
   const rgb = hexToRgb(hex);
-  const darkBg = { r: 26, g: 26, b: 46 }; // matches BG_PRIMARY #1a1a2e
+  const darkBg = { r: 12, g: 12, b: 26 }; // matches BG_PRIMARY #0c0c1a
   return rgbToHex(
     darkBg.r + (rgb.r - darkBg.r) * amount,
     darkBg.g + (rgb.g - darkBg.g) * amount,
@@ -167,13 +167,13 @@ export function useSigma(
     // ------- Sigma renderer -------
     const renderer = new Sigma(graph, containerRef.current, {
       renderLabels: true,
-      labelFont: 'JetBrains Mono, monospace',
+      labelFont: 'DM Sans, -apple-system, sans-serif',
       labelSize: 11,
       labelWeight: '500',
-      labelColor: { color: '#e4e4ed' },
-      labelRenderedSizeThreshold: 8,
-      labelDensity: 0.1,
-      labelGridCellSize: 70,
+      labelColor: { color: '#a0aec0' },
+      labelRenderedSizeThreshold: 10,
+      labelDensity: 0.07,
+      labelGridCellSize: 80,
 
       defaultNodeColor: '#6b7280',
       defaultEdgeColor: EDGE_DEFAULT_COLOR,
@@ -183,52 +183,71 @@ export function useSigma(
       hideEdgesOnMove: true,
       zIndex: true,
 
-      // ------ Custom hover renderer (dark pill with colored border) ------
+      // ------ Custom hover renderer with radial glow ------
       defaultDrawNodeHover: (context, data, settings) => {
         const label = data.label;
+        const nodeSize = data.size || 8;
+        const color = data.color || '#6366f1';
+
+        // Radial glow behind node
+        const glowRadius = nodeSize * 4;
+        const glow = context.createRadialGradient(
+          data.x, data.y, nodeSize * 0.5,
+          data.x, data.y, glowRadius,
+        );
+        const rgb = hexToRgb(color);
+        glow.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0.25)`);
+        glow.addColorStop(0.5, `rgba(${rgb.r},${rgb.g},${rgb.b},0.08)`);
+        glow.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
+        context.fillStyle = glow;
+        context.beginPath();
+        context.arc(data.x, data.y, glowRadius, 0, Math.PI * 2);
+        context.fill();
+
+        // Subtle ring
+        context.beginPath();
+        context.arc(data.x, data.y, nodeSize + 3, 0, Math.PI * 2);
+        context.strokeStyle = color;
+        context.lineWidth = 1.5;
+        context.globalAlpha = 0.4;
+        context.stroke();
+        context.globalAlpha = 1;
+
         if (!label) return;
 
         const size = settings.labelSize || 11;
-        const font = settings.labelFont || 'JetBrains Mono, monospace';
+        const font = settings.labelFont || 'DM Sans, sans-serif';
         const weight = settings.labelWeight || '500';
 
         context.font = `${weight} ${size}px ${font}`;
         const textWidth = context.measureText(label).width;
 
-        const nodeSize = data.size || 8;
         const x = data.x;
-        const y = data.y - nodeSize - 10;
-        const paddingX = 8;
-        const paddingY = 5;
+        const y = data.y - nodeSize - 12;
+        const paddingX = 10;
+        const paddingY = 6;
         const height = size + paddingY * 2;
         const width = textWidth + paddingX * 2;
-        const radius = 4;
+        const radius = 6;
 
-        // Dark background pill
-        context.fillStyle = '#12121c';
+        // Frosted pill background
+        context.fillStyle = 'rgba(8,8,18,0.88)';
         context.beginPath();
         context.roundRect(x - width / 2, y - height / 2, width, height, radius);
         context.fill();
 
-        // Border matching node color
-        context.strokeStyle = data.color || '#6366f1';
-        context.lineWidth = 2;
+        // Colored top border accent
+        context.strokeStyle = color;
+        context.lineWidth = 1.5;
+        context.globalAlpha = 0.6;
         context.stroke();
+        context.globalAlpha = 1;
 
-        // Label text
-        context.fillStyle = '#f5f5f7';
+        // Label
+        context.fillStyle = '#eef0f6';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.fillText(label, x, y);
-
-        // Subtle glow ring around the node
-        context.beginPath();
-        context.arc(data.x, data.y, nodeSize + 4, 0, Math.PI * 2);
-        context.strokeStyle = data.color || '#6366f1';
-        context.lineWidth = 2;
-        context.globalAlpha = 0.5;
-        context.stroke();
-        context.globalAlpha = 1;
       },
 
       // ------ Node reducer: hover + selection highlighting ------
