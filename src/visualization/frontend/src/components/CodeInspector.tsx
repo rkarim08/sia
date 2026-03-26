@@ -61,7 +61,7 @@ const codeTheme = {
   'code[class*="language-"]': {
     ...(vscDarkPlus as Record<string, React.CSSProperties>)['code[class*="language-"]'],
     background: 'transparent',
-    fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+    fontFamily: '"GeistMono", "Geist Mono", "Fira Code", monospace',
   },
 };
 
@@ -275,7 +275,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
         fontSize: 11,
         color: '#94a3b8',
         flexShrink: 0,
-        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+        fontFamily: '"GeistMono", "Geist Mono", "Fira Code", monospace',
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -488,7 +488,7 @@ function EdgeRow({ edge, entities, onEntityClick }: {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
-        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+        fontFamily: '"GeistMono", "Geist Mono", "Fira Code", monospace',
         fontSize: 11,
         cursor: 'pointer',
         borderRadius: 4,

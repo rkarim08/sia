@@ -526,7 +526,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         // Label for center node
         if (isCenter) {
           ctx.fillStyle = '#e0e0e0';
-          ctx.font = '9px "DM Sans", sans-serif';
+          ctx.font = '9px "Outfit", sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(attrs.label.slice(0, 20), pos.x, pos.y + dotSize + 12);
         }
@@ -846,7 +846,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
                 color: layoutMode === mode ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
                 fontSize: 11,
                 fontWeight: 600,
-                fontFamily: '"JetBrains Mono", monospace',
+                fontFamily: '"GeistMono", "Geist Mono", monospace',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 padding: 0,
@@ -914,7 +914,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           borderTop: '1px solid rgba(255,255,255,0.04)',
           zIndex: 10,
           fontSize: 9,
-          fontFamily: '"JetBrains Mono", monospace',
+          fontFamily: '"GeistMono", "Geist Mono", monospace',
           color: 'rgba(255,255,255,0.3)',
         }}>
           <span style={{ flexShrink: 0, width: 75 }}>
@@ -953,7 +953,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           display: 'flex',
           gap: 10,
           fontSize: 10,
-          fontFamily: '"JetBrains Mono", monospace',
+          fontFamily: '"GeistMono", "Geist Mono", monospace',
           color: 'rgba(255,255,255,0.18)',
           pointerEvents: 'none',
           userSelect: 'none',
@@ -970,7 +970,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           bottom: 46,
           right: 180,
           fontSize: 9,
-          fontFamily: '"JetBrains Mono", monospace',
+          fontFamily: '"GeistMono", "Geist Mono", monospace',
           color: 'rgba(255,255,255,0.12)',
           pointerEvents: 'none',
           userSelect: 'none',
@@ -1062,7 +1062,7 @@ function ZoomBtn({ label, onClick, title, active }: { label: string; onClick: ()
         backdropFilter: 'blur(8px)',
         color: active ? '#60a5fa' : hovered ? '#cdd6e4' : 'rgba(255,255,255,0.35)',
         fontSize: 15,
-        fontFamily: '"DM Sans", sans-serif',
+        fontFamily: "'Outfit', sans-serif",
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         transform: pressed ? 'scale(0.9)' : 'scale(1)',

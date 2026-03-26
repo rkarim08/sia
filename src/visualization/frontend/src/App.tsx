@@ -181,7 +181,7 @@ export default function App() {
           gap: 12,
           fontSize: 11,
           color: 'rgba(255,255,255,0.28)',
-          fontFamily: '"JetBrains Mono", monospace',
+          fontFamily: '"GeistMono", "Geist Mono", monospace',
           fontWeight: 400,
           letterSpacing: '0.02em',
           fontVariantNumeric: 'tabular-nums',
@@ -252,7 +252,7 @@ export default function App() {
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.06)',
             color: 'rgba(255,255,255,0.3)',
-            fontFamily: '"DM Sans", sans-serif',
+            fontFamily: "'Outfit', sans-serif",
           }}>
             &#8984;K
           </kbd>

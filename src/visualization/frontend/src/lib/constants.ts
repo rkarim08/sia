@@ -137,3 +137,7 @@ export const EDGE_HOVER_COLOR = 'rgba(255,255,255,0.55)';
 export const BG_PRIMARY = '#0c0c1a';
 export const BG_SIDEBAR = 'rgba(14,17,32,0.72)';
 export const BG_PANEL = 'rgba(14,17,32,0.85)';
+
+// Font tokens
+export const FONT_UI = "'Outfit', -apple-system, sans-serif";
+export const FONT_MONO = "'GeistMono', 'Geist Mono', 'JetBrains Mono', monospace";

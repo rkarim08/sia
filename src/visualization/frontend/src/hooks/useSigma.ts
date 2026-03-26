@@ -261,7 +261,7 @@ export function useSigma(
     const renderer = new Sigma(graph, containerRef.current, {
       renderLabels: true,
       renderEdgeLabels: true,
-      labelFont: 'DM Sans, -apple-system, sans-serif',
+      labelFont: 'Outfit, -apple-system, sans-serif',
       labelSize: 13,
       labelWeight: '500',
       labelColor: { color: '#b0bcd0' },
@@ -269,7 +269,7 @@ export function useSigma(
       labelDensity: 0.04,
       labelGridCellSize: 120,
 
-      edgeLabelFont: 'DM Sans, -apple-system, sans-serif',
+      edgeLabelFont: 'GeistMono, "Geist Mono", monospace',
       edgeLabelSize: 12,
       edgeLabelColor: { color: '#c8d0e0' },
 
@@ -314,7 +314,7 @@ export function useSigma(
         if (!label) return;
 
         const size = Math.max(14, settings.labelSize || 13);
-        const font = settings.labelFont || 'DM Sans, sans-serif';
+        const font = settings.labelFont || 'Outfit, sans-serif';
         const weight = settings.labelWeight || '500';
         const infoSize = 12; // info line font size — larger for readability
         const badgeSize = 11; // badge font size
