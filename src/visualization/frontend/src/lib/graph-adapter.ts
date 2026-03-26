@@ -192,7 +192,7 @@ export const graphResponseToGraphology = (
       size: edgeBaseSize * (edge.weight || 1),
       color: info.color,
       edgeType: edge.edgeType,
-      label: edge.edgeType,
+      label: '', // empty by default — only shown via forceLabel on hover/selection
       hidden: false,
     });
   });

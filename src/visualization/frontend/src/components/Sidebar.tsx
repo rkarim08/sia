@@ -20,6 +20,8 @@ interface Props {
   onToggleColorByFolder: () => void;
   showHulls: boolean;
   onToggleHulls: () => void;
+  nodeColors: Record<SiaNodeType, string>;
+  onColorChange: (type: SiaNodeType, color: string) => void;
 }
 
 const DEPTH_OPTIONS: { value: number | null; label: string }[] = [
@@ -54,6 +56,8 @@ export default function Sidebar({
   onToggleColorByFolder,
   showHulls,
   onToggleHulls,
+  nodeColors,
+  onColorChange,
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -148,7 +152,7 @@ export default function Sidebar({
                   width: 7,
                   height: 7,
                   borderRadius: '50%',
-                  background: NODE_COLORS[r.type as SiaNodeType] || '#555',
+                  background: nodeColors[r.type as SiaNodeType] || '#555',
                   flexShrink: 0,
                 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -196,15 +200,38 @@ export default function Sidebar({
                   e.currentTarget.style.background = active ? 'rgba(255,255,255,0.04)' : 'transparent';
                 }}
               >
-                <span style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: NODE_COLORS[type],
-                  opacity: active ? 1 : 0.35,
-                  flexShrink: 0,
-                  transition: 'opacity 0.15s',
-                }} />
+                {/* Clickable color swatch — opens native color picker */}
+                <label
+                  style={{ position: 'relative', flexShrink: 0, cursor: 'pointer' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <span style={{
+                    display: 'block',
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: nodeColors[type],
+                    opacity: active ? 1 : 0.35,
+                    transition: 'opacity 0.15s',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                  }} />
+                  <input
+                    type="color"
+                    value={nodeColors[type]}
+                    onChange={e => onColorChange(type, e.target.value)}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      opacity: 0,
+                      cursor: 'pointer',
+                      border: 'none',
+                      padding: 0,
+                    }}
+                    title={`Change ${type} color`}
+                  />
+                </label>
                 <span style={{ flex: 1 }}>{type}</span>
                 <span style={{
                   width: 6,

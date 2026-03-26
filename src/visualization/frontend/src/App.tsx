@@ -6,7 +6,8 @@ import Sidebar from './components/Sidebar';
 import SearchOverlay from './components/SearchOverlay';
 import { fetchGraph } from './lib/api';
 import type { GraphResponse, GraphNode } from './lib/api';
-import { BG_PRIMARY } from './lib/constants';
+import { BG_PRIMARY, loadNodeColors, saveNodeColors, setNodeColors } from './lib/constants';
+import type { SiaNodeType } from './lib/constants';
 import type { LayoutMode } from './types';
 
 export default function App() {
@@ -27,6 +28,16 @@ export default function App() {
   const [showHulls, setShowHulls] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('force');
   const [maxTrustTier, setMaxTrustTier] = useState(4);
+  const [nodeColors, setNodeColorsState] = useState(() => loadNodeColors());
+
+  const handleColorChange = useCallback((type: SiaNodeType, color: string) => {
+    setNodeColorsState(prev => {
+      const next = { ...prev, [type]: color };
+      saveNodeColors(next);
+      setNodeColors(next); // update the mutable ref used by graph-adapter
+      return next;
+    });
+  }, []);
 
   const graphRef = useRef<GraphCanvasHandle>(null);
 
@@ -271,6 +282,8 @@ export default function App() {
           onToggleColorByFolder={handleToggleColorByFolder}
           showHulls={showHulls}
           onToggleHulls={handleToggleHulls}
+          nodeColors={nodeColors}
+          onColorChange={handleColorChange}
         />
 
         <div style={{ position: 'relative', overflow: 'hidden' }}>

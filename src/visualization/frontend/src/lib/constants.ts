@@ -11,7 +11,7 @@ export type SiaNodeType =
 
 // Node colors by type — slightly muted for less visual noise
 // Slightly muted for less visual noise
-export const NODE_COLORS: Record<SiaNodeType, string> = {
+export const DEFAULT_NODE_COLORS: Record<SiaNodeType, string> = {
   file: '#60a5fa',       // Sky blue — structural, prominent
   function: '#34d399',   // Mint — common code element
   class: '#fbbf24',      // Gold — stands out
@@ -21,6 +21,30 @@ export const NODE_COLORS: Record<SiaNodeType, string> = {
   convention: '#2dd4bf', // Cyan-teal — established pattern
   solution: '#facc15',   // Yellow — clearly distinct from convention
 };
+
+const NODE_COLORS_KEY = 'sia.nodeColors';
+
+export function loadNodeColors(): Record<SiaNodeType, string> {
+  try {
+    const saved = localStorage.getItem(NODE_COLORS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_NODE_COLORS, ...parsed };
+    }
+  } catch {}
+  return { ...DEFAULT_NODE_COLORS };
+}
+
+export function saveNodeColors(colors: Record<SiaNodeType, string>): void {
+  try { localStorage.setItem(NODE_COLORS_KEY, JSON.stringify(colors)); } catch {}
+}
+
+// Mutable reference used by graph-adapter and useSigma — updated from App state
+export let NODE_COLORS: Record<SiaNodeType, string> = loadNodeColors();
+
+export function setNodeColors(colors: Record<SiaNodeType, string>): void {
+  NODE_COLORS = colors;
+}
 
 // Node sizes by type — clear visual hierarchy with dramatic size differences
 // Structural nodes are larger to make hierarchy obvious

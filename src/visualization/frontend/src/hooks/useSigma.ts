@@ -229,10 +229,10 @@ export function useSigma(
     });
 
     noverlap.assign(graph, {
-      maxIterations: 200,
+      maxIterations: 300,
       settings: {
-        margin: 8,
-        ratio: 2,
+        margin: 15,
+        ratio: 2.5,
       },
     });
 
@@ -265,12 +265,12 @@ export function useSigma(
       labelSize: 13,
       labelWeight: '500',
       labelColor: { color: '#b0bcd0' },
-      labelRenderedSizeThreshold: 8,
-      labelDensity: 0.08,
-      labelGridCellSize: 70,
+      labelRenderedSizeThreshold: 14,
+      labelDensity: 0.04,
+      labelGridCellSize: 120,
 
       edgeLabelFont: 'DM Sans, -apple-system, sans-serif',
-      edgeLabelSize: 13,
+      edgeLabelSize: 12,
       edgeLabelColor: { color: '#c8d0e0' },
 
       defaultNodeColor: '#6b7280',
@@ -528,6 +528,7 @@ export function useSigma(
             res.color = '#f97316';
             res.size = 4;
             res.zIndex = 3;
+            res.label = graph.getEdgeAttribute(edge, 'edgeType') || '';
             res.forceLabel = true;
           } else {
             res.color = dimColor(EDGE_DEFAULT_COLOR, 0.05);
@@ -544,7 +545,7 @@ export function useSigma(
             res.color = EDGE_HOVER_COLOR;
             res.size = Math.max(2, (data.size || 1) * 3);
             res.zIndex = 2;
-            // Show edge type label on hover
+            res.label = graph.getEdgeAttribute(edge, 'edgeType') || '';
             res.forceLabel = true;
           } else {
             res.color = dimColor(EDGE_DEFAULT_COLOR, 0.08);
@@ -562,7 +563,7 @@ export function useSigma(
             res.color = brightenColor(data.color, 1.5);
             res.size = Math.max(3, (data.size || 1) * 4);
             res.zIndex = 2;
-            // Show edge label for selected node edges
+            res.label = graph.getEdgeAttribute(edge, 'edgeType') || '';
             res.forceLabel = true;
           } else {
             res.color = dimColor(data.color, 0.1);
