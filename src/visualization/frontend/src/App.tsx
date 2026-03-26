@@ -30,6 +30,7 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
   const isMobile = windowWidth < 640;
+  const isLarge = windowWidth >= 2000;
 
   // New feature state
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
@@ -166,7 +167,7 @@ export default function App() {
     }}>
       {/* Header bar */}
       <header style={{
-        height: 44,
+        height: isLarge ? 56 : 44,
         flexShrink: 0,
         background: 'rgba(10,10,22,0.6)',
         backdropFilter: 'blur(16px)',
@@ -174,7 +175,7 @@ export default function App() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 20px',
+        padding: isLarge ? '0 32px' : '0 20px',
         zIndex: 20,
         animation: 'fadeInDown 0.4s ease-out',
       }}>
@@ -199,7 +200,7 @@ export default function App() {
 
         {/* Branding */}
         <div style={{
-          fontSize: 15,
+          fontSize: isLarge ? 20 : 15,
           fontWeight: 700,
           letterSpacing: '0.18em',
           background: 'linear-gradient(135deg, #818cf8, #6366f1, #a78bfa)',
@@ -214,8 +215,8 @@ export default function App() {
         <div style={{
           display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
-          gap: 12,
-          fontSize: 11,
+          gap: isLarge ? 18 : 12,
+          fontSize: isLarge ? 14 : 11,
           color: 'rgba(255,255,255,0.28)',
           fontFamily: '"GeistMono", "Geist Mono", monospace',
           fontWeight: 400,
@@ -256,12 +257,12 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '5px 12px',
+            padding: isLarge ? '7px 16px' : '5px 12px',
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.06)',
             borderRadius: 8,
             color: 'rgba(255,255,255,0.35)',
-            fontSize: 12,
+            fontSize: isLarge ? 15 : 12,
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
@@ -302,7 +303,9 @@ export default function App() {
         display: 'grid',
         gridTemplateColumns: isMobile
           ? '1fr'
-          : showInspector ? '220px 1fr auto' : '220px 1fr 0px',
+          : isLarge
+            ? showInspector ? '300px 1fr auto' : '300px 1fr 0px'
+            : showInspector ? '220px 1fr auto' : '220px 1fr 0px',
         overflow: 'hidden',
         transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>

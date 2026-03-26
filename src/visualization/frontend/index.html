@@ -19,6 +19,16 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
+      /* Scale up for large/ultrawide displays */
+      @media (min-width: 2000px) {
+        body { font-size: 16px; }
+      }
+      @media (min-width: 2800px) {
+        body { font-size: 19px; }
+      }
+      @media (min-width: 3400px) {
+        body { font-size: 22px; }
+      }
       /* Subtle scrollbar */
       ::-webkit-scrollbar { width: 5px; }
       ::-webkit-scrollbar-track { background: transparent; }
