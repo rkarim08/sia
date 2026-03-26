@@ -188,6 +188,7 @@ export function useSigma(
   const sigmaRef = useRef<Sigma | null>(null);
   const hoveredNodeRef = useRef<string | null>(null);
   const hoveredNeighborsRef = useRef<Set<string>>(new Set());
+  const pulsePhaseRef = useRef(0);
 
   // Keep options in a ref so the reducers always see the latest values
   // without causing Sigma to be recreated.
@@ -489,7 +490,8 @@ export function useSigma(
             res.color = colorByFolder && clusterColorMap
               ? (clusterColorMap.get(graph.getNodeAttributes(node).cluster) || data.color)
               : data.color;
-            res.size = (data.size || 8) * 1.6;
+            const pulseFactor = 1 + Math.sin(pulsePhaseRef.current) * 0.15;
+            res.size = (data.size || 8) * 1.6 * pulseFactor;
             res.highlighted = true;
             res.zIndex = 2;
           } else if (!hovered) {
@@ -692,6 +694,29 @@ export function useSigma(
     options.pathEdgeKeys,
     options.showHulls,
   ]);
+
+  // -------------------------------------------------------------------
+  // Pulse animation for selected node
+  // -------------------------------------------------------------------
+  useEffect(() => {
+    const renderer = sigmaRef.current;
+    if (!renderer) return;
+
+    let pulseFrame: number | null = null;
+
+    if (options.selectedNodeId) {
+      const animate = () => {
+        pulsePhaseRef.current = (pulsePhaseRef.current + 0.04) % (Math.PI * 2);
+        renderer.refresh();
+        pulseFrame = requestAnimationFrame(animate);
+      };
+      pulseFrame = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (pulseFrame !== null) cancelAnimationFrame(pulseFrame);
+    };
+  }, [options.selectedNodeId]);
 
   // -------------------------------------------------------------------
   // Camera controls
