@@ -20,6 +20,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Responsive breakpoint
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const isMobile = windowWidth < 640;
 
   // New feature state
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
@@ -85,6 +95,7 @@ export default function App() {
       return;
     }
     setSelectedNode(node);
+    if (window.innerWidth < 640) setSidebarOpen(false);
   }, [selectedNode]);
 
   // Track shift key for path finder
@@ -167,6 +178,25 @@ export default function App() {
         zIndex: 20,
         animation: 'fadeInDown 0.4s ease-out',
       }}>
+        {/* Hamburger (mobile only) */}
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(prev => !prev)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: 18,
+              cursor: 'pointer',
+              padding: '4px 8px',
+              marginRight: 8,
+              lineHeight: 1,
+            }}
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+        )}
+
         {/* Branding */}
         <div style={{
           fontSize: 15,
@@ -182,7 +212,7 @@ export default function App() {
 
         {/* Stats + active folder indicator */}
         <div style={{
-          display: 'flex',
+          display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
           gap: 12,
           fontSize: 11,
@@ -250,7 +280,7 @@ export default function App() {
             <circle cx="11" cy="11" r="7" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <span>Search</span>
+          <span style={{ display: isMobile ? 'none' : undefined }}>Search</span>
           <kbd style={{
             fontSize: 9,
             padding: '1px 5px',
@@ -259,6 +289,7 @@ export default function App() {
             border: '1px solid rgba(255,255,255,0.06)',
             color: 'rgba(255,255,255,0.3)',
             fontFamily: "'Outfit', sans-serif",
+            display: isMobile ? 'none' : undefined,
           }}>
             &#8984;K
           </kbd>
@@ -269,11 +300,28 @@ export default function App() {
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: showInspector ? '220px 1fr auto' : '220px 1fr 0px',
+        gridTemplateColumns: isMobile
+          ? '1fr'
+          : showInspector ? '220px 1fr auto' : '220px 1fr 0px',
         overflow: 'hidden',
         transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        <div style={{ animation: 'fadeInUp 0.5s ease-out 0.1s both', overflow: 'hidden' }}>
+        <div style={{
+          ...(isMobile ? {
+            position: 'fixed',
+            top: 44,
+            left: 0,
+            bottom: 0,
+            width: 260,
+            zIndex: 30,
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: sidebarOpen ? '4px 0 24px rgba(0,0,0,0.5)' : 'none',
+          } : {
+            animation: 'fadeInUp 0.5s ease-out 0.1s both',
+            overflow: 'hidden',
+          }),
+        }}>
           <Sidebar
             combos={graphData?.combos ?? []}
             nodes={graphData?.nodes ?? []}
@@ -295,6 +343,19 @@ export default function App() {
             onColorChange={handleColorChange}
           />
         </div>
+
+        {isMobile && sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              top: 44,
+              background: 'rgba(0,0,0,0.4)',
+              zIndex: 29,
+            }}
+          />
+        )}
 
         <div style={{ position: 'relative', overflow: 'hidden', animation: 'fadeIn 0.8s ease-out 0.2s both' }}>
           {loading && (
@@ -357,9 +418,19 @@ export default function App() {
 
         {/* Inspector with slide animation */}
         <div style={{
-          overflow: 'hidden',
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          animation: 'fadeInUp 0.4s ease-out 0.15s both',
+          ...(isMobile ? {
+            position: 'fixed',
+            top: 44,
+            right: 0,
+            bottom: 0,
+            width: '100%',
+            zIndex: 25,
+            animation: 'fadeInUp 0.3s ease-out',
+          } : {
+            overflow: 'hidden',
+            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: 'fadeInUp 0.4s ease-out 0.15s both',
+          }),
         }}>
           {selectedNode && (
             <CodeInspector

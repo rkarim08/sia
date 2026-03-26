@@ -61,6 +61,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
   ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange, focusDepth }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // Responsive state
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    useEffect(() => {
+      const onResize = () => setIsMobile(window.innerWidth < 640);
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }, []);
+
     // Context menu state
     const [contextMenu, setContextMenu] = useState<{
       x: number;
@@ -880,15 +888,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {/* Minimap — bottom-right */}
         <canvas
           ref={minimapRef}
-          width={150}
-          height={100}
+          width={isMobile ? 100 : 150}
+          height={isMobile ? 66 : 100}
           onClick={handleMinimapClick}
           style={{
             position: 'absolute',
             bottom: 64,
             right: 16,
-            width: 150,
-            height: 100,
+            width: isMobile ? 100 : 150,
+            height: isMobile ? 66 : 100,
             borderRadius: 6,
             border: '1px solid rgba(255,255,255,0.06)',
             cursor: 'crosshair',
@@ -897,7 +905,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         />
 
         {/* Local graph panel — bottom-left */}
-        {selectedNodeId && (
+        {selectedNodeId && !isMobile && (
           <canvas
             ref={localGraphRef}
             width={200}
@@ -965,7 +973,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         </div>
 
         {/* Node size legend — bottom-left, above status bar */}
-        {!selectedNodeId && (
+        {!selectedNodeId && !isMobile && (
           <div style={{
             position: 'absolute', bottom: 64, left: 14,
             display: 'flex', alignItems: 'flex-end', gap: 8,
@@ -998,14 +1006,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           justifyContent: 'space-between', padding: '0 14px',
           background: 'rgba(8,8,18,0.5)', backdropFilter: 'blur(8px)',
           borderTop: '1px solid rgba(255,255,255,0.03)',
-          fontSize: 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
+          fontSize: isMobile ? 9 : 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
           color: 'rgba(255,255,255,0.25)',
           zIndex: 10, pointerEvents: 'none',
         }}>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <span>{nodeCount} nodes</span>
-            <span>{edgeCount} edges</span>
-            <span>{visibleCount} visible</span>
+          <div style={{ display: 'flex', gap: isMobile ? 8 : 16 }}>
+            <span>{isMobile ? `${nodeCount}n` : `${nodeCount} nodes`}</span>
+            <span>{isMobile ? `${edgeCount}e` : `${edgeCount} edges`}</span>
+            {!isMobile && <span>{visibleCount} visible</span>}
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             {blastRadiusMode && <span style={{ color: '#f97316' }}>BLAST</span>}
@@ -1013,9 +1021,11 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             {showHulls && <span style={{ color: '#a78bfa' }}>HULLS</span>}
             <span>{layoutMode.toUpperCase()}</span>
           </div>
-          <div>
-            <span>? shortcuts</span>
-          </div>
+          {!isMobile && (
+            <div>
+              <span>? shortcuts</span>
+            </div>
+          )}
         </div>
 
         {/* Selection info -- bottom-center */}

@@ -66,6 +66,7 @@ const codeTheme = {
 };
 
 export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
+  const isMobile = window.innerWidth < 640;
   const [code, setCode] = useState<string | null>(null);
   const [language, setLanguage] = useState('text');
   const [lineCount, setLineCount] = useState(0);
@@ -174,7 +175,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 
   return (
     <div style={{
-      width: panelWidth,
+      width: isMobile ? '100%' : panelWidth,
       height: '100%',
       background: BG_PANEL,
       backdropFilter: 'blur(20px)',
@@ -184,24 +185,26 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
       position: 'relative',
       borderLeft: '1px solid rgba(255,255,255,0.04)',
     }}>
-      {/* Resize handle — left edge */}
-      <div
-        onMouseDown={startResize}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 5,
-          height: '100%',
-          cursor: 'col-resize',
-          zIndex: 10,
-          background: 'transparent',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(59,130,246,0.35)')}
-        onMouseLeave={e => {
-          if (!resizeRef.current) e.currentTarget.style.background = 'transparent';
-        }}
-      />
+      {/* Resize handle — left edge (desktop only) */}
+      {!isMobile && (
+        <div
+          onMouseDown={startResize}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 5,
+            height: '100%',
+            cursor: 'col-resize',
+            zIndex: 10,
+            background: 'transparent',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(59,130,246,0.35)')}
+          onMouseLeave={e => {
+            if (!resizeRef.current) e.currentTarget.style.background = 'transparent';
+          }}
+        />
+      )}
 
       {/* Header */}
       <div style={{
