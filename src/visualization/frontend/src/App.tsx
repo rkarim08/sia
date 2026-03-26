@@ -31,6 +31,8 @@ export default function App() {
   }, []);
   const isMobile = windowWidth < 640;
   const isLarge = windowWidth >= 2000;
+  // Sidebar width scales with viewport on large screens (min 300, ~8% of viewport, max 560)
+  const sidebarWidth = isLarge ? Math.min(560, Math.max(300, Math.round(windowWidth * 0.08))) : 220;
 
   // New feature state
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
@@ -167,7 +169,7 @@ export default function App() {
     }}>
       {/* Header bar */}
       <header style={{
-        height: isLarge ? 56 : 44,
+        height: isLarge ? Math.min(72, Math.round(windowWidth * 0.018)) : 44,
         flexShrink: 0,
         background: 'rgba(10,10,22,0.6)',
         backdropFilter: 'blur(16px)',
@@ -200,7 +202,7 @@ export default function App() {
 
         {/* Branding */}
         <div style={{
-          fontSize: isLarge ? 20 : 15,
+          fontSize: isLarge ? Math.min(28, Math.round(windowWidth * 0.005) + 10) : 15,
           fontWeight: 700,
           letterSpacing: '0.18em',
           background: 'linear-gradient(135deg, #818cf8, #6366f1, #a78bfa)',
@@ -216,7 +218,7 @@ export default function App() {
           display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
           gap: isLarge ? 18 : 12,
-          fontSize: isLarge ? 14 : 11,
+          fontSize: isLarge ? Math.min(20, Math.round(windowWidth * 0.004) + 6) : 11,
           color: 'rgba(255,255,255,0.28)',
           fontFamily: '"GeistMono", "Geist Mono", monospace',
           fontWeight: 400,
@@ -303,9 +305,7 @@ export default function App() {
         display: 'grid',
         gridTemplateColumns: isMobile
           ? '1fr'
-          : isLarge
-            ? showInspector ? '300px 1fr auto' : '300px 1fr 0px'
-            : showInspector ? '220px 1fr auto' : '220px 1fr 0px',
+          : showInspector ? `${sidebarWidth}px 1fr auto` : `${sidebarWidth}px 1fr 0px`,
         overflow: 'hidden',
         transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>

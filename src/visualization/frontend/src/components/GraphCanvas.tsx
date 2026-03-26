@@ -70,6 +70,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
     }, []);
     const isMobile = windowWidth < 640;
     const isLarge = windowWidth >= 2000;
+    // Continuous scale factor for large screens: 1.0 at 2000px, ~1.5 at 4000px, ~2.0 at 6000px+
+    const lgScale = isLarge ? Math.min(2.0, 1 + (windowWidth - 2000) / 4000) : 1;
 
     // Context menu state
     const [contextMenu, setContextMenu] = useState<{
@@ -827,7 +829,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             borderRadius: 8,
             background: 'rgba(249,115,22,0.15)',
             border: '1px solid rgba(249,115,22,0.3)',
-            fontSize: isLarge ? 15 : 12,
+            fontSize: Math.round(12 * lgScale),
             color: '#f97316',
             zIndex: 10,
           }}>
@@ -863,8 +865,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
               key={mode}
               onClick={() => onLayoutModeChange(mode)}
               style={{
-                width: isLarge ? 38 : 28,
-                height: isLarge ? 38 : 28,
+                width: Math.round(28 * lgScale),
+                height: Math.round(28 * lgScale),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -873,7 +875,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
                 background: layoutMode === mode ? 'rgba(99,102,241,0.2)' : 'rgba(8,8,18,0.6)',
                 backdropFilter: 'blur(8px)',
                 color: layoutMode === mode ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
-                fontSize: isLarge ? 14 : 11,
+                fontSize: Math.round(11 * lgScale),
                 fontWeight: 600,
                 fontFamily: '"GeistMono", "Geist Mono", monospace',
                 cursor: 'pointer',
@@ -890,15 +892,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {/* Minimap — bottom-right */}
         <canvas
           ref={minimapRef}
-          width={isMobile ? 100 : isLarge ? 220 : 150}
-          height={isMobile ? 66 : isLarge ? 146 : 100}
+          width={isMobile ? 100 : Math.round(150 * lgScale)}
+          height={isMobile ? 66 : Math.round(100 * lgScale)}
           onClick={handleMinimapClick}
           style={{
             position: 'absolute',
-            bottom: 64,
+            bottom: Math.round(64 * lgScale),
             right: 16,
-            width: isMobile ? 100 : isLarge ? 220 : 150,
-            height: isMobile ? 66 : isLarge ? 146 : 100,
+            width: isMobile ? 100 : Math.round(150 * lgScale),
+            height: isMobile ? 66 : Math.round(100 * lgScale),
             borderRadius: 6,
             border: '1px solid rgba(255,255,255,0.06)',
             cursor: 'crosshair',
@@ -910,15 +912,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {selectedNodeId && !isMobile && (
           <canvas
             ref={localGraphRef}
-            width={isLarge ? 280 : 200}
-            height={isLarge ? 210 : 150}
+            width={Math.round(200 * lgScale)}
+            height={Math.round(150 * lgScale)}
             onClick={handleLocalGraphClick}
             style={{
               position: 'absolute',
-              bottom: 64,
+              bottom: Math.round(64 * lgScale),
               left: 14,
-              width: isLarge ? 280 : 200,
-              height: isLarge ? 210 : 150,
+              width: Math.round(200 * lgScale),
+              height: Math.round(150 * lgScale),
               borderRadius: 6,
               border: '1px solid rgba(255,255,255,0.06)',
               cursor: 'pointer',
@@ -933,7 +935,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           bottom: 0,
           left: 0,
           right: 0,
-          height: isLarge ? 40 : 32,
+          height: Math.round(32 * lgScale),
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -942,7 +944,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           backdropFilter: 'blur(8px)',
           borderTop: '1px solid rgba(255,255,255,0.04)',
           zIndex: 10,
-          fontSize: isLarge ? 12 : 9,
+          fontSize: Math.round(9 * lgScale),
           fontFamily: '"GeistMono", "Geist Mono", monospace',
           color: 'rgba(255,255,255,0.3)',
         }}>
@@ -977,9 +979,9 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {/* Node size legend — bottom-left, above status bar */}
         {!selectedNodeId && !isMobile && (
           <div style={{
-            position: 'absolute', bottom: 64, left: 14,
+            position: 'absolute', bottom: Math.round(64 * lgScale), left: 14,
             display: 'flex', alignItems: 'flex-end', gap: 8,
-            fontSize: isLarge ? 12 : 9, color: 'rgba(255,255,255,0.2)',
+            fontSize: Math.round(9 * lgScale), color: 'rgba(255,255,255,0.2)',
             pointerEvents: 'none', userSelect: 'none', zIndex: 10,
           }}>
             {[
@@ -1003,12 +1005,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
         {/* Status bar */}
         <div style={{
-          position: 'absolute', bottom: isLarge ? 44 : 36, left: 0, right: 0,
-          height: isLarge ? 32 : 24, display: 'flex', alignItems: 'center',
+          position: 'absolute', bottom: Math.round(36 * lgScale), left: 0, right: 0,
+          height: Math.round(24 * lgScale), display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', padding: '0 14px',
           background: 'rgba(8,8,18,0.5)', backdropFilter: 'blur(8px)',
           borderTop: '1px solid rgba(255,255,255,0.03)',
-          fontSize: isMobile ? 9 : isLarge ? 13 : 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
+          fontSize: isMobile ? 9 : Math.round(10 * lgScale), fontFamily: "'GeistMono', 'Geist Mono', monospace",
           color: 'rgba(255,255,255,0.25)',
           zIndex: 10, pointerEvents: 'none',
         }}>
@@ -1034,7 +1036,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {selectedNodeInfo && (
           <div style={{
             position: 'absolute',
-            bottom: 64,
+            bottom: Math.round(64 * lgScale),
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
@@ -1045,7 +1047,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             background: 'rgba(8,8,18,0.8)',
             backdropFilter: 'blur(12px)',
             border: `1px solid ${selectedNodeInfo.color}22`,
-            fontSize: isLarge ? 15 : 12,
+            fontSize: Math.round(12 * lgScale),
             color: '#cdd6e4',
             pointerEvents: 'none',
             userSelect: 'none',
@@ -1090,7 +1092,8 @@ GraphCanvas.displayName = 'GraphCanvas';
 export default GraphCanvas;
 
 function ZoomBtn({ label, onClick, title, active }: { label: string; onClick: () => void; title: string; active?: boolean }) {
-  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
+  const ww = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const lgS = ww >= 2000 ? Math.min(2.0, 1 + (ww - 2000) / 4000) : 1;
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
@@ -1103,17 +1106,17 @@ function ZoomBtn({ label, onClick, title, active }: { label: string; onClick: ()
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       style={{
-        width: isLarge ? 40 : 30,
-        height: isLarge ? 40 : 30,
+        width: Math.round(30 * lgS),
+        height: Math.round(30 * lgS),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         border: active ? '1px solid rgba(59,130,246,0.4)' : '1px solid rgba(255,255,255,0.06)',
-        borderRadius: isLarge ? 10 : 8,
+        borderRadius: Math.round(8 * lgS),
         background: active ? 'rgba(59,130,246,0.15)' : hovered ? 'rgba(255,255,255,0.08)' : 'rgba(8,8,18,0.6)',
         backdropFilter: 'blur(8px)',
         color: active ? '#60a5fa' : hovered ? '#cdd6e4' : 'rgba(255,255,255,0.35)',
-        fontSize: isLarge ? 20 : 15,
+        fontSize: Math.round(15 * lgS),
         fontFamily: "'Outfit', sans-serif",
         cursor: 'pointer',
         transition: 'all 0.15s ease',
