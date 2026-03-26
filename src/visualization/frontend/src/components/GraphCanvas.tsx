@@ -54,8 +54,6 @@ export interface GraphCanvasHandle {
   setCameraState: (state: { x: number; y: number; ratio: number; angle: number }) => void;
 }
 
-// Subtle dot grid SVG as data URI for background texture
-const DOT_GRID = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='1' cy='1' r='0.6' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E")`;
 
 const BOOKMARKS_KEY = 'sia.viewBookmarks';
 
@@ -663,23 +661,42 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        {/* Background with dot grid texture */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: BG_PRIMARY,
-          backgroundImage: DOT_GRID,
-          backgroundSize: '32px 32px',
-          zIndex: 0,
-        }} />
+        {/* Ambient gradient orbs */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, background: BG_PRIMARY }}>
+          <div style={{
+            position: 'absolute',
+            width: 600, height: 600,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)',
+            top: '-10%', left: '20%',
+            animation: 'drift1 25s ease-in-out infinite',
+            filter: 'blur(80px)',
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: 500, height: 500,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(14,165,233,0.05) 0%, transparent 70%)',
+            bottom: '-5%', right: '10%',
+            animation: 'drift2 30s ease-in-out infinite',
+            filter: 'blur(80px)',
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: 400, height: 400,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(168,85,247,0.04) 0%, transparent 70%)',
+            top: '40%', left: '60%',
+            animation: 'drift3 20s ease-in-out infinite',
+            filter: 'blur(80px)',
+          }} />
+        </div>
 
-        {/* Subtle radial vignette */}
+        {/* Radial vignette */}
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)',
-          pointerEvents: 'none',
-          zIndex: 1,
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
+          pointerEvents: 'none', zIndex: 1,
         }} />
 
         {/* Sigma container */}

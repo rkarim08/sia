@@ -28,6 +28,9 @@
       :focus-visible { outline: 1px solid rgba(99,102,241,0.5); outline-offset: 2px; }
       /* Selection */
       ::selection { background: rgba(99,102,241,0.3); }
+      @keyframes drift1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px, -60px); } }
+      @keyframes drift2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-60px, 80px); } }
+      @keyframes drift3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px, 50px); } }
     </style>
   </head>
   <body>
