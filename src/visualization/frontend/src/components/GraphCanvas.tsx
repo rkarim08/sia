@@ -9,13 +9,16 @@ import {
 } from 'react';
 import Graph from 'graphology';
 import type { GraphResponse, GraphNode } from '../lib/api';
-import type { SigmaNodeAttributes, SigmaEdgeAttributes, ViewBookmark } from '../types';
+import type { SigmaNodeAttributes, SigmaEdgeAttributes, ViewBookmark, LayoutMode } from '../types';
 import {
   graphResponseToGraphology,
   filterGraphByTypes,
   filterGraphByFolder,
   getNodeDistances,
   findShortestPath,
+  getNodesWithinHops,
+  computeTreeLayout,
+  computeRadialLayout,
 } from '../lib/graph-adapter';
 import { useSigma } from '../hooks/useSigma';
 import { BG_PRIMARY, DEFAULT_VISIBLE_TYPES, NODE_COLORS, COMMUNITY_COLORS } from '../lib/constants';
@@ -35,6 +38,11 @@ interface Props {
   pathSource: string | null;
   pathTarget: string | null;
   onClearPath: () => void;
+  showHulls: boolean;
+  layoutMode: LayoutMode;
+  onLayoutModeChange: (mode: LayoutMode) => void;
+  maxTrustTier: number;
+  onMaxTrustTierChange: (tier: number) => void;
 }
 
 export interface GraphCanvasHandle {
@@ -50,7 +58,7 @@ const DOT_GRID = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 const BOOKMARKS_KEY = 'sia.viewBookmarks';
 
 const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
-  ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath }, ref) => {
+  ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Context menu state
@@ -146,7 +154,10 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       onStageClick();
     }, [onStageClick]);
 
-    const { zoomIn, zoomOut, resetZoom, focusNode, exportPNG, getCameraState, setCameraState } = useSigma(
+    const minimapRef = useRef<HTMLCanvasElement>(null);
+    const localGraphRef = useRef<HTMLCanvasElement>(null);
+
+    const { zoomIn, zoomOut, resetZoom, focusNode, exportPNG, getCameraState, setCameraState, sigmaRef } = useSigma(
       containerRef as React.RefObject<HTMLDivElement>,
       graph,
       {
@@ -160,6 +171,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         clusterColorMap,
         pathNodes,
         pathEdgeKeys,
+        showHulls,
       },
     );
 
@@ -265,6 +277,303 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, [graph, selectedNodeId, onStageClick, onNodeClick, focusNode, onClearPath]);
+
+    // Trust tier filtering
+    useEffect(() => {
+      if (!graph) return;
+      if (maxTrustTier >= 4) {
+        // Show all — don't override hidden state from type/folder filters
+        return;
+      }
+      graph.forEachNode((nodeId, attrs) => {
+        if (attrs.hidden) return; // Already hidden by type/folder filter
+        if (attrs.trustTier > maxTrustTier && attrs.trustTier > 0) {
+          graph.setNodeAttribute(nodeId, 'hidden', true);
+        }
+      });
+      sigmaRef.current?.refresh();
+    }, [graph, maxTrustTier, hiddenTypes, activeFolder]);
+
+    // Layout mode switching
+    useEffect(() => {
+      if (!graph || !sigmaRef.current) return;
+      if (layoutMode === 'tree') {
+        computeTreeLayout(graph);
+        sigmaRef.current.refresh();
+      } else if (layoutMode === 'radial') {
+        computeRadialLayout(graph, selectedNodeId);
+        sigmaRef.current.refresh();
+      }
+      // 'force' is the default FA2 layout, applied at init
+    }, [layoutMode, graph, selectedNodeId]);
+
+    // Minimap rendering
+    useEffect(() => {
+      const sigma = sigmaRef.current;
+      if (!sigma || !graph || !minimapRef.current) return;
+
+      const canvas = minimapRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const draw = () => {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(8,8,18,0.85)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Collect all visible node positions
+        const positions: { x: number; y: number; color: string }[] = [];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+        graph.forEachNode((nodeId, attrs) => {
+          if (attrs.hidden) return;
+          const display = sigma.getNodeDisplayData(nodeId);
+          if (!display) return;
+          positions.push({ x: display.x, y: display.y, color: display.color || attrs.color });
+          if (display.x < minX) minX = display.x;
+          if (display.x > maxX) maxX = display.x;
+          if (display.y < minY) minY = display.y;
+          if (display.y > maxY) maxY = display.y;
+        });
+
+        if (positions.length === 0) return;
+
+        const rangeX = maxX - minX || 1;
+        const rangeY = maxY - minY || 1;
+        const padding = 10;
+        const scaleX = (w - padding * 2) / rangeX;
+        const scaleY = (h - padding * 2) / rangeY;
+        const scale = Math.min(scaleX, scaleY);
+
+        const offsetX = padding + ((w - padding * 2) - rangeX * scale) / 2;
+        const offsetY = padding + ((h - padding * 2) - rangeY * scale) / 2;
+
+        // Draw nodes
+        positions.forEach(({ x, y, color }) => {
+          const px = offsetX + (x - minX) * scale;
+          const py = offsetY + (y - minY) * scale;
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
+        // Draw viewport rectangle
+        const camera = sigma.getCamera();
+        const container = sigma.getContainer();
+        const cw = container.offsetWidth;
+        const ch = container.offsetHeight;
+
+        // Viewport bounds in graph coords: approximate from camera state
+        const vpHalfW = (cw / 2) * camera.ratio;
+        const vpHalfH = (ch / 2) * camera.ratio;
+
+        // Camera x,y are in normalized [0,1] coordinates — convert to viewport display coords
+        const camDisplayX = camera.x * cw;
+        const camDisplayY = camera.y * ch;
+
+        const vpLeft = camDisplayX - vpHalfW;
+        const vpRight = camDisplayX + vpHalfW;
+        const vpTop = camDisplayY - vpHalfH;
+        const vpBottom = camDisplayY + vpHalfH;
+
+        // Map to minimap coords
+        const rectX = offsetX + (vpLeft - minX) * scale;
+        const rectY = offsetY + (vpTop - minY) * scale;
+        const rectW = (vpRight - vpLeft) * scale;
+        const rectH = (vpBottom - vpTop) * scale;
+
+        ctx.strokeStyle = 'rgba(99,102,241,0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(rectX, rectY, rectW, rectH);
+      };
+
+      // Draw after render events
+      sigma.on('afterRender', draw);
+      draw(); // Initial draw
+
+      return () => {
+        sigma.off('afterRender', draw);
+      };
+    }, [graph, sigmaRef.current]);
+
+    // Minimap click handler
+    const handleMinimapClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+      const sigma = sigmaRef.current;
+      if (!sigma || !graph || !minimapRef.current) return;
+
+      const canvas = minimapRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      // Collect bounds from display data
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      graph.forEachNode((nodeId, attrs) => {
+        if (attrs.hidden) return;
+        const display = sigma.getNodeDisplayData(nodeId);
+        if (!display) return;
+        if (display.x < minX) minX = display.x;
+        if (display.x > maxX) maxX = display.x;
+        if (display.y < minY) minY = display.y;
+        if (display.y > maxY) maxY = display.y;
+      });
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const rangeX = maxX - minX || 1;
+      const rangeY = maxY - minY || 1;
+      const padding = 10;
+      const scaleX = (w - padding * 2) / rangeX;
+      const scaleY = (h - padding * 2) / rangeY;
+      const scale = Math.min(scaleX, scaleY);
+      const offsetX = padding + ((w - padding * 2) - rangeX * scale) / 2;
+      const offsetY = padding + ((h - padding * 2) - rangeY * scale) / 2;
+
+      // Convert click to display coords
+      const displayX = (clickX - offsetX) / scale + minX;
+      const displayY = (clickY - offsetY) / scale + minY;
+
+      // Convert display coords to graph coords (normalized)
+      const container = sigma.getContainer();
+      const normX = displayX / container.offsetWidth;
+      const normY = displayY / container.offsetHeight;
+
+      sigma.getCamera().animate({ x: normX, y: normY }, { duration: 300 });
+    }, [graph]);
+
+    // Local graph rendering (2-hop neighborhood)
+    useEffect(() => {
+      if (!graph || !localGraphRef.current || !selectedNodeId || !graph.hasNode(selectedNodeId)) {
+        if (localGraphRef.current) {
+          const ctx = localGraphRef.current.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, localGraphRef.current.width, localGraphRef.current.height);
+        }
+        return;
+      }
+
+      const canvas = localGraphRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(8,8,18,0.85)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Get 2-hop neighborhood
+      const neighborhood = getNodesWithinHops(graph, selectedNodeId, 2);
+      const nodes = Array.from(neighborhood);
+      if (nodes.length === 0) return;
+
+      // Circular layout
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const radius = Math.min(w, h) / 2 - 20;
+      const positions = new Map<string, { x: number; y: number }>();
+
+      // Center node at center
+      positions.set(selectedNodeId, { x: centerX, y: centerY });
+
+      // Others in a circle
+      const otherNodes = nodes.filter(n => n !== selectedNodeId);
+      otherNodes.forEach((nodeId, i) => {
+        const angle = (2 * Math.PI * i) / otherNodes.length;
+        const r = otherNodes.length <= 6 ? radius * 0.6 : radius;
+        positions.set(nodeId, {
+          x: centerX + r * Math.cos(angle),
+          y: centerY + r * Math.sin(angle),
+        });
+      });
+
+      // Draw edges
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 0.5;
+      graph.forEachEdge((edge, _attrs, source, target) => {
+        const sp = positions.get(source);
+        const tp = positions.get(target);
+        if (!sp || !tp) return;
+        ctx.beginPath();
+        ctx.moveTo(sp.x, sp.y);
+        ctx.lineTo(tp.x, tp.y);
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      nodes.forEach(nodeId => {
+        const pos = positions.get(nodeId);
+        if (!pos) return;
+        const attrs = graph.getNodeAttributes(nodeId);
+        const isCenter = nodeId === selectedNodeId;
+        const dotSize = isCenter ? 5 : 3;
+
+        ctx.fillStyle = attrs.color;
+        ctx.globalAlpha = isCenter ? 1 : 0.7;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, dotSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Label for center node
+        if (isCenter) {
+          ctx.fillStyle = '#e0e0e0';
+          ctx.font = '9px "DM Sans", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(attrs.label.slice(0, 20), pos.x, pos.y + dotSize + 12);
+        }
+      });
+
+      // Border
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, w, h);
+    }, [graph, selectedNodeId]);
+
+    // Local graph click handler
+    const handleLocalGraphClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!graph || !selectedNodeId || !graph.hasNode(selectedNodeId) || !localGraphRef.current) return;
+
+      const canvas = localGraphRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const radius = Math.min(w, h) / 2 - 20;
+
+      const neighborhood = getNodesWithinHops(graph, selectedNodeId, 2);
+      const nodes = Array.from(neighborhood);
+      const otherNodes = nodes.filter(n => n !== selectedNodeId);
+
+      // Check if click is near center node
+      const distToCenter = Math.sqrt((clickX - centerX) ** 2 + (clickY - centerY) ** 2);
+      if (distToCenter < 10) {
+        focusNode(selectedNodeId);
+        return;
+      }
+
+      // Check other nodes
+      otherNodes.forEach((nodeId, i) => {
+        const angle = (2 * Math.PI * i) / otherNodes.length;
+        const r = otherNodes.length <= 6 ? radius * 0.6 : radius;
+        const nx = centerX + r * Math.cos(angle);
+        const ny = centerY + r * Math.sin(angle);
+        const dist = Math.sqrt((clickX - nx) ** 2 + (clickY - ny) ** 2);
+        if (dist < 8) {
+          focusNode(nodeId);
+          const attrs = graph.getNodeAttributes(nodeId);
+          handleNodeClick(nodeId, attrs);
+        }
+      });
+    }, [graph, selectedNodeId, focusNode]);
 
     // Context menu items
     const contextMenuItems: ContextMenuItem[] = useMemo(() => {
@@ -507,10 +816,135 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           </div>
         )}
 
+        {/* Layout mode buttons */}
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          display: 'flex',
+          gap: 2,
+          zIndex: 10,
+        }}>
+          {(['force', 'tree', 'radial'] as LayoutMode[]).map(mode => (
+            <button
+              key={mode}
+              onClick={() => onLayoutModeChange(mode)}
+              style={{
+                width: 28,
+                height: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: layoutMode === mode ? '1px solid rgba(99,102,241,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 6,
+                background: layoutMode === mode ? 'rgba(99,102,241,0.2)' : 'rgba(8,8,18,0.6)',
+                backdropFilter: 'blur(8px)',
+                color: layoutMode === mode ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
+                fontSize: 11,
+                fontWeight: 600,
+                fontFamily: '"JetBrains Mono", monospace',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                padding: 0,
+              }}
+              title={mode === 'force' ? 'Force layout' : mode === 'tree' ? 'Tree layout' : 'Radial layout'}
+            >
+              {mode === 'force' ? 'F' : mode === 'tree' ? 'T' : 'R'}
+            </button>
+          ))}
+        </div>
+
+        {/* Minimap — bottom-right */}
+        <canvas
+          ref={minimapRef}
+          width={150}
+          height={100}
+          onClick={handleMinimapClick}
+          style={{
+            position: 'absolute',
+            bottom: 46,
+            right: 16,
+            width: 150,
+            height: 100,
+            borderRadius: 6,
+            border: '1px solid rgba(255,255,255,0.06)',
+            cursor: 'crosshair',
+            zIndex: 10,
+          }}
+        />
+
+        {/* Local graph panel — bottom-left */}
+        {selectedNodeId && (
+          <canvas
+            ref={localGraphRef}
+            width={200}
+            height={150}
+            onClick={handleLocalGraphClick}
+            style={{
+              position: 'absolute',
+              bottom: 36,
+              left: 14,
+              width: 200,
+              height: 150,
+              borderRadius: 6,
+              border: '1px solid rgba(255,255,255,0.06)',
+              cursor: 'pointer',
+              zIndex: 10,
+            }}
+          />
+        )}
+
+        {/* Timeline slider — trust tier filter */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 32,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '0 16px',
+          background: 'rgba(8,8,18,0.7)',
+          backdropFilter: 'blur(8px)',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          zIndex: 10,
+          fontSize: 9,
+          fontFamily: '"JetBrains Mono", monospace',
+          color: 'rgba(255,255,255,0.3)',
+        }}>
+          <span style={{ flexShrink: 0, width: 75 }}>
+            {maxTrustTier === 1 ? 'Tier 1 (User)' :
+             maxTrustTier === 2 ? 'Tier 2 (Code)' :
+             maxTrustTier === 3 ? 'Tier 3 (Inferred)' :
+             'Tier 4 (External)'}
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={4}
+            step={1}
+            value={maxTrustTier}
+            onChange={(e) => onMaxTrustTierChange(Number(e.target.value))}
+            style={{
+              flex: 1,
+              height: 4,
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              background: 'rgba(255,255,255,0.08)',
+              borderRadius: 2,
+              outline: 'none',
+              cursor: 'pointer',
+              accentColor: '#6366f1',
+            }}
+          />
+          <span style={{ flexShrink: 0 }}>Show all</span>
+        </div>
+
         {/* Stats -- bottom-left */}
         <div style={{
           position: 'absolute',
-          bottom: 14,
+          bottom: 46,
           left: 14,
           display: 'flex',
           gap: 10,
@@ -529,8 +963,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {/* Keyboard shortcuts hint -- bottom-right */}
         <div style={{
           position: 'absolute',
-          bottom: 14,
-          right: 54,
+          bottom: 46,
+          right: 180,
           fontSize: 9,
           fontFamily: '"JetBrains Mono", monospace',
           color: 'rgba(255,255,255,0.12)',
@@ -545,7 +979,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {selectedNodeInfo && (
           <div style={{
             position: 'absolute',
-            bottom: 14,
+            bottom: 46,
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',

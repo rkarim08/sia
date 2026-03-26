@@ -18,6 +18,8 @@ interface Props {
   onToggleBlastRadius: () => void;
   colorByFolder: boolean;
   onToggleColorByFolder: () => void;
+  showHulls: boolean;
+  onToggleHulls: () => void;
 }
 
 const DEPTH_OPTIONS: { value: number | null; label: string }[] = [
@@ -50,6 +52,8 @@ export default function Sidebar({
   onToggleBlastRadius,
   colorByFolder,
   onToggleColorByFolder,
+  showHulls,
+  onToggleHulls,
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -231,6 +235,12 @@ export default function Sidebar({
             active={colorByFolder}
             onClick={onToggleColorByFolder}
             hint="Color nodes by top-level folder"
+          />
+          <ToggleBtn
+            label="Hulls"
+            active={showHulls}
+            onClick={onToggleHulls}
+            hint="Show convex hull overlays for clusters"
           />
         </div>
       </div>

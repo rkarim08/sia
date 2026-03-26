@@ -4,7 +4,7 @@ import Graph from 'graphology';
 import forceAtlas2, { inferSettings } from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
-import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR, NODE_COLORS } from '../lib/constants';
+import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR, NODE_COLORS, COMMUNITY_COLORS } from '../lib/constants';
 import type { SiaNodeType } from '../lib/constants';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +56,71 @@ const brightenColor = (hex: string, factor: number): string => {
 };
 
 // ---------------------------------------------------------------------------
+// Convex hull helpers for cluster overlays
+// ---------------------------------------------------------------------------
+
+const hexToRgbHull = (hex: string): { r: number; g: number; b: number } => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) }
+    : { r: 100, g: 100, b: 100 };
+};
+
+type Point = { x: number; y: number };
+
+/** Cross product of vectors OA and OB where O is origin */
+const cross = (O: Point, A: Point, B: Point): number =>
+  (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+
+/** Graham scan convex hull */
+const convexHull = (points: Point[]): Point[] => {
+  const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (pts.length <= 2) return pts;
+
+  const lower: Point[] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+      lower.pop();
+    }
+    lower.push(p);
+  }
+
+  const upper: Point[] = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+      upper.pop();
+    }
+    upper.push(p);
+  }
+
+  // Remove last point of each half because it's repeated
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+};
+
+/** Inflate a polygon outward by a given distance */
+const inflatePolygon = (hull: Point[], distance: number): Point[] => {
+  // Compute centroid
+  let cx = 0, cy = 0;
+  hull.forEach(p => { cx += p.x; cy += p.y; });
+  cx /= hull.length;
+  cy /= hull.length;
+
+  // Push each point outward from centroid
+  return hull.map(p => {
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    return {
+      x: p.x + (dx / len) * distance,
+      y: p.y + (dy / len) * distance,
+    };
+  });
+};
+
+// ---------------------------------------------------------------------------
 // Blast radius color scheme
 // ---------------------------------------------------------------------------
 
@@ -97,6 +162,7 @@ export interface UseSigmaOptions {
   clusterColorMap?: Map<string, string>;
   pathNodes?: Set<string> | null;
   pathEdgeKeys?: Set<string> | null;
+  showHulls?: boolean;
 }
 
 export interface UseSigmaReturn {
@@ -532,6 +598,59 @@ export function useSigma(
       optionsRef.current.onStageClick?.();
     });
 
+    // Hull overlay rendering
+    renderer.on('beforeRender', () => {
+      if (!optionsRef.current.showHulls) return;
+
+      const canvases = renderer.getCanvases();
+      const canvas = canvases.edges;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Group visible nodes by cluster
+      const clusterNodes = new Map<string, { x: number; y: number }[]>();
+      const clusterArr: string[] = [];
+
+      graph.forEachNode((nodeId, attrs) => {
+        if (attrs.hidden || !attrs.cluster) return;
+        const display = renderer.getNodeDisplayData(nodeId);
+        if (!display) return;
+        if (!clusterNodes.has(attrs.cluster)) {
+          clusterNodes.set(attrs.cluster, []);
+          clusterArr.push(attrs.cluster);
+        }
+        clusterNodes.get(attrs.cluster)!.push({ x: display.x, y: display.y });
+      });
+
+      clusterArr.sort();
+
+      clusterArr.forEach((cluster, idx) => {
+        const points = clusterNodes.get(cluster)!;
+        if (points.length < 3) return;
+
+        // Convex hull via Graham scan
+        const hull = convexHull(points);
+        if (hull.length < 3) return;
+
+        // Inflate hull by padding
+        const padding = 20;
+        const inflated = inflatePolygon(hull, padding);
+
+        const color = COMMUNITY_COLORS[idx % COMMUNITY_COLORS.length];
+        const rgb = hexToRgbHull(color);
+
+        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.06)`;
+        ctx.beginPath();
+        ctx.moveTo(inflated[0].x, inflated[0].y);
+        for (let i = 1; i < inflated.length; i++) {
+          ctx.lineTo(inflated[i].x, inflated[i].y);
+        }
+        ctx.closePath();
+        ctx.fill();
+      });
+    });
+
     renderer.on('rightClickNode', ({ node, event }) => {
       event.original.preventDefault();
       const attrs = graph.getNodeAttributes(node) as SigmaNodeAttributes;
@@ -566,6 +685,7 @@ export function useSigma(
     options.clusterColorMap,
     options.pathNodes,
     options.pathEdgeKeys,
+    options.showHulls,
   ]);
 
   // -------------------------------------------------------------------

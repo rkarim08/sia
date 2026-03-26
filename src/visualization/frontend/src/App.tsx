@@ -7,6 +7,7 @@ import SearchOverlay from './components/SearchOverlay';
 import { fetchGraph } from './lib/api';
 import type { GraphResponse, GraphNode } from './lib/api';
 import { BG_PRIMARY } from './lib/constants';
+import type { LayoutMode } from './types';
 
 export default function App() {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
@@ -23,6 +24,9 @@ export default function App() {
   const [colorByFolder, setColorByFolder] = useState(false);
   const [pathSource, setPathSource] = useState<string | null>(null);
   const [pathTarget, setPathTarget] = useState<string | null>(null);
+  const [showHulls, setShowHulls] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('force');
+  const [maxTrustTier, setMaxTrustTier] = useState(4);
 
   const graphRef = useRef<GraphCanvasHandle>(null);
 
@@ -111,6 +115,10 @@ export default function App() {
 
   const handleToggleColorByFolder = useCallback(() => {
     setColorByFolder(prev => !prev);
+  }, []);
+
+  const handleToggleHulls = useCallback(() => {
+    setShowHulls(prev => !prev);
   }, []);
 
   const handleClearPath = useCallback(() => {
@@ -261,6 +269,8 @@ export default function App() {
           onToggleBlastRadius={handleToggleBlastRadius}
           colorByFolder={colorByFolder}
           onToggleColorByFolder={handleToggleColorByFolder}
+          showHulls={showHulls}
+          onToggleHulls={handleToggleHulls}
         />
 
         <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -310,6 +320,11 @@ export default function App() {
               pathSource={pathSource}
               pathTarget={pathTarget}
               onClearPath={handleClearPath}
+              showHulls={showHulls}
+              layoutMode={layoutMode}
+              onLayoutModeChange={setLayoutMode}
+              maxTrustTier={maxTrustTier}
+              onMaxTrustTierChange={setMaxTrustTier}
             />
           )}
         </div>

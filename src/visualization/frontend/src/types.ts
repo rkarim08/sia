@@ -42,3 +42,6 @@ export interface ViewBookmark {
   activeFolder: string | null;
   timestamp: number;
 }
+
+/** Layout modes for the graph */
+export type LayoutMode = 'force' | 'tree' | 'radial';

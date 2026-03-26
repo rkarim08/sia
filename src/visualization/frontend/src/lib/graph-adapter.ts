@@ -354,6 +354,123 @@ export const getNodesWithinHops = (
 };
 
 /**
+ * Compute a hierarchical (tree) layout.
+ * Assigns y-level by parentId chain depth, spreads nodes horizontally within each level.
+ */
+export const computeTreeLayout = (
+  graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
+): void => {
+  // Compute depth for each node by walking parentId chain
+  const depths = new Map<string, number>();
+
+  const getDepth = (nodeId: string): number => {
+    if (depths.has(nodeId)) return depths.get(nodeId)!;
+    const attrs = graph.getNodeAttributes(nodeId);
+    if (!attrs.parentId || !graph.hasNode(attrs.parentId)) {
+      depths.set(nodeId, 0);
+      return 0;
+    }
+    const d = getDepth(attrs.parentId) + 1;
+    depths.set(nodeId, d);
+    return d;
+  };
+
+  graph.forEachNode((nodeId) => {
+    if (!graph.getNodeAttributes(nodeId).hidden) {
+      getDepth(nodeId);
+    }
+  });
+
+  // Group by depth level
+  const levels = new Map<number, string[]>();
+  let maxDepth = 0;
+  depths.forEach((depth, nodeId) => {
+    if (!levels.has(depth)) levels.set(depth, []);
+    levels.get(depth)!.push(nodeId);
+    if (depth > maxDepth) maxDepth = depth;
+  });
+
+  // Assign positions
+  const ySpacing = 200;
+  levels.forEach((nodes, depth) => {
+    const xSpacing = Math.max(100, 800 / Math.max(nodes.length, 1));
+    const xOffset = -(nodes.length - 1) * xSpacing / 2;
+    nodes.forEach((nodeId, i) => {
+      graph.setNodeAttribute(nodeId, 'x', xOffset + i * xSpacing);
+      graph.setNodeAttribute(nodeId, 'y', depth * ySpacing);
+    });
+  });
+};
+
+/**
+ * Compute a radial layout centered on a given node (or highest-degree node).
+ * BFS outward, placing nodes in concentric rings.
+ */
+export const computeRadialLayout = (
+  graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
+  centerNodeId?: string | null,
+): void => {
+  // Find center: use provided node, or highest-degree visible node
+  let center = centerNodeId;
+  if (!center || !graph.hasNode(center) || graph.getNodeAttributes(center).hidden) {
+    let maxDegree = -1;
+    graph.forEachNode((nodeId, attrs) => {
+      if (attrs.hidden) return;
+      const deg = graph.degree(nodeId);
+      if (deg > maxDegree) {
+        maxDegree = deg;
+        center = nodeId;
+      }
+    });
+  }
+  if (!center) return;
+
+  // BFS from center
+  const visited = new Map<string, number>(); // nodeId -> ring
+  const queue: { nodeId: string; ring: number }[] = [{ nodeId: center, ring: 0 }];
+
+  while (queue.length > 0) {
+    const { nodeId, ring } = queue.shift()!;
+    if (visited.has(nodeId)) continue;
+    const attrs = graph.getNodeAttributes(nodeId);
+    if (attrs.hidden) continue;
+    visited.set(nodeId, ring);
+
+    graph.forEachNeighbor(nodeId, (neighborId) => {
+      if (!visited.has(neighborId) && !graph.getNodeAttributes(neighborId).hidden) {
+        queue.push({ nodeId: neighborId, ring: ring + 1 });
+      }
+    });
+  }
+
+  // Group by ring
+  const rings = new Map<number, string[]>();
+  visited.forEach((ring, nodeId) => {
+    if (!rings.has(ring)) rings.set(ring, []);
+    rings.get(ring)!.push(nodeId);
+  });
+
+  // Assign positions in concentric circles
+  const ringSpacing = 180;
+  rings.forEach((nodes, ring) => {
+    if (ring === 0) {
+      // Center node
+      nodes.forEach((nodeId) => {
+        graph.setNodeAttribute(nodeId, 'x', 0);
+        graph.setNodeAttribute(nodeId, 'y', 0);
+      });
+    } else {
+      const radius = ring * ringSpacing;
+      nodes.forEach((nodeId, i) => {
+        const angle = (2 * Math.PI * i) / nodes.length;
+        graph.setNodeAttribute(nodeId, 'x', radius * Math.cos(angle));
+        graph.setNodeAttribute(nodeId, 'y', radius * Math.sin(angle));
+      });
+    }
+  });
+};
+
+/**
  * Filter graph by depth from a selected node, intersected with visible types.
  * Filter graph by depth from a selected node, intersected with visible types.
  */
