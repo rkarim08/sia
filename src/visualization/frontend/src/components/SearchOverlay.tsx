@@ -1,0 +1,233 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { searchNodes } from '../lib/api';
+import type { SearchResult } from '../lib/api';
+import { NODE_COLORS } from '../lib/constants';
+import type { SiaNodeType } from '../lib/constants';
+
+interface Props {
+  onSelect: (nodeId: string) => void;
+  onClose: () => void;
+}
+
+export default function SearchOverlay({ onSelect, onClose }: Props) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // Debounced search
+  const doSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await searchNodes(q, 15);
+      setResults(res);
+      setSelectedIndex(0);
+    } catch {
+      setResults([]);
+    }
+    setLoading(false);
+  }, []);
+
+  const handleChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(value), 300);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && results.length > 0) {
+      e.preventDefault();
+      onSelect(results[selectedIndex].id);
+      onClose();
+    }
+  };
+
+  const handleResultClick = (nodeId: string) => {
+    onSelect(nodeId);
+    onClose();
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        background: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '15vh',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 520,
+          maxWidth: '90vw',
+          background: '#1e1e32',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 12,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Input */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '14px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          <svg
+            width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="#6b7a99" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => handleChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search nodes..."
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: '#e4e4ed',
+              fontSize: 15,
+              fontFamily: 'inherit',
+            }}
+          />
+          <kbd style={{
+            fontSize: 10,
+            color: '#6b7a99',
+            background: 'rgba(255,255,255,0.06)',
+            padding: '2px 6px',
+            borderRadius: 4,
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            ESC
+          </kbd>
+        </div>
+
+        {/* Results */}
+        {loading && (
+          <div style={{ padding: '12px 16px', color: '#6b7a99', fontSize: 13 }}>
+            Searching...
+          </div>
+        )}
+
+        {!loading && query.trim() && results.length === 0 && (
+          <div style={{ padding: '12px 16px', color: '#6b7a99', fontSize: 13 }}>
+            No results found
+          </div>
+        )}
+
+        {results.length > 0 && (
+          <div style={{ maxHeight: 360, overflowY: 'auto', padding: '6px 0' }}>
+            {results.map((r, i) => {
+              const isSelected = i === selectedIndex;
+              const dotColor = NODE_COLORS[r.type as SiaNodeType] || '#666';
+              return (
+                <div
+                  key={r.id}
+                  onClick={() => handleResultClick(r.id)}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    background: isSelected ? 'rgba(59,130,246,0.12)' : 'transparent',
+                    transition: 'background 0.1s',
+                  }}
+                >
+                  <span style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: dotColor,
+                    flexShrink: 0,
+                    boxShadow: `0 0 6px ${dotColor}40`,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 13,
+                      color: '#e4e4ed',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {r.name}
+                    </div>
+                    <div style={{
+                      fontSize: 11,
+                      color: '#4d5a73',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {r.path}
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: 9,
+                    color: '#6b7a99',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    fontWeight: 600,
+                    flexShrink: 0,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: 'rgba(255,255,255,0.05)',
+                  }}>
+                    {r.type}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
