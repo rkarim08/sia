@@ -92,7 +92,7 @@ export default function Sidebar({ combos, hiddenTypes, onToggleType, onSearchSel
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: NODE_COLORS[r.type] || '#888',
+                  background: NODE_COLORS[r.type as keyof typeof NODE_COLORS] || '#888',
                   flexShrink: 0,
                 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
