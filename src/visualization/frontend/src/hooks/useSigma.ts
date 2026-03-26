@@ -262,16 +262,16 @@ export function useSigma(
       renderLabels: true,
       renderEdgeLabels: true,
       labelFont: 'DM Sans, -apple-system, sans-serif',
-      labelSize: 11,
+      labelSize: 13,
       labelWeight: '500',
-      labelColor: { color: '#a0aec0' },
-      labelRenderedSizeThreshold: 10,
-      labelDensity: 0.07,
-      labelGridCellSize: 80,
+      labelColor: { color: '#b0bcd0' },
+      labelRenderedSizeThreshold: 8,
+      labelDensity: 0.08,
+      labelGridCellSize: 70,
 
       edgeLabelFont: 'DM Sans, -apple-system, sans-serif',
-      edgeLabelSize: 9,
-      edgeLabelColor: { color: '#8896b0' },
+      edgeLabelSize: 13,
+      edgeLabelColor: { color: '#c8d0e0' },
 
       defaultNodeColor: '#6b7280',
       defaultEdgeColor: EDGE_DEFAULT_COLOR,
@@ -313,9 +313,11 @@ export function useSigma(
 
         if (!label) return;
 
-        const size = settings.labelSize || 11;
+        const size = Math.max(14, settings.labelSize || 13);
         const font = settings.labelFont || 'DM Sans, sans-serif';
         const weight = settings.labelWeight || '500';
+        const infoSize = 12; // info line font size — larger for readability
+        const badgeSize = 11; // badge font size
 
         // --- Enhanced tooltip with type badge, connections, trust tier ---
         const nodeId = (data as Record<string, unknown>).key as string | undefined;
@@ -331,29 +333,29 @@ export function useSigma(
 
         // Type badge text
         const badgeText = nodeType.toUpperCase();
-        context.font = `700 9px ${font}`;
+        context.font = `700 ${badgeSize}px ${font}`;
         const badgeWidth = context.measureText(badgeText).width;
 
         // Info line
         const infoText = `${connectionCount} connections`;
-        context.font = `400 9px ${font}`;
+        context.font = `400 ${infoSize}px ${font}`;
         const infoWidth = context.measureText(infoText).width;
 
         // Trust dots width
-        const trustDotsWidth = trustTier > 0 ? trustTier * 8 + 8 : 0;
+        const trustDotsWidth = trustTier > 0 ? trustTier * 10 + 8 : 0;
 
         const maxContentWidth = Math.max(
           labelWidth,
-          badgeWidth + 12 + infoWidth + trustDotsWidth,
+          badgeWidth + 14 + infoWidth + trustDotsWidth,
         );
 
         const x = data.x;
-        const y = data.y - nodeSize - 28;
-        const paddingX = 12;
-        const paddingY = 6;
-        const totalHeight = size + 18 + paddingY * 2; // label + info line
+        const y = data.y - nodeSize - 36;
+        const paddingX = 14;
+        const paddingY = 8;
+        const totalHeight = size + 24 + paddingY * 2; // label + info line
         const width = maxContentWidth + paddingX * 2;
-        const radius = 8;
+        const radius = 10;
 
         // Frosted pill background
         context.fillStyle = 'rgba(8,8,18,0.92)';
@@ -369,25 +371,25 @@ export function useSigma(
         context.globalAlpha = 1;
 
         // Type badge
-        const badgeY = y - totalHeight / 2 + paddingY + 9;
+        const badgeY = y - totalHeight / 2 + paddingY + badgeSize;
         const typeColor = NODE_COLORS[nodeType as SiaNodeType] || color;
-        context.font = `700 9px ${font}`;
+        context.font = `700 ${badgeSize}px ${font}`;
         context.fillStyle = typeColor;
         context.textAlign = 'left';
         context.textBaseline = 'middle';
         context.fillText(badgeText, x - maxContentWidth / 2, badgeY);
 
         // Connection count
-        context.font = `400 9px ${font}`;
-        context.fillStyle = '#6b7a99';
-        context.fillText(infoText, x - maxContentWidth / 2 + badgeWidth + 10, badgeY);
+        context.font = `400 ${infoSize}px ${font}`;
+        context.fillStyle = '#8896b0';
+        context.fillText(infoText, x - maxContentWidth / 2 + badgeWidth + 14, badgeY);
 
-        // Trust tier dots
+        // Trust tier dots — larger
         if (trustTier > 0) {
-          const dotsStartX = x + maxContentWidth / 2 - trustTier * 8;
+          const dotsStartX = x + maxContentWidth / 2 - trustTier * 10;
           for (let i = 0; i < trustTier; i++) {
             context.beginPath();
-            context.arc(dotsStartX + i * 8, badgeY, 2.5, 0, Math.PI * 2);
+            context.arc(dotsStartX + i * 10, badgeY, 3.5, 0, Math.PI * 2);
             context.fillStyle = i < trustTier
               ? (trustTier <= 2 ? '#34d399' : trustTier === 3 ? '#fbbf24' : '#ef4444')
               : '#333';

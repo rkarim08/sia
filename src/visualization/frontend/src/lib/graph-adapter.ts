@@ -390,14 +390,31 @@ export const computeTreeLayout = (
     if (depth > maxDepth) maxDepth = depth;
   });
 
-  // Assign positions
-  const ySpacing = 200;
+  // Assign positions — top-down tree, each level gets a full row
+  // Sort nodes within each level by parent to keep siblings together
+  const totalVisible = depths.size;
+
+  // Vertical spacing between levels (top to bottom)
+  const levelSpacing = Math.max(500, totalVisible * 3);
+
   levels.forEach((nodes, depth) => {
-    const xSpacing = Math.max(100, 800 / Math.max(nodes.length, 1));
-    const xOffset = -(nodes.length - 1) * xSpacing / 2;
+    // Sort by parent so siblings cluster together
+    nodes.sort((a, b) => {
+      const pa = graph.getNodeAttributes(a).parentId || '';
+      const pb = graph.getNodeAttributes(b).parentId || '';
+      if (pa !== pb) return pa.localeCompare(pb);
+      return graph.getNodeAttributes(a).label.localeCompare(graph.getNodeAttributes(b).label);
+    });
+
+    // Spread across full width with golden-angle stagger for visual interest
+    const count = nodes.length;
+    const spread = Math.max(count * 50, 2000);
     nodes.forEach((nodeId, i) => {
-      graph.setNodeAttribute(nodeId, 'x', xOffset + i * xSpacing);
-      graph.setNodeAttribute(nodeId, 'y', depth * ySpacing);
+      const t = count > 1 ? (i / (count - 1)) - 0.5 : 0;
+      // Sine wave stagger so it's not a perfectly straight line
+      const stagger = Math.sin(i * 0.7) * (levelSpacing * 0.08);
+      graph.setNodeAttribute(nodeId, 'x', t * spread);
+      graph.setNodeAttribute(nodeId, 'y', depth * levelSpacing + stagger);
     });
   });
 };
@@ -451,7 +468,7 @@ export const computeRadialLayout = (
   });
 
   // Assign positions in concentric circles
-  const ringSpacing = 180;
+  const ringSpacing = Math.max(250, visited.size * 1.5);
   rings.forEach((nodes, ring) => {
     if (ring === 0) {
       // Center node
