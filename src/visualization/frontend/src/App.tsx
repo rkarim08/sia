@@ -17,6 +17,13 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // New feature state
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [blastRadiusMode, setBlastRadiusMode] = useState(false);
+  const [colorByFolder, setColorByFolder] = useState(false);
+  const [pathSource, setPathSource] = useState<string | null>(null);
+  const [pathTarget, setPathTarget] = useState<string | null>(null);
+
   const graphRef = useRef<GraphCanvasHandle>(null);
 
   useEffect(() => {
@@ -50,7 +57,27 @@ export default function App() {
   }, []);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
+    // Path finder: shift+click sets path target
+    // We handle this by checking if shift is held via a global flag
+    if (shiftHeldRef.current && selectedNode) {
+      setPathSource(selectedNode.id);
+      setPathTarget(node.id);
+      return;
+    }
     setSelectedNode(node);
+  }, [selectedNode]);
+
+  // Track shift key for path finder
+  const shiftHeldRef = useRef(false);
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftHeldRef.current = true; };
+    const up = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftHeldRef.current = false; };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
   }, []);
 
   const handleStageClick = useCallback(() => {
@@ -72,6 +99,23 @@ export default function App() {
 
   const handleEntityClick = useCallback((entityId: string) => {
     graphRef.current?.focusNode(entityId);
+  }, []);
+
+  const handleFolderClick = useCallback((comboId: string | null) => {
+    setActiveFolder(comboId);
+  }, []);
+
+  const handleToggleBlastRadius = useCallback(() => {
+    setBlastRadiusMode(prev => !prev);
+  }, []);
+
+  const handleToggleColorByFolder = useCallback(() => {
+    setColorByFolder(prev => !prev);
+  }, []);
+
+  const handleClearPath = useCallback(() => {
+    setPathSource(null);
+    setPathTarget(null);
   }, []);
 
   const showInspector = selectedNode !== null;
@@ -111,8 +155,11 @@ export default function App() {
           Sia
         </div>
 
-        {/* Stats */}
+        {/* Stats + active folder indicator */}
         <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
           fontSize: 11,
           color: 'rgba(255,255,255,0.28)',
           fontFamily: '"JetBrains Mono", monospace',
@@ -120,7 +167,31 @@ export default function App() {
           letterSpacing: '0.02em',
           fontVariantNumeric: 'tabular-nums',
         }}>
-          {nodeCount} nodes &middot; {edgeCount} edges
+          {activeFolder && (
+            <span style={{
+              color: '#60a5fa',
+              fontSize: 10,
+              padding: '2px 8px',
+              background: 'rgba(59,130,246,0.1)',
+              borderRadius: 4,
+              border: '1px solid rgba(59,130,246,0.2)',
+            }}>
+              Filtered
+            </span>
+          )}
+          {blastRadiusMode && (
+            <span style={{
+              color: '#f97316',
+              fontSize: 10,
+              padding: '2px 8px',
+              background: 'rgba(249,115,22,0.1)',
+              borderRadius: 4,
+              border: '1px solid rgba(249,115,22,0.2)',
+            }}>
+              Blast Radius
+            </span>
+          )}
+          <span>{nodeCount} nodes &middot; {edgeCount} edges</span>
         </div>
 
         {/* Search trigger */}
@@ -184,6 +255,12 @@ export default function App() {
           onSearchSelect={handleSearchSelect}
           focusDepth={focusDepth}
           onFocusDepthChange={setFocusDepth}
+          activeFolder={activeFolder}
+          onFolderClick={handleFolderClick}
+          blastRadiusMode={blastRadiusMode}
+          onToggleBlastRadius={handleToggleBlastRadius}
+          colorByFolder={colorByFolder}
+          onToggleColorByFolder={handleToggleColorByFolder}
         />
 
         <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -227,6 +304,12 @@ export default function App() {
               onStageClick={handleStageClick}
               selectedNodeId={selectedNode?.id ?? null}
               hiddenTypes={hiddenTypes}
+              activeFolder={activeFolder}
+              blastRadiusMode={blastRadiusMode}
+              colorByFolder={colorByFolder}
+              pathSource={pathSource}
+              pathTarget={pathTarget}
+              onClearPath={handleClearPath}
             />
           )}
         </div>

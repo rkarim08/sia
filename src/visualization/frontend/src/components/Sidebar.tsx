@@ -12,6 +12,12 @@ interface Props {
   onSearchSelect: (nodeId: string) => void;
   focusDepth: number | null;
   onFocusDepthChange: (depth: number | null) => void;
+  activeFolder: string | null;
+  onFolderClick: (comboId: string | null) => void;
+  blastRadiusMode: boolean;
+  onToggleBlastRadius: () => void;
+  colorByFolder: boolean;
+  onToggleColorByFolder: () => void;
 }
 
 const DEPTH_OPTIONS: { value: number | null; label: string }[] = [
@@ -38,6 +44,12 @@ export default function Sidebar({
   onSearchSelect,
   focusDepth,
   onFocusDepthChange,
+  activeFolder,
+  onFolderClick,
+  blastRadiusMode,
+  onToggleBlastRadius,
+  colorByFolder,
+  onToggleColorByFolder,
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -204,6 +216,25 @@ export default function Sidebar({
         </div>
       </div>
 
+      {/* Graph Controls */}
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={sectionHeaderStyle}>Display</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <ToggleBtn
+            label="Blast Radius"
+            active={blastRadiusMode}
+            onClick={onToggleBlastRadius}
+            hint="Color by distance from selected node"
+          />
+          <ToggleBtn
+            label="Color by Folder"
+            active={colorByFolder}
+            onClick={onToggleColorByFolder}
+            hint="Color nodes by top-level folder"
+          />
+        </div>
+      </div>
+
       {/* Focus Depth */}
       <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={sectionHeaderStyle}>Focus Depth</div>
@@ -245,12 +276,38 @@ export default function Sidebar({
         overflow: 'auto',
         padding: '10px 12px',
       }}>
-        <div style={sectionHeaderStyle}>Explorer</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={sectionHeaderStyle as React.CSSProperties}>Explorer</div>
+          {activeFolder && (
+            <button
+              onClick={() => onFolderClick(null)}
+              style={{
+                fontSize: 10,
+                padding: '2px 8px',
+                background: 'rgba(59,130,246,0.15)',
+                border: '1px solid rgba(59,130,246,0.3)',
+                borderRadius: 4,
+                color: '#60a5fa',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              Show All
+            </button>
+          )}
+        </div>
         {topLevelCombos.length === 0 && (
           <div style={{ fontSize: 12, color: '#4d5a73' }}>No folders loaded</div>
         )}
         {topLevelCombos.map(combo => (
-          <FolderItem key={combo.id} combo={combo} combos={combos} depth={0} />
+          <FolderItem
+            key={combo.id}
+            combo={combo}
+            combos={combos}
+            depth={0}
+            activeFolder={activeFolder}
+            onFolderClick={onFolderClick}
+          />
         ))}
       </div>
 
@@ -264,21 +321,85 @@ export default function Sidebar({
         <div style={{ ...sectionHeaderStyle, marginBottom: 4 }}>Legend</div>
         <div>Hover: highlight neighbors</div>
         <div>Click node: inspect details</div>
+        <div>Right-click: context menu</div>
+        <div>Shift+click: path finder</div>
         <div>Scroll: zoom | Drag: pan</div>
       </div>
     </div>
   );
 }
 
-function FolderItem({ combo, combos, depth }: { combo: GraphCombo; combos: GraphCombo[]; depth: number }) {
+function ToggleBtn({ label, active, onClick, hint }: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  hint: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={hint}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '5px 8px',
+        fontSize: 11,
+        fontWeight: 500,
+        border: active ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 5,
+        cursor: 'pointer',
+        background: active ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.04)',
+        color: active ? '#60a5fa' : '#8896b0',
+        textAlign: 'left',
+        width: '100%',
+        transition: 'all 0.15s',
+      }}
+      onMouseEnter={e => {
+        if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.07)';
+      }}
+      onMouseLeave={e => {
+        if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+      }}
+    >
+      <span style={{
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        background: active ? '#60a5fa' : 'rgba(255,255,255,0.15)',
+        boxShadow: active ? '0 0 6px #60a5fa60' : 'none',
+        flexShrink: 0,
+        transition: 'all 0.15s',
+      }} />
+      {label}
+    </button>
+  );
+}
+
+function FolderItem({ combo, combos, depth, activeFolder, onFolderClick }: {
+  combo: GraphCombo;
+  combos: GraphCombo[];
+  depth: number;
+  activeFolder: string | null;
+  onFolderClick: (comboId: string | null) => void;
+}) {
   const [expanded, setExpanded] = useState(depth < 1);
   const children = combos.filter(c => c.parentId === combo.id);
   const hasChildren = children.length > 0;
+  const isActive = activeFolder === combo.id;
 
   return (
     <div>
       <div
-        onClick={() => setExpanded(!expanded)}
+        onClick={(e) => {
+          if (e.detail === 2) {
+            // Double-click: filter graph to this folder
+            onFolderClick(isActive ? null : combo.id);
+          } else {
+            // Single-click: expand/collapse in explorer
+            setExpanded(!expanded);
+          }
+        }}
         style={{
           padding: '3px 0',
           paddingLeft: depth * 14,
@@ -289,9 +410,19 @@ function FolderItem({ combo, combos, depth }: { combo: GraphCombo; combos: Graph
           gap: 5,
           borderRadius: 3,
           color: '#c8d0e0',
+          background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
+          borderLeft: isActive ? '2px solid #60a5fa' : '2px solid transparent',
         }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        onMouseEnter={e => {
+          if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+        }}
+        onMouseLeave={e => {
+          if (!isActive) e.currentTarget.style.background = 'transparent';
+        }}
+        onContextMenu={e => {
+          e.preventDefault();
+          onFolderClick(isActive ? null : combo.id);
+        }}
       >
         <span style={{
           color: '#6b7a99',
@@ -313,9 +444,27 @@ function FolderItem({ combo, combos, depth }: { combo: GraphCombo; combos: Graph
             {combo.childCount}
           </span>
         )}
+        {isActive && (
+          <span style={{
+            fontSize: 8,
+            color: '#60a5fa',
+            marginLeft: 'auto',
+            flexShrink: 0,
+            fontWeight: 600,
+          }}>
+            FILTERED
+          </span>
+        )}
       </div>
       {expanded && children.map(child => (
-        <FolderItem key={child.id} combo={child} combos={combos} depth={depth + 1} />
+        <FolderItem
+          key={child.id}
+          combo={child}
+          combos={combos}
+          depth={depth + 1}
+          activeFolder={activeFolder}
+          onFolderClick={onFolderClick}
+        />
       ))}
     </div>
   );

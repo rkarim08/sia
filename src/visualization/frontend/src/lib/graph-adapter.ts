@@ -192,6 +192,7 @@ export const graphResponseToGraphology = (
       size: edgeBaseSize * (edge.weight || 1),
       color: info.color,
       edgeType: edge.edgeType,
+      label: edge.edgeType,
       hidden: false,
     });
   });
@@ -212,6 +213,113 @@ export const filterGraphByTypes = (
   graph.forEachNode((nodeId, attrs) => {
     graph.setNodeAttribute(nodeId, 'hidden', !typeSet.has(attrs.nodeType));
   });
+};
+
+/**
+ * Filter graph to show only nodes inside a given folder (combo).
+ * Nodes are included if their parentId chain includes the folder ID.
+ * Also respects visible types.
+ */
+export const filterGraphByFolder = (
+  graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
+  folderId: string,
+  visibleTypes: string[],
+): void => {
+  const typeSet = new Set(visibleTypes);
+
+  // Collect all combo IDs that are descendants of folderId (including itself)
+  const folderIds = new Set<string>([folderId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    graph.forEachNode((nodeId, attrs) => {
+      if (!folderIds.has(nodeId) && attrs.parentId && folderIds.has(attrs.parentId)) {
+        if (attrs.nodeType === 'folder') {
+          folderIds.add(nodeId);
+          changed = true;
+        }
+      }
+    });
+  }
+
+  graph.forEachNode((nodeId, attrs) => {
+    // Show if: node is the folder itself, or node is a descendant folder,
+    // or node's parentId is one of the folder IDs
+    const inFolder = folderIds.has(nodeId) || (attrs.parentId ? folderIds.has(attrs.parentId) : false);
+    const typeVisible = typeSet.has(attrs.nodeType) || attrs.nodeType === 'folder';
+    graph.setNodeAttribute(nodeId, 'hidden', !(inFolder && typeVisible));
+  });
+};
+
+/**
+ * BFS that returns distance from startNode for each reachable node.
+ */
+export const getNodeDistances = (
+  graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
+  startNodeId: string,
+  maxHops: number,
+): Map<string, number> => {
+  const distances = new Map<string, number>();
+  const queue: { nodeId: string; depth: number }[] = [
+    { nodeId: startNodeId, depth: 0 },
+  ];
+
+  while (queue.length > 0) {
+    const { nodeId, depth } = queue.shift()!;
+    if (distances.has(nodeId)) continue;
+    distances.set(nodeId, depth);
+
+    if (depth < maxHops) {
+      graph.forEachNeighbor(nodeId, (neighborId) => {
+        if (!distances.has(neighborId)) {
+          queue.push({ nodeId: neighborId, depth: depth + 1 });
+        }
+      });
+    }
+  }
+
+  return distances;
+};
+
+/**
+ * Find shortest path between two nodes using BFS.
+ * Returns array of node IDs from source to target, or empty if no path.
+ */
+export const findShortestPath = (
+  graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
+  sourceId: string,
+  targetId: string,
+): string[] => {
+  if (!graph.hasNode(sourceId) || !graph.hasNode(targetId)) return [];
+  if (sourceId === targetId) return [sourceId];
+
+  const visited = new Set<string>();
+  const parentMap = new Map<string, string>();
+  const queue: string[] = [sourceId];
+  visited.add(sourceId);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === targetId) {
+      // Reconstruct path
+      const path: string[] = [];
+      let node: string | undefined = targetId;
+      while (node) {
+        path.unshift(node);
+        node = parentMap.get(node);
+      }
+      return path;
+    }
+    graph.forEachNeighbor(current, (neighbor) => {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        parentMap.set(neighbor, current);
+        queue.push(neighbor);
+      }
+    });
+  }
+
+  return []; // No path found
 };
 
 /**

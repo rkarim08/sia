@@ -4,7 +4,8 @@ import Graph from 'graphology';
 import forceAtlas2, { inferSettings } from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
-import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR } from '../lib/constants';
+import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR, NODE_COLORS } from '../lib/constants';
+import type { SiaNodeType } from '../lib/constants';
 
 // ---------------------------------------------------------------------------
 // Color helpers
@@ -55,6 +56,22 @@ const brightenColor = (hex: string, factor: number): string => {
 };
 
 // ---------------------------------------------------------------------------
+// Blast radius color scheme
+// ---------------------------------------------------------------------------
+
+const BLAST_COLORS: Record<number, string> = {
+  0: '#ffffff',   // selected node
+  1: '#f97316',   // 1-hop: bright orange
+  2: '#facc15',   // 2-hop: warm yellow
+  3: '#a3e635',   // 3-hop: pale green
+};
+
+const getBlastColor = (distance: number): string => {
+  if (distance <= 3) return BLAST_COLORS[distance];
+  return dimColor('#9ca3af', 0.2); // 4+: very dim
+};
+
+// ---------------------------------------------------------------------------
 // ForceAtlas2 iteration count — scales with node count
 // ---------------------------------------------------------------------------
 
@@ -72,7 +89,14 @@ const getFA2Iterations = (nodeCount: number): number => {
 export interface UseSigmaOptions {
   onNodeClick?: (nodeId: string, attrs: SigmaNodeAttributes) => void;
   onStageClick?: () => void;
+  onRightClickNode?: (nodeId: string, attrs: SigmaNodeAttributes, event: { x: number; y: number }) => void;
   selectedNodeId?: string | null;
+  blastRadiusMode?: boolean;
+  blastDistances?: Map<string, number> | null;
+  colorByFolder?: boolean;
+  clusterColorMap?: Map<string, string>;
+  pathNodes?: Set<string> | null;
+  pathEdgeKeys?: Set<string> | null;
 }
 
 export interface UseSigmaReturn {
@@ -81,6 +105,9 @@ export interface UseSigmaReturn {
   zoomOut: () => void;
   resetZoom: () => void;
   focusNode: (nodeId: string) => void;
+  exportPNG: () => void;
+  getCameraState: () => { x: number; y: number; ratio: number; angle: number } | null;
+  setCameraState: (state: { x: number; y: number; ratio: number; angle: number }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +194,7 @@ export function useSigma(
     // ------- Sigma renderer -------
     const renderer = new Sigma(graph, containerRef.current, {
       renderLabels: true,
+      renderEdgeLabels: true,
       labelFont: 'DM Sans, -apple-system, sans-serif',
       labelSize: 11,
       labelWeight: '500',
@@ -174,6 +202,10 @@ export function useSigma(
       labelRenderedSizeThreshold: 10,
       labelDensity: 0.07,
       labelGridCellSize: 80,
+
+      edgeLabelFont: 'DM Sans, -apple-system, sans-serif',
+      edgeLabelSize: 9,
+      edgeLabelColor: { color: '#8896b0' },
 
       defaultNodeColor: '#6b7280',
       defaultEdgeColor: EDGE_DEFAULT_COLOR,
@@ -183,7 +215,7 @@ export function useSigma(
       hideEdgesOnMove: true,
       zIndex: true,
 
-      // ------ Custom hover renderer with radial glow ------
+      // ------ Custom hover renderer with radial glow + enhanced info ------
       defaultDrawNodeHover: (context, data, settings) => {
         const label = data.label;
         const nodeSize = data.size || 8;
@@ -219,21 +251,48 @@ export function useSigma(
         const font = settings.labelFont || 'DM Sans, sans-serif';
         const weight = settings.labelWeight || '500';
 
+        // --- Enhanced tooltip with type badge, connections, trust tier ---
+        const nodeId = (data as Record<string, unknown>).key as string | undefined;
+        const nodeAttrs = nodeId && graph.hasNode(nodeId)
+          ? graph.getNodeAttributes(nodeId)
+          : null;
+        const nodeType = nodeAttrs?.nodeType || '';
+        const trustTier = nodeAttrs?.trustTier ?? 0;
+        const connectionCount = nodeId && graph.hasNode(nodeId) ? graph.degree(nodeId) : 0;
+
         context.font = `${weight} ${size}px ${font}`;
-        const textWidth = context.measureText(label).width;
+        const labelWidth = context.measureText(label).width;
+
+        // Type badge text
+        const badgeText = nodeType.toUpperCase();
+        context.font = `700 9px ${font}`;
+        const badgeWidth = context.measureText(badgeText).width;
+
+        // Info line
+        const infoText = `${connectionCount} connections`;
+        context.font = `400 9px ${font}`;
+        const infoWidth = context.measureText(infoText).width;
+
+        // Trust dots width
+        const trustDotsWidth = trustTier > 0 ? trustTier * 8 + 8 : 0;
+
+        const maxContentWidth = Math.max(
+          labelWidth,
+          badgeWidth + 12 + infoWidth + trustDotsWidth,
+        );
 
         const x = data.x;
-        const y = data.y - nodeSize - 12;
-        const paddingX = 10;
+        const y = data.y - nodeSize - 28;
+        const paddingX = 12;
         const paddingY = 6;
-        const height = size + paddingY * 2;
-        const width = textWidth + paddingX * 2;
-        const radius = 6;
+        const totalHeight = size + 18 + paddingY * 2; // label + info line
+        const width = maxContentWidth + paddingX * 2;
+        const radius = 8;
 
         // Frosted pill background
-        context.fillStyle = 'rgba(8,8,18,0.88)';
+        context.fillStyle = 'rgba(8,8,18,0.92)';
         context.beginPath();
-        context.roundRect(x - width / 2, y - height / 2, width, height, radius);
+        context.roundRect(x - width / 2, y - totalHeight / 2, width, totalHeight, radius);
         context.fill();
 
         // Colored top border accent
@@ -243,14 +302,42 @@ export function useSigma(
         context.stroke();
         context.globalAlpha = 1;
 
+        // Type badge
+        const badgeY = y - totalHeight / 2 + paddingY + 9;
+        const typeColor = NODE_COLORS[nodeType as SiaNodeType] || color;
+        context.font = `700 9px ${font}`;
+        context.fillStyle = typeColor;
+        context.textAlign = 'left';
+        context.textBaseline = 'middle';
+        context.fillText(badgeText, x - maxContentWidth / 2, badgeY);
+
+        // Connection count
+        context.font = `400 9px ${font}`;
+        context.fillStyle = '#6b7a99';
+        context.fillText(infoText, x - maxContentWidth / 2 + badgeWidth + 10, badgeY);
+
+        // Trust tier dots
+        if (trustTier > 0) {
+          const dotsStartX = x + maxContentWidth / 2 - trustTier * 8;
+          for (let i = 0; i < trustTier; i++) {
+            context.beginPath();
+            context.arc(dotsStartX + i * 8, badgeY, 2.5, 0, Math.PI * 2);
+            context.fillStyle = i < trustTier
+              ? (trustTier <= 2 ? '#34d399' : trustTier === 3 ? '#fbbf24' : '#ef4444')
+              : '#333';
+            context.fill();
+          }
+        }
+
         // Label
+        context.font = `${weight} ${size}px ${font}`;
         context.fillStyle = '#eef0f6';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(label, x, y);
+        context.fillText(label, x, y + 4);
       },
 
-      // ------ Node reducer: hover + selection highlighting ------
+      // ------ Node reducer: hover + selection + blast radius + path highlighting ------
       nodeReducer: (node, data) => {
         const res = { ...data };
         if (data.hidden) {
@@ -261,6 +348,53 @@ export function useSigma(
         const hovered = hoveredNodeRef.current;
         const neighbors = hoveredNeighborsRef.current;
         const selected = optionsRef.current.selectedNodeId;
+        const blastMode = optionsRef.current.blastRadiusMode;
+        const blastDistances = optionsRef.current.blastDistances;
+        const colorByFolder = optionsRef.current.colorByFolder;
+        const clusterColorMap = optionsRef.current.clusterColorMap;
+        const pathNodes = optionsRef.current.pathNodes;
+
+        // Color by folder mode
+        if (colorByFolder && clusterColorMap) {
+          const attrs = graph.getNodeAttributes(node);
+          const clusterColor = clusterColorMap.get(attrs.cluster);
+          if (clusterColor) {
+            res.color = clusterColor;
+          }
+        }
+
+        // Path highlighting
+        if (pathNodes && pathNodes.size > 0) {
+          if (pathNodes.has(node)) {
+            res.color = '#f97316';
+            res.size = (data.size || 8) * 1.8;
+            res.highlighted = true;
+            res.zIndex = 3;
+          } else {
+            res.color = dimColor(data.color, 0.12);
+            res.label = '';
+            res.zIndex = -1;
+          }
+          return res;
+        }
+
+        // Blast radius mode
+        if (blastMode && blastDistances && selected) {
+          const distance = blastDistances.get(node);
+          if (distance !== undefined) {
+            res.color = getBlastColor(distance);
+            const sizeMultiplier = distance === 0 ? 2.0 : distance === 1 ? 1.4 : distance === 2 ? 1.1 : 0.8;
+            res.size = (data.size || 8) * sizeMultiplier;
+            res.highlighted = distance <= 2;
+            res.zIndex = Math.max(0, 3 - distance);
+          } else {
+            res.color = dimColor(data.color, 0.08);
+            res.size = (data.size || 8) * 0.4;
+            res.label = '';
+            res.zIndex = -1;
+          }
+          return res;
+        }
 
         // Hover highlighting
         if (hovered) {
@@ -284,7 +418,9 @@ export function useSigma(
         // Selection highlighting (applied on top of / instead of hover)
         if (selected) {
           if (node === selected) {
-            res.color = data.color;
+            res.color = colorByFolder && clusterColorMap
+              ? (clusterColorMap.get(graph.getNodeAttributes(node).cluster) || data.color)
+              : data.color;
             res.size = (data.size || 8) * 1.6;
             res.highlighted = true;
             res.zIndex = 2;
@@ -307,11 +443,31 @@ export function useSigma(
         return res;
       },
 
-      // ------ Edge reducer: hover + selection highlighting ------
+      // ------ Edge reducer: hover + selection + edge labels + path highlighting ------
       edgeReducer: (edge, data) => {
         const res = { ...data };
         const hovered = hoveredNodeRef.current;
         const selected = optionsRef.current.selectedNodeId;
+        const pathEdgeKeys = optionsRef.current.pathEdgeKeys;
+
+        // Path highlighting for edges
+        if (pathEdgeKeys && pathEdgeKeys.size > 0) {
+          const src = graph.source(edge);
+          const tgt = graph.target(edge);
+          const key = `${src}->${tgt}`;
+          const keyRev = `${tgt}->${src}`;
+          if (pathEdgeKeys.has(key) || pathEdgeKeys.has(keyRev)) {
+            res.color = '#f97316';
+            res.size = 4;
+            res.zIndex = 3;
+            res.forceLabel = true;
+          } else {
+            res.color = dimColor(EDGE_DEFAULT_COLOR, 0.05);
+            res.size = 0.1;
+            res.zIndex = 0;
+          }
+          return res;
+        }
 
         if (hovered) {
           const src = graph.source(edge);
@@ -320,6 +476,8 @@ export function useSigma(
             res.color = EDGE_HOVER_COLOR;
             res.size = Math.max(2, (data.size || 1) * 3);
             res.zIndex = 2;
+            // Show edge type label on hover
+            res.forceLabel = true;
           } else {
             res.color = dimColor(EDGE_DEFAULT_COLOR, 0.08);
             res.size = 0.2;
@@ -336,6 +494,8 @@ export function useSigma(
             res.color = brightenColor(data.color, 1.5);
             res.size = Math.max(3, (data.size || 1) * 4);
             res.zIndex = 2;
+            // Show edge label for selected node edges
+            res.forceLabel = true;
           } else {
             res.color = dimColor(data.color, 0.1);
             res.size = 0.3;
@@ -372,6 +532,18 @@ export function useSigma(
       optionsRef.current.onStageClick?.();
     });
 
+    renderer.on('rightClickNode', ({ node, event }) => {
+      event.original.preventDefault();
+      const attrs = graph.getNodeAttributes(node) as SigmaNodeAttributes;
+      const original = event.original;
+      const clientX = 'clientX' in original ? original.clientX : (original as TouchEvent).touches?.[0]?.clientX ?? 0;
+      const clientY = 'clientY' in original ? original.clientY : (original as TouchEvent).touches?.[0]?.clientY ?? 0;
+      optionsRef.current.onRightClickNode?.(node, attrs, {
+        x: clientX,
+        y: clientY,
+      });
+    });
+
     return () => {
       if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
       renderer.kill();
@@ -382,11 +554,19 @@ export function useSigma(
   }, [containerRef, graph]);
 
   // -------------------------------------------------------------------
-  // Refresh when selectedNodeId changes (no full rebuild needed)
+  // Refresh when visual state changes (no full rebuild needed)
   // -------------------------------------------------------------------
   useEffect(() => {
     sigmaRef.current?.refresh();
-  }, [options.selectedNodeId]);
+  }, [
+    options.selectedNodeId,
+    options.blastRadiusMode,
+    options.blastDistances,
+    options.colorByFolder,
+    options.clusterColorMap,
+    options.pathNodes,
+    options.pathEdgeKeys,
+  ]);
 
   // -------------------------------------------------------------------
   // Camera controls
@@ -420,11 +600,60 @@ export function useSigma(
     [graph],
   );
 
+  const exportPNG = useCallback(() => {
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+    try {
+      const canvas = sigma.getCanvases().edges;
+      if (!canvas) return;
+      // Create a combined canvas from all sigma layers
+      const container = sigma.getContainer();
+      const allCanvases = container.querySelectorAll('canvas');
+      const w = allCanvases[0]?.width || 1920;
+      const h = allCanvases[0]?.height || 1080;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = w;
+      exportCanvas.height = h;
+      const ctx = exportCanvas.getContext('2d');
+      if (!ctx) return;
+      // Fill background
+      ctx.fillStyle = '#0c0c1a';
+      ctx.fillRect(0, 0, w, h);
+      // Layer all sigma canvases
+      allCanvases.forEach((c) => {
+        ctx.drawImage(c, 0, 0);
+      });
+      const url = exportCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sia-graph-${Date.now()}.png`;
+      a.click();
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  }, []);
+
+  const getCameraState = useCallback(() => {
+    const sigma = sigmaRef.current;
+    if (!sigma) return null;
+    const camera = sigma.getCamera();
+    return { x: camera.x, y: camera.y, ratio: camera.ratio, angle: camera.angle };
+  }, []);
+
+  const setCameraState = useCallback((state: { x: number; y: number; ratio: number; angle: number }) => {
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+    sigma.getCamera().animate(state, { duration: 300 });
+  }, []);
+
   return {
     sigmaRef,
     zoomIn,
     zoomOut,
     resetZoom,
     focusNode,
+    exportPNG,
+    getCameraState,
+    setCameraState,
   };
 }

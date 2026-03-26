@@ -16,13 +16,29 @@ export interface SigmaNodeAttributes {
   // Sigma display properties (set by reducers, not stored in graph)
   highlighted?: boolean;
   zIndex?: number;
+  // Original color preserved for color-mode switching
+  originalColor?: string;
+  // Folder path chain for folder filtering
+  folderPath?: string;
 }
 
 export interface SigmaEdgeAttributes {
   size: number;
   color: string;
   edgeType: string;
+  label?: string;
   hidden?: boolean;
   // Sigma display properties (set by reducers, not stored in graph)
+  forceLabel?: boolean;
   zIndex?: number;
+}
+
+/** Bookmark: saved view state */
+export interface ViewBookmark {
+  id: string;
+  name: string;
+  cameraState: { x: number; y: number; ratio: number; angle: number };
+  hiddenTypes: string[];
+  activeFolder: string | null;
+  timestamp: number;
 }

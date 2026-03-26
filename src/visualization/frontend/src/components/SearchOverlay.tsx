@@ -126,7 +126,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
             value={query}
             onChange={e => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search nodes..."
+            placeholder="Try: 'decisions about auth' or 'bug in parser'"
             style={{
               flex: 1,
               background: 'transparent',
