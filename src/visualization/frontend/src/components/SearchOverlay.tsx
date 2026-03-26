@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { searchNodes } from '../lib/api';
 import type { SearchResult } from '../lib/api';
 import { NODE_COLORS } from '../lib/constants';
@@ -51,6 +51,16 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
     }
     setLoading(false);
   }, []);
+
+  const grouped = useMemo(() => {
+    const groups = new Map<string, SearchResult[]>();
+    for (const r of results) {
+      const key = r.type.toUpperCase();
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(r);
+    }
+    return groups;
+  }, [results]);
 
   const handleChange = (value: string) => {
     setQuery(value);
@@ -162,70 +172,92 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
           </div>
         )}
 
+        {!loading && !query.trim() && (
+          <div style={{ padding: '16px', color: '#4d5a73', fontSize: 12 }}>
+            <div style={{ marginBottom: 8, color: '#6b7a99' }}>Quick actions</div>
+            <div>Type to search files, functions, decisions...</div>
+          </div>
+        )}
+
         {results.length > 0 && (
           <div style={{ maxHeight: 360, overflowY: 'auto', padding: '6px 0' }}>
-            {results.map((r, i) => {
-              const isSelected = i === selectedIndex;
-              const dotColor = NODE_COLORS[r.type as SiaNodeType] || '#666';
-              return (
-                <div
-                  key={r.id}
-                  onClick={() => handleResultClick(r.id)}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    background: isSelected ? 'rgba(59,130,246,0.12)' : 'transparent',
-                    transition: 'background 0.1s',
-                  }}
-                >
-                  <span style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: dotColor,
-                    flexShrink: 0,
-                    boxShadow: `0 0 6px ${dotColor}40`,
-                  }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 13,
-                      color: '#e4e4ed',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {r.name}
-                    </div>
-                    <div style={{
-                      fontSize: 11,
-                      color: '#4d5a73',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {r.path}
-                    </div>
-                  </div>
-                  <span style={{
-                    fontSize: 9,
-                    color: '#6b7a99',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    background: 'rgba(255,255,255,0.05)',
-                  }}>
-                    {r.type}
-                  </span>
+            {Array.from(grouped.entries()).map(([type, items]) => (
+              <div key={type}>
+                <div style={{
+                  padding: '6px 16px',
+                  fontSize: 9,
+                  color: '#4d5a73',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  fontWeight: 600,
+                }}>
+                  {type}
                 </div>
-              );
-            })}
+                {items.map(r => {
+                  const globalIndex = results.indexOf(r);
+                  const isSelected = globalIndex === selectedIndex;
+                  const dotColor = NODE_COLORS[r.type as SiaNodeType] || '#666';
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => handleResultClick(r.id)}
+                      onMouseEnter={() => setSelectedIndex(globalIndex)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        background: isSelected ? 'rgba(59,130,246,0.12)' : 'transparent',
+                        transition: 'background 0.1s',
+                      }}
+                    >
+                      <span style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: dotColor,
+                        flexShrink: 0,
+                        boxShadow: `0 0 6px ${dotColor}40`,
+                      }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 13,
+                          color: '#e4e4ed',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {r.name}
+                        </div>
+                        <div style={{
+                          fontSize: 11,
+                          color: '#4d5a73',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {r.path}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9,
+                        color: '#6b7a99',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: 'rgba(255,255,255,0.05)',
+                      }}>
+                        {r.type}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </div>
