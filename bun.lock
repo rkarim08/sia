@@ -15,7 +15,6 @@
         "ai": "^6.0.116",
         "chokidar": "^3.6.0",
         "onnxruntime-node": "^1.24.3",
-        "tree-sitter": "^0.25.0",
         "tree-sitter-bash": "^0.25.1",
         "tree-sitter-c": "^0.24.1",
         "tree-sitter-c-sharp": "^0.23.1",
@@ -54,6 +53,9 @@
         "better-sqlite3": "^12.8.0",
         "typescript": "^5.9.3",
         "vitest": "^4.1.0",
+      },
+      "optionalDependencies": {
+        "tree-sitter": "^0.25.0",
       },
     },
   },
