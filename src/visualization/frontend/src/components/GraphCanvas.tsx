@@ -14,6 +14,7 @@ import {
   graphResponseToGraphology,
   filterGraphByTypes,
   filterGraphByFolder,
+  filterGraphByDepth,
   getNodeDistances,
   findShortestPath,
   getNodesWithinHops,
@@ -43,6 +44,7 @@ interface Props {
   onLayoutModeChange: (mode: LayoutMode) => void;
   maxTrustTier: number;
   onMaxTrustTierChange: (tier: number) => void;
+  focusDepth: number | null;
 }
 
 export interface GraphCanvasHandle {
@@ -58,7 +60,7 @@ const DOT_GRID = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 const BOOKMARKS_KEY = 'sia.viewBookmarks';
 
 const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
-  ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange }, ref) => {
+  ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange, focusDepth }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Context menu state
@@ -83,7 +85,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       return graphResponseToGraphology(data);
     }, [data]);
 
-    // Apply type + folder filtering
+    // Apply type + folder + depth filtering
     useEffect(() => {
       if (!graph) return;
       const visibleTypes = DEFAULT_VISIBLE_TYPES.filter(
@@ -91,10 +93,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       );
       if (activeFolder) {
         filterGraphByFolder(graph, activeFolder, visibleTypes);
+      } else if (focusDepth !== null && selectedNodeId) {
+        filterGraphByDepth(graph, selectedNodeId, focusDepth, visibleTypes);
       } else {
         filterGraphByTypes(graph, visibleTypes);
       }
-    }, [graph, hiddenTypes, activeFolder]);
+    }, [graph, hiddenTypes, activeFolder, focusDepth, selectedNodeId]);
 
     // Blast radius distances
     const blastDistances = useMemo(() => {

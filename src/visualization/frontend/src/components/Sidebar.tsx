@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { GraphCombo } from '../lib/api';
+import type { GraphCombo, GraphNode } from '../lib/api';
 import { searchNodes } from '../lib/api';
 import type { SearchResult } from '../lib/api';
 import { NODE_COLORS, BG_SIDEBAR, FILTERABLE_TYPES } from '../lib/constants';
@@ -7,9 +7,11 @@ import type { SiaNodeType } from '../lib/constants';
 
 interface Props {
   combos: GraphCombo[];
+  nodes: GraphNode[];
   hiddenTypes: Set<string>;
   onToggleType: (type: string) => void;
   onSearchSelect: (nodeId: string) => void;
+  onFileClick?: (node: GraphNode) => void;
   focusDepth: number | null;
   onFocusDepthChange: (depth: number | null) => void;
   activeFolder: string | null;
@@ -43,9 +45,11 @@ const sectionHeaderStyle: React.CSSProperties = {
 
 export default function Sidebar({
   combos,
+  nodes,
   hiddenTypes,
   onToggleType,
   onSearchSelect,
+  onFileClick,
   focusDepth,
   onFocusDepthChange,
   activeFolder,
@@ -341,9 +345,13 @@ export default function Sidebar({
             key={combo.id}
             combo={combo}
             combos={combos}
+            nodes={nodes}
             depth={0}
             activeFolder={activeFolder}
             onFolderClick={onFolderClick}
+            onSearchSelect={onSearchSelect}
+            onFileClick={onFileClick}
+            nodeColors={nodeColors}
           />
         ))}
       </div>
@@ -413,16 +421,21 @@ function ToggleBtn({ label, active, onClick, hint }: {
   );
 }
 
-function FolderItem({ combo, combos, depth, activeFolder, onFolderClick }: {
+function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, onSearchSelect, onFileClick, nodeColors }: {
   combo: GraphCombo;
   combos: GraphCombo[];
+  nodes: GraphNode[];
   depth: number;
   activeFolder: string | null;
   onFolderClick: (comboId: string | null) => void;
+  onSearchSelect: (nodeId: string) => void;
+  onFileClick?: (node: GraphNode) => void;
+  nodeColors: Record<SiaNodeType, string>;
 }) {
   const [expanded, setExpanded] = useState(depth < 1);
   const children = combos.filter(c => c.parentId === combo.id);
-  const hasChildren = children.length > 0;
+  const fileChildren = nodes.filter(n => n.parentId === combo.id);
+  const hasChildren = children.length > 0 || fileChildren.length > 0;
   const isActive = activeFolder === combo.id;
 
   return (
@@ -493,16 +506,58 @@ function FolderItem({ combo, combos, depth, activeFolder, onFolderClick }: {
           </span>
         )}
       </div>
-      {expanded && children.map(child => (
-        <FolderItem
-          key={child.id}
-          combo={child}
-          combos={combos}
-          depth={depth + 1}
-          activeFolder={activeFolder}
-          onFolderClick={onFolderClick}
-        />
-      ))}
+      {expanded && (
+        <>
+          {children.map(child => (
+            <FolderItem
+              key={child.id}
+              combo={child}
+              combos={combos}
+              nodes={nodes}
+              depth={depth + 1}
+              activeFolder={activeFolder}
+              onFolderClick={onFolderClick}
+              onSearchSelect={onSearchSelect}
+              onFileClick={onFileClick}
+              nodeColors={nodeColors}
+            />
+          ))}
+          {fileChildren.map(fileNode => (
+            <div
+              key={fileNode.id}
+              onClick={() => {
+                onSearchSelect(fileNode.id);
+                onFileClick?.(fileNode);
+              }}
+              style={{
+                padding: '3px 0',
+                paddingLeft: (depth + 1) * 14,
+                cursor: 'pointer',
+                fontSize: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                borderRadius: 3,
+                color: '#a0aec0',
+                borderLeft: '2px solid transparent',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: nodeColors[fileNode.nodeType as SiaNodeType] || '#555',
+                flexShrink: 0,
+              }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {fileNode.label}
+              </span>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }

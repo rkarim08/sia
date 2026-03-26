@@ -269,9 +269,11 @@ export default function App() {
       }}>
         <Sidebar
           combos={graphData?.combos ?? []}
+          nodes={graphData?.nodes ?? []}
           hiddenTypes={hiddenTypes}
           onToggleType={handleToggleType}
           onSearchSelect={handleSearchSelect}
+          onFileClick={handleNodeClick}
           focusDepth={focusDepth}
           onFocusDepthChange={setFocusDepth}
           activeFolder={activeFolder}
@@ -338,6 +340,7 @@ export default function App() {
               onLayoutModeChange={setLayoutMode}
               maxTrustTier={maxTrustTier}
               onMaxTrustTierChange={setMaxTrustTier}
+              focusDepth={focusDepth}
             />
           )}
         </div>

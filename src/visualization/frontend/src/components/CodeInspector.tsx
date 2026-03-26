@@ -405,7 +405,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
           <div style={{ padding: '10px 14px' }}>
             <SectionHeader label="Imports" count={importEdges.length} />
             {importEdges.map(edge => (
-              <EdgeRow key={edge.id} edge={edge} />
+              <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
             ))}
           </div>
         )}
@@ -415,7 +415,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
           <div style={{ padding: '10px 14px' }}>
             <SectionHeader label="Calls" count={callEdges.length} />
             {callEdges.map(edge => (
-              <EdgeRow key={edge.id} edge={edge} />
+              <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
             ))}
           </div>
         )}
@@ -456,19 +456,48 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
   );
 }
 
+/** Resolve a readable name from an edge target ID. */
+function resolveTargetLabel(target: string, entities: GraphNode[]): string {
+  if (target.startsWith('file:')) {
+    return target.slice(5); // strip "file:" prefix
+  }
+  if (target.startsWith('entity:')) {
+    const rawId = target.slice(7); // strip "entity:" prefix
+    const match = entities.find(e => e.entityId === rawId || e.id === target);
+    if (match) return match.label;
+  }
+  // Also try matching by full id against entities
+  const exactMatch = entities.find(e => e.id === target);
+  if (exactMatch) return exactMatch.label;
+  return target;
+}
+
 /** Single edge row for imports/calls sections. */
-function EdgeRow({ edge }: { edge: GraphEdge }) {
+function EdgeRow({ edge, entities, onEntityClick }: {
+  edge: GraphEdge;
+  entities: GraphNode[];
+  onEntityClick: (entityId: string) => void;
+}) {
+  const displayLabel = edge.label || resolveTargetLabel(edge.target, entities);
   return (
-    <div style={{
-      padding: '3px 8px',
-      color: '#94a3b8',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-      fontSize: 11,
-    }}>
-      {edge.label || edge.target}
+    <div
+      onClick={() => onEntityClick(edge.target)}
+      style={{
+        padding: '3px 8px',
+        color: '#94a3b8',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+        fontSize: 11,
+        cursor: 'pointer',
+        borderRadius: 4,
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {displayLabel}
     </div>
   );
 }
