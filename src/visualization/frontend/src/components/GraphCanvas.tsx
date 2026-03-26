@@ -112,8 +112,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           }}
         >
           <ZoomButton label="+" onClick={zoomIn} title="Zoom in" />
-          <ZoomButton label="\u2013" onClick={zoomOut} title="Zoom out" />
-          <ZoomButton label="\u2302" onClick={resetZoom} title="Fit to view" />
+          <ZoomButton label="−" onClick={zoomOut} title="Zoom out" />
+          <ZoomButton label="⌂" onClick={resetZoom} title="Fit to view" />
         </div>
 
         {/* Node / Edge count — bottom-left */}

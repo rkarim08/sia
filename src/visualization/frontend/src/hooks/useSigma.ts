@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import Sigma from 'sigma';
 import Graph from 'graphology';
-import forceAtlas2 from 'graphology-layout-forceatlas2';
+import forceAtlas2, { inferSettings } from 'graphology-layout-forceatlas2';
 import noverlap from 'graphology-layout-noverlap';
 import type { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
 import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR } from '../lib/constants';
@@ -117,21 +117,52 @@ export function useSigma(
     // ------- Layout: synchronous ForceAtlas2 + noverlap -------
     const nodeCount = graph.order;
 
+    // Use inferSettings for auto-tuned parameters, then override for better spread
+    const inferred = inferSettings(graph);
+    const fa2Settings = {
+      ...inferred,
+      barnesHutOptimize: nodeCount > 100,
+      gravity: inferred.gravity ? inferred.gravity * 0.3 : 0.01,
+      scalingRatio: (inferred.scalingRatio || 10) * 5,
+      strongGravityMode: false,
+      slowDown: inferred.slowDown || 2,
+      adjustSizes: true,
+    };
+
+    // Initial batch to establish structure
     forceAtlas2.assign(graph, {
       iterations: getFA2Iterations(nodeCount),
-      settings: {
-        barnesHutOptimize: true,
-        gravity: 1,
-        scalingRatio: 10,
-      },
+      settings: fa2Settings,
     });
 
     noverlap.assign(graph, {
-      maxIterations: 100,
+      maxIterations: 200,
       settings: {
-        margin: 2,
+        margin: 8,
+        ratio: 2,
       },
     });
+
+    // ------- Continuous "live" layout for floating physics effect -------
+    let animationFrameId: number | null = null;
+    let liveIterations = 0;
+    const maxLiveIterations = 600; // Run for ~10 seconds then stop
+    const liveSettings = {
+      ...fa2Settings,
+      gravity: (fa2Settings.gravity || 0.01) * 2,
+      slowDown: (fa2Settings.slowDown || 2) * 3,
+    };
+
+    const runLiveLayout = () => {
+      if (liveIterations >= maxLiveIterations) return;
+      forceAtlas2.assign(graph, {
+        iterations: 1,
+        settings: liveSettings,
+      });
+      liveIterations++;
+      animationFrameId = requestAnimationFrame(runLiveLayout);
+    };
+    animationFrameId = requestAnimationFrame(runLiveLayout);
 
     // ------- Sigma renderer -------
     const renderer = new Sigma(graph, containerRef.current, {
@@ -323,6 +354,7 @@ export function useSigma(
     });
 
     return () => {
+      if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
       renderer.kill();
       sigmaRef.current = null;
       hoveredNodeRef.current = null;

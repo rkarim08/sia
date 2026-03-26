@@ -87,8 +87,8 @@ export const graphResponseToGraphology = (
   const comboMap = new Map<string, GraphCombo>(combos.map((c) => [c.id, c]));
 
   // --- Positioning constants ---
-  const structuralSpread = Math.sqrt(totalElements) * 40;
-  const childJitter = Math.sqrt(totalElements) * 3;
+  const structuralSpread = Math.sqrt(totalElements) * 100;
+  const childJitter = Math.sqrt(totalElements) * 15;
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
   // Store positions for parent lookup
