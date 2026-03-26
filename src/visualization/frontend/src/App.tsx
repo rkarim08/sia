@@ -4,6 +4,7 @@ import type { GraphCanvasHandle } from './components/GraphCanvas';
 import CodeInspector from './components/CodeInspector';
 import Sidebar from './components/Sidebar';
 import SearchOverlay from './components/SearchOverlay';
+import ShortcutsModal from './components/ShortcutsModal';
 import { fetchGraph } from './lib/api';
 import type { GraphResponse, GraphNode } from './lib/api';
 import { BG_PRIMARY, loadNodeColors, saveNodeColors, setNodeColors } from './lib/constants';
@@ -18,6 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // New feature state
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
@@ -65,6 +67,9 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen(prev => !prev);
+      }
+      if (e.key === '?' && !(e.target instanceof HTMLInputElement)) {
+        setShortcutsOpen(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -372,6 +377,7 @@ export default function App() {
           onClose={() => setSearchOpen(false)}
         />
       )}
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }
