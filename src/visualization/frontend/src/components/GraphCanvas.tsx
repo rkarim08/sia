@@ -392,13 +392,13 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           zIndex: 10,
         }}>
           <ZoomBtn label="+" onClick={zoomIn} title="Zoom in" />
-          <ZoomBtn label="\u2212" onClick={zoomOut} title="Zoom out" />
-          <ZoomBtn label="\u2302" onClick={resetZoom} title="Fit to view" />
+          <ZoomBtn label="−" onClick={zoomOut} title="Zoom out" />
+          <ZoomBtn label="⌂" onClick={resetZoom} title="Fit to view" />
           <div style={{ height: 6 }} />
-          <ZoomBtn label="\u2B07" onClick={exportPNG} title="Export PNG" />
-          <ZoomBtn label="\u2605" onClick={saveBookmark} title="Save bookmark" />
+          <ZoomBtn label="↓" onClick={exportPNG} title="Export PNG" />
+          <ZoomBtn label="★" onClick={saveBookmark} title="Save bookmark" />
           <ZoomBtn
-            label="\u2630"
+            label="☰"
             onClick={() => setShowBookmarks(!showBookmarks)}
             title="Saved views"
             active={showBookmarks}
@@ -464,7 +464,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
                   onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
                   onMouseLeave={e => (e.currentTarget.style.color = '#4d5a73')}
                 >
-                  \u2715
+                  ✕
                 </button>
               </div>
             ))}

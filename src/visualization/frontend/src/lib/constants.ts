@@ -12,14 +12,14 @@ export type SiaNodeType =
 // Node colors by type — slightly muted for less visual noise
 // Slightly muted for less visual noise
 export const NODE_COLORS: Record<SiaNodeType, string> = {
-  file: '#3b82f6',       // Blue — structural, prominent
-  function: '#10b981',   // Emerald — common code element
-  class: '#f59e0b',      // Amber — stands out
-  interface: '#ec4899',  // Pink — type definition
-  decision: '#8b5cf6',   // Violet — architectural weight
-  bug: '#ef4444',        // Red — danger, attention
-  convention: '#14b8a6', // Teal — established pattern
-  solution: '#22c55e',   // Green — resolution
+  file: '#60a5fa',       // Sky blue — structural, prominent
+  function: '#34d399',   // Mint — common code element
+  class: '#fbbf24',      // Gold — stands out
+  interface: '#f472b6',  // Rose pink — type definition
+  decision: '#a78bfa',   // Lavender — architectural weight
+  bug: '#f87171',        // Coral red — distinct from file blue
+  convention: '#2dd4bf', // Cyan-teal — established pattern
+  solution: '#facc15',   // Yellow — clearly distinct from convention
 };
 
 // Node sizes by type — clear visual hierarchy with dramatic size differences
