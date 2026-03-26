@@ -708,6 +708,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             position: 'relative',
             zIndex: 2,
             background: 'transparent',
+            cursor: 'crosshair',
           }}
         />
 

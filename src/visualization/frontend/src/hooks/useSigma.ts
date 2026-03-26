@@ -583,12 +583,14 @@ export function useSigma(
     renderer.on('enterNode', ({ node }) => {
       hoveredNodeRef.current = node;
       hoveredNeighborsRef.current = new Set(graph.neighbors(node));
+      containerRef.current!.style.cursor = 'pointer';
       renderer.refresh();
     });
 
     renderer.on('leaveNode', () => {
       hoveredNodeRef.current = null;
       hoveredNeighborsRef.current = new Set();
+      containerRef.current!.style.cursor = 'crosshair';
       renderer.refresh();
     });
 
