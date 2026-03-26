@@ -74,6 +74,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'code' | 'entities' | 'deps'>('code');
 
   // --- Resizable panel width ---
   const [panelWidth, setPanelWidth] = useState<number>(() => {
@@ -131,6 +132,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
     setCode(null);
     setEntities([]);
     setRelatedEdges([]);
+    setActiveTab(node.nodeType === 'file' ? 'code' : 'entities');
 
     const loadData = async () => {
       if (node.nodeType === 'file' && node.filePath) {
@@ -297,6 +299,29 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
         </div>
       </div>
 
+      {/* Tab bar */}
+      <div style={{
+        display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        flexShrink: 0,
+      }}>
+        {(['code', 'entities', 'deps'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 500,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: activeTab === tab ? '#e2e8f0' : '#4d5a73',
+              borderBottom: activeTab === tab ? '2px solid #6366f1' : '2px solid transparent',
+              transition: 'all 0.15s',
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {/* Content area */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {loading && (
@@ -309,12 +334,9 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
         )}
 
         {/* Source code viewer */}
-        {code !== null && (
+        {activeTab === 'code' && code !== null && (
           <div style={{
             fontSize: 12,
-            borderBottom: (entities.length > 0 || importEdges.length > 0 || callEdges.length > 0)
-              ? '1px solid rgba(255,255,255,0.06)'
-              : 'none',
           }}>
             <SyntaxHighlighter
               language={language}
@@ -341,7 +363,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
         )}
 
         {/* Entities list */}
-        {entities.length > 0 && (
+        {activeTab === 'entities' && entities.length > 0 && (
           <div style={{ padding: '10px 14px' }}>
             <SectionHeader label="Entities" count={entities.length} />
             {entities.map(ent => {
@@ -400,24 +422,29 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
           </div>
         )}
 
-        {/* Import references */}
-        {importEdges.length > 0 && (
-          <div style={{ padding: '10px 14px' }}>
-            <SectionHeader label="Imports" count={importEdges.length} />
-            {importEdges.map(edge => (
-              <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
-            ))}
-          </div>
-        )}
+        {/* Deps tab: imports and calls */}
+        {activeTab === 'deps' && (importEdges.length > 0 || callEdges.length > 0) && (
+          <>
+            {/* Import references */}
+            {importEdges.length > 0 && (
+              <div style={{ padding: '10px 14px' }}>
+                <SectionHeader label="Imports" count={importEdges.length} />
+                {importEdges.map(edge => (
+                  <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
+                ))}
+              </div>
+            )}
 
-        {/* Call references */}
-        {callEdges.length > 0 && (
-          <div style={{ padding: '10px 14px' }}>
-            <SectionHeader label="Calls" count={callEdges.length} />
-            {callEdges.map(edge => (
-              <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
-            ))}
-          </div>
+            {/* Call references */}
+            {callEdges.length > 0 && (
+              <div style={{ padding: '10px 14px' }}>
+                <SectionHeader label="Calls" count={callEdges.length} />
+                {callEdges.map(edge => (
+                  <EdgeRow key={edge.id} edge={edge} entities={entities} onEntityClick={onEntityClick} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
