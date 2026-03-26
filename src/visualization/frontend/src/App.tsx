@@ -10,6 +10,7 @@ export default function App() {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
+  const [focusDepth, setFocusDepth] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +75,8 @@ export default function App() {
         hiddenTypes={hiddenTypes}
         onToggleType={handleToggleType}
         onSearchSelect={handleSearchSelect}
+        focusDepth={focusDepth}
+        onFocusDepthChange={setFocusDepth}
       />
 
       {/* Center: graph canvas */}
