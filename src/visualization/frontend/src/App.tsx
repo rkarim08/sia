@@ -63,7 +63,7 @@ export default function App() {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: showInspector ? '240px 1fr 380px' : '240px 1fr 0px',
+      gridTemplateColumns: showInspector ? '240px 1fr auto' : '240px 1fr 0px',
       gridTemplateRows: '100vh',
       height: '100vh',
       background: BG_PRIMARY,
