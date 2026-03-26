@@ -6,7 +6,7 @@ import { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
 /**
  * Get node size scaled for graph density.
  * Preserves relative hierarchy even in large graphs.
- * Ported from GitNexus's getScaledNodeSize.
+ * Scales node size based on graph density.
  */
 const getScaledNodeSize = (baseSize: number, nodeCount: number): number => {
   if (nodeCount > 50000) return Math.max(1, baseSize * 0.4);
@@ -20,7 +20,7 @@ const getScaledNodeSize = (baseSize: number, nodeCount: number): number => {
  * Get ForceAtlas2 mass for a node.
  * Folders get highest mass so they spread out and anchor their children.
  * Files get medium mass; knowledge nodes (decision, bug, etc.) get low mass.
- * Ported from GitNexus's getNodeMass, adapted for SIA's node types.
+ * Assigns ForceAtlas2 mass by node type.
  */
 const getNodeMass = (
   nodeType: SiaNodeType,
@@ -69,7 +69,7 @@ const getCluster = (comboId: string, comboMap: Map<string, GraphCombo>): string 
 /**
  * Converts a SIA GraphResponse into a Graphology graph for Sigma.js rendering.
  *
- * Ported from GitNexus's knowledgeGraphToGraphology with these adaptations:
+ * Converts a SIA GraphResponse into a Graphology graph:
  * - Combos (folders) are added as structural nodes on a golden-angle spiral
  * - File nodes are positioned near their parent combo
  * - Knowledge nodes (decision, bug, etc.) are positioned near their linked files
@@ -86,7 +86,7 @@ export const graphResponseToGraphology = (
   // Build lookup maps
   const comboMap = new Map<string, GraphCombo>(combos.map((c) => [c.id, c]));
 
-  // --- Positioning constants (ported from GitNexus) ---
+  // --- Positioning constants ---
   const structuralSpread = Math.sqrt(totalElements) * 40;
   const childJitter = Math.sqrt(totalElements) * 3;
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -139,7 +139,7 @@ export const graphResponseToGraphology = (
 
     const parentPos = node.parentId ? positions.get(node.parentId) : null;
     if (parentPos) {
-      // Position near parent with jitter (GitNexus's hierarchy-based positioning)
+      // Position near parent with jitter
       x = parentPos.x + (Math.random() - 0.5) * childJitter;
       y = parentPos.y + (Math.random() - 0.5) * childJitter;
     } else {
@@ -216,7 +216,7 @@ export const filterGraphByTypes = (
 
 /**
  * Get all nodes within N hops of a starting node via BFS.
- * Ported from GitNexus's getNodesWithinHops.
+ * BFS traversal to find all nodes within N hops.
  */
 export const getNodesWithinHops = (
   graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,
@@ -247,7 +247,7 @@ export const getNodesWithinHops = (
 
 /**
  * Filter graph by depth from a selected node, intersected with visible types.
- * Ported from GitNexus's filterGraphByDepth.
+ * Filter graph by depth from a selected node, intersected with visible types.
  */
 export const filterGraphByDepth = (
   graph: Graph<SigmaNodeAttributes, SigmaEdgeAttributes>,

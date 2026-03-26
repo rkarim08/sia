@@ -10,7 +10,7 @@ export type SiaNodeType =
   | 'solution';
 
 // Node colors by type — slightly muted for less visual noise
-// Ported from GitNexus, adapted for SIA entity types
+// Slightly muted for less visual noise
 export const NODE_COLORS: Record<SiaNodeType, string> = {
   file: '#3b82f6',       // Blue — structural, prominent
   function: '#10b981',   // Emerald — common code element
@@ -24,7 +24,7 @@ export const NODE_COLORS: Record<SiaNodeType, string> = {
 
 // Node sizes by type — clear visual hierarchy with dramatic size differences
 // Structural nodes are larger to make hierarchy obvious
-// Ported from GitNexus's dramatic size hierarchy
+// Dramatic size hierarchy — structural nodes are larger
 export const NODE_SIZES: Record<SiaNodeType, number> = {
   file: 6,         // Common structural element
   function: 4,     // Common code element — small
@@ -37,7 +37,7 @@ export const NODE_SIZES: Record<SiaNodeType, number> = {
 };
 
 // Community color palette for cluster-based coloring
-// Copied directly from GitNexus
+// 12-color palette for cluster-based coloring
 export const COMMUNITY_COLORS = [
   '#ef4444', // red
   '#f97316', // orange
@@ -74,7 +74,7 @@ export const DEFAULT_VISIBLE_EDGES: SiaEdgeType[] = [
 ];
 
 // Edge display info for UI
-// Ported from GitNexus's EDGE_INFO pattern
+// Per-type edge styling for UI
 export const EDGE_INFO: Record<SiaEdgeType, { color: string; label: string }> = {
   imports: { color: '#1d4ed8', label: 'Imports' },
   calls: { color: '#7c3aed', label: 'Calls' },

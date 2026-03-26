@@ -7,7 +7,7 @@ import type { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
 import { EDGE_DEFAULT_COLOR, EDGE_HOVER_COLOR } from '../lib/constants';
 
 // ---------------------------------------------------------------------------
-// Color helpers (ported from GitNexus)
+// Color helpers
 // ---------------------------------------------------------------------------
 
 const hexToRgb = (hex: string): { r: number; g: number; b: number } => {
