@@ -160,6 +160,7 @@ export default function App() {
         justifyContent: 'space-between',
         padding: '0 20px',
         zIndex: 20,
+        animation: 'fadeInDown 0.4s ease-out',
       }}>
         {/* Branding */}
         <div style={{
@@ -267,42 +268,46 @@ export default function App() {
         overflow: 'hidden',
         transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        <Sidebar
-          combos={graphData?.combos ?? []}
-          nodes={graphData?.nodes ?? []}
-          hiddenTypes={hiddenTypes}
-          onToggleType={handleToggleType}
-          onSearchSelect={handleSearchSelect}
-          onFileClick={handleNodeClick}
-          focusDepth={focusDepth}
-          onFocusDepthChange={setFocusDepth}
-          activeFolder={activeFolder}
-          onFolderClick={handleFolderClick}
-          blastRadiusMode={blastRadiusMode}
-          onToggleBlastRadius={handleToggleBlastRadius}
-          colorByFolder={colorByFolder}
-          onToggleColorByFolder={handleToggleColorByFolder}
-          showHulls={showHulls}
-          onToggleHulls={handleToggleHulls}
-          nodeColors={nodeColors}
-          onColorChange={handleColorChange}
-        />
+        <div style={{ animation: 'fadeInUp 0.5s ease-out 0.1s both', overflow: 'hidden' }}>
+          <Sidebar
+            combos={graphData?.combos ?? []}
+            nodes={graphData?.nodes ?? []}
+            hiddenTypes={hiddenTypes}
+            onToggleType={handleToggleType}
+            onSearchSelect={handleSearchSelect}
+            onFileClick={handleNodeClick}
+            focusDepth={focusDepth}
+            onFocusDepthChange={setFocusDepth}
+            activeFolder={activeFolder}
+            onFolderClick={handleFolderClick}
+            blastRadiusMode={blastRadiusMode}
+            onToggleBlastRadius={handleToggleBlastRadius}
+            colorByFolder={colorByFolder}
+            onToggleColorByFolder={handleToggleColorByFolder}
+            showHulls={showHulls}
+            onToggleHulls={handleToggleHulls}
+            nodeColors={nodeColors}
+            onColorChange={handleColorChange}
+          />
+        </div>
 
-        <div style={{ position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', overflow: 'hidden', animation: 'fadeIn 0.8s ease-out 0.2s both' }}>
           {loading && (
             <div style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(255,255,255,0.2)',
-              fontSize: 13,
-              fontWeight: 500,
-              letterSpacing: '0.05em',
-              zIndex: 10,
+              position: 'absolute', inset: 0,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              zIndex: 10, gap: 12,
             }}>
-              Loading graph...
+              <span style={{
+                fontSize: 24, fontWeight: 700, letterSpacing: '0.2em',
+                background: 'linear-gradient(135deg, #818cf8, #6366f1, #a78bfa)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}>SIA</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em' }}>
+                Building graph...
+              </span>
             </div>
           )}
           {error && (
@@ -349,6 +354,7 @@ export default function App() {
         <div style={{
           overflow: 'hidden',
           transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          animation: 'fadeInUp 0.4s ease-out 0.15s both',
         }}>
           {selectedNode && (
             <CodeInspector
