@@ -10,8 +10,8 @@ import {
 	generateCommunityClusterHtml,
 } from "@/visualization/views/community-clusters";
 import { generateDependencyMapHtml } from "@/visualization/views/dependency-map";
-import { generateGraphExplorerHtml } from "@/visualization/views/graph-explorer";
 import { generateTimelineHtml } from "@/visualization/views/timeline";
+import { createVizApiServer } from "@/visualization/viz-api-server";
 
 export type ViewType = "graph" | "timeline" | "deps" | "communities";
 
@@ -42,18 +42,14 @@ export function parseVisualizeLiveArgs(args: string[]): VisualizeLiveOpts {
 }
 
 /**
- * Generate the appropriate view HTML based on the selected view type.
+ * Generate HTML for legacy views (timeline, deps, communities).
  */
-export async function generateViewHtml(
+async function generateLegacyViewHtml(
 	db: SiaDb,
-	view: ViewType,
+	view: "timeline" | "deps" | "communities",
 	extractOpts: ExtractOpts,
 ): Promise<string> {
 	switch (view) {
-		case "graph": {
-			const data = await extractSubgraph(db, extractOpts);
-			return generateGraphExplorerHtml(data);
-		}
 		case "timeline": {
 			const data = await extractSubgraph(db, extractOpts);
 			const events = data.nodes.map((n) => ({
@@ -103,8 +99,6 @@ export async function generateViewHtml(
 			};
 			return generateCommunityClusterHtml(communityData);
 		}
-		default:
-			throw new Error(`Unknown view type: ${view}`);
 	}
 }
 
@@ -116,16 +110,23 @@ export async function runVisualizeLive(db: SiaDb, args: string[]): Promise<void>
 	const view = opts.view ?? "graph";
 	const port = opts.port ?? 52742;
 
-	// Create screen directory
+	// New graph view: start the API server directly (no HTML generation needed)
+	if (view === "graph") {
+		const projectRoot = process.cwd();
+		const server = await createVizApiServer(db, projectRoot, port);
+		console.log(`SIA Graph Visualizer running at: http://localhost:${server.port}`);
+		return;
+	}
+
+	// Legacy views: generate HTML and spawn viz-server script
 	const screenDir = resolve(".sia-graph/viz");
 	mkdirSync(screenDir, { recursive: true });
 
-	// Generate HTML view
 	const extractOpts: ExtractOpts = {
 		scope: opts.scope,
 		maxNodes: opts.maxNodes,
 	};
-	const html = await generateViewHtml(db, view, extractOpts);
+	const html = await generateLegacyViewHtml(db, view, extractOpts);
 
 	// Write to screen dir with timestamp
 	const filename = `${view}-${Date.now()}.html`;
