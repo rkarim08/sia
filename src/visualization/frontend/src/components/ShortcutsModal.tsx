@@ -22,6 +22,7 @@ const SHORTCUTS = [
 ];
 
 export default function ShortcutsModal({ onClose }: Props) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key === '?') {
@@ -50,7 +51,7 @@ export default function ShortcutsModal({ onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: 480,
+          width: isLarge ? 640 : 480,
           maxWidth: '90vw',
           background: 'rgba(14,14,28,0.92)',
           backdropFilter: 'blur(24px)',
@@ -68,7 +69,7 @@ export default function ShortcutsModal({ onClose }: Props) {
           marginBottom: 20,
         }}>
           <h2 style={{
-            fontSize: 14,
+            fontSize: isLarge ? 18 : 14,
             fontWeight: 600,
             color: '#e2e8f0',
             letterSpacing: '0.04em',
@@ -91,7 +92,7 @@ export default function ShortcutsModal({ onClose }: Props) {
         {SHORTCUTS.map(section => (
           <div key={section.category} style={{ marginBottom: 16 }}>
             <div style={{
-              fontSize: 10,
+              fontSize: isLarge ? 13 : 10,
               textTransform: 'uppercase',
               color: '#6b7a99',
               letterSpacing: '0.08em',
@@ -108,12 +109,12 @@ export default function ShortcutsModal({ onClose }: Props) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '5px 0',
-                  fontSize: 12,
+                  fontSize: isLarge ? 15 : 12,
                 }}
               >
                 <span style={{ color: '#94a3b8' }}>{item.desc}</span>
                 <kbd style={{
-                  fontSize: 11,
+                  fontSize: isLarge ? 14 : 11,
                   color: '#c8d0e0',
                   background: 'rgba(255,255,255,0.06)',
                   padding: '2px 8px',

@@ -62,12 +62,14 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Responsive state
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     useEffect(() => {
-      const onResize = () => setIsMobile(window.innerWidth < 640);
+      const onResize = () => setWindowWidth(window.innerWidth);
       window.addEventListener('resize', onResize);
       return () => window.removeEventListener('resize', onResize);
     }, []);
+    const isMobile = windowWidth < 640;
+    const isLarge = windowWidth >= 2000;
 
     // Context menu state
     const [contextMenu, setContextMenu] = useState<{
@@ -825,7 +827,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             borderRadius: 8,
             background: 'rgba(249,115,22,0.15)',
             border: '1px solid rgba(249,115,22,0.3)',
-            fontSize: 12,
+            fontSize: isLarge ? 15 : 12,
             color: '#f97316',
             zIndex: 10,
           }}>
@@ -861,8 +863,8 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
               key={mode}
               onClick={() => onLayoutModeChange(mode)}
               style={{
-                width: 28,
-                height: 28,
+                width: isLarge ? 38 : 28,
+                height: isLarge ? 38 : 28,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -871,7 +873,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
                 background: layoutMode === mode ? 'rgba(99,102,241,0.2)' : 'rgba(8,8,18,0.6)',
                 backdropFilter: 'blur(8px)',
                 color: layoutMode === mode ? '#a5b4fc' : 'rgba(255,255,255,0.35)',
-                fontSize: 11,
+                fontSize: isLarge ? 14 : 11,
                 fontWeight: 600,
                 fontFamily: '"GeistMono", "Geist Mono", monospace',
                 cursor: 'pointer',
@@ -888,15 +890,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {/* Minimap — bottom-right */}
         <canvas
           ref={minimapRef}
-          width={isMobile ? 100 : 150}
-          height={isMobile ? 66 : 100}
+          width={isMobile ? 100 : isLarge ? 220 : 150}
+          height={isMobile ? 66 : isLarge ? 146 : 100}
           onClick={handleMinimapClick}
           style={{
             position: 'absolute',
             bottom: 64,
             right: 16,
-            width: isMobile ? 100 : 150,
-            height: isMobile ? 66 : 100,
+            width: isMobile ? 100 : isLarge ? 220 : 150,
+            height: isMobile ? 66 : isLarge ? 146 : 100,
             borderRadius: 6,
             border: '1px solid rgba(255,255,255,0.06)',
             cursor: 'crosshair',
@@ -908,15 +910,15 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
         {selectedNodeId && !isMobile && (
           <canvas
             ref={localGraphRef}
-            width={200}
-            height={150}
+            width={isLarge ? 280 : 200}
+            height={isLarge ? 210 : 150}
             onClick={handleLocalGraphClick}
             style={{
               position: 'absolute',
               bottom: 64,
               left: 14,
-              width: 200,
-              height: 150,
+              width: isLarge ? 280 : 200,
+              height: isLarge ? 210 : 150,
               borderRadius: 6,
               border: '1px solid rgba(255,255,255,0.06)',
               cursor: 'pointer',
@@ -931,7 +933,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           bottom: 0,
           left: 0,
           right: 0,
-          height: 32,
+          height: isLarge ? 40 : 32,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
@@ -940,7 +942,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           backdropFilter: 'blur(8px)',
           borderTop: '1px solid rgba(255,255,255,0.04)',
           zIndex: 10,
-          fontSize: 9,
+          fontSize: isLarge ? 12 : 9,
           fontFamily: '"GeistMono", "Geist Mono", monospace',
           color: 'rgba(255,255,255,0.3)',
         }}>
@@ -977,7 +979,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           <div style={{
             position: 'absolute', bottom: 64, left: 14,
             display: 'flex', alignItems: 'flex-end', gap: 8,
-            fontSize: 9, color: 'rgba(255,255,255,0.2)',
+            fontSize: isLarge ? 12 : 9, color: 'rgba(255,255,255,0.2)',
             pointerEvents: 'none', userSelect: 'none', zIndex: 10,
           }}>
             {[
@@ -1001,12 +1003,12 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
         {/* Status bar */}
         <div style={{
-          position: 'absolute', bottom: 36, left: 0, right: 0,
-          height: 24, display: 'flex', alignItems: 'center',
+          position: 'absolute', bottom: isLarge ? 44 : 36, left: 0, right: 0,
+          height: isLarge ? 32 : 24, display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', padding: '0 14px',
           background: 'rgba(8,8,18,0.5)', backdropFilter: 'blur(8px)',
           borderTop: '1px solid rgba(255,255,255,0.03)',
-          fontSize: isMobile ? 9 : 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
+          fontSize: isMobile ? 9 : isLarge ? 13 : 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
           color: 'rgba(255,255,255,0.25)',
           zIndex: 10, pointerEvents: 'none',
         }}>
@@ -1043,7 +1045,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             background: 'rgba(8,8,18,0.8)',
             backdropFilter: 'blur(12px)',
             border: `1px solid ${selectedNodeInfo.color}22`,
-            fontSize: 12,
+            fontSize: isLarge ? 15 : 12,
             color: '#cdd6e4',
             pointerEvents: 'none',
             userSelect: 'none',
@@ -1088,6 +1090,7 @@ GraphCanvas.displayName = 'GraphCanvas';
 export default GraphCanvas;
 
 function ZoomBtn({ label, onClick, title, active }: { label: string; onClick: () => void; title: string; active?: boolean }) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
@@ -1100,17 +1103,17 @@ function ZoomBtn({ label, onClick, title, active }: { label: string; onClick: ()
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       style={{
-        width: 30,
-        height: 30,
+        width: isLarge ? 40 : 30,
+        height: isLarge ? 40 : 30,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         border: active ? '1px solid rgba(59,130,246,0.4)' : '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 8,
+        borderRadius: isLarge ? 10 : 8,
         background: active ? 'rgba(59,130,246,0.15)' : hovered ? 'rgba(255,255,255,0.08)' : 'rgba(8,8,18,0.6)',
         backdropFilter: 'blur(8px)',
         color: active ? '#60a5fa' : hovered ? '#cdd6e4' : 'rgba(255,255,255,0.35)',
-        fontSize: 15,
+        fontSize: isLarge ? 20 : 15,
         fontFamily: "'Outfit', sans-serif",
         cursor: 'pointer',
         transition: 'all 0.15s ease',

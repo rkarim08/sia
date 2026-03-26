@@ -189,6 +189,7 @@ export function useSigma(
   const hoveredNodeRef = useRef<string | null>(null);
   const hoveredNeighborsRef = useRef<Set<string>>(new Set());
   const pulsePhaseRef = useRef(0);
+  const isLargeRef = useRef(window.innerWidth >= 2000);
 
   // Keep options in a ref so the reducers always see the latest values
   // without causing Sigma to be recreated.
@@ -263,7 +264,7 @@ export function useSigma(
       renderLabels: true,
       renderEdgeLabels: true,
       labelFont: 'Outfit, -apple-system, sans-serif',
-      labelSize: 13,
+      labelSize: isLargeRef.current ? 18 : 13,
       labelWeight: '500',
       labelColor: { color: '#b0bcd0' },
       labelRenderedSizeThreshold: 14,
@@ -271,7 +272,7 @@ export function useSigma(
       labelGridCellSize: 120,
 
       edgeLabelFont: 'GeistMono, "Geist Mono", monospace',
-      edgeLabelSize: 12,
+      edgeLabelSize: isLargeRef.current ? 16 : 12,
       edgeLabelColor: { color: '#c8d0e0' },
 
       defaultNodeColor: '#6b7280',
@@ -314,11 +315,11 @@ export function useSigma(
 
         if (!label) return;
 
-        const size = Math.max(14, settings.labelSize || 13);
+        const size = Math.max(isLargeRef.current ? 18 : 14, settings.labelSize || 13);
         const font = settings.labelFont || 'Outfit, sans-serif';
         const weight = settings.labelWeight || '500';
-        const infoSize = 12; // info line font size — larger for readability
-        const badgeSize = 11; // badge font size
+        const infoSize = isLargeRef.current ? 16 : 12; // info line font size — larger for readability
+        const badgeSize = isLargeRef.current ? 15 : 11; // badge font size
 
         // --- Enhanced tooltip with type badge, connections, trust tier ---
         const nodeId = (data as Record<string, unknown>).key as string | undefined;
@@ -390,7 +391,7 @@ export function useSigma(
           const dotsStartX = x + maxContentWidth / 2 - trustTier * 10;
           for (let i = 0; i < trustTier; i++) {
             context.beginPath();
-            context.arc(dotsStartX + i * 10, badgeY, 3.5, 0, Math.PI * 2);
+            context.arc(dotsStartX + i * 10, badgeY, isLargeRef.current ? 5 : 3.5, 0, Math.PI * 2);
             context.fillStyle = i < trustTier
               ? (trustTier <= 2 ? '#34d399' : trustTier === 3 ? '#fbbf24' : '#ef4444')
               : '#333';

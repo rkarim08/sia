@@ -67,6 +67,7 @@ const codeTheme = {
 
 export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
   const isMobile = window.innerWidth < 640;
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [code, setCode] = useState<string | null>(null);
   const [language, setLanguage] = useState('text');
   const [lineCount, setLineCount] = useState(0);
@@ -79,13 +80,16 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 
   // --- Resizable panel width ---
   const [panelWidth, setPanelWidth] = useState<number>(() => {
+    const large = window.innerWidth >= 2000;
+    const defaultW = large ? 560 : DEFAULT_WIDTH;
+    const maxW = large ? 1000 : MAX_WIDTH;
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       const parsed = saved ? parseInt(saved, 10) : NaN;
-      if (!Number.isFinite(parsed)) return DEFAULT_WIDTH;
-      return Math.max(MIN_WIDTH, Math.min(parsed, MAX_WIDTH));
+      if (!Number.isFinite(parsed)) return defaultW;
+      return Math.max(MIN_WIDTH, Math.min(parsed, maxW));
     } catch {
-      return DEFAULT_WIDTH;
+      return defaultW;
     }
   });
 
@@ -226,7 +230,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
             borderRadius: 4,
             background: nodeColor,
             color: '#0a0a10',
-            fontSize: 10,
+            fontSize: isLarge ? 13 : 10,
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
@@ -236,7 +240,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
           </span>
           <span style={{
             fontWeight: 600,
-            fontSize: 13,
+            fontSize: isLarge ? 16 : 13,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -277,7 +281,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
       <div style={{
         padding: '6px 14px',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
-        fontSize: 11,
+        fontSize: isLarge ? 13 : 11,
         color: '#94a3b8',
         flexShrink: 0,
         fontFamily: '"GeistMono", "Geist Mono", "Fira Code", monospace',
@@ -312,7 +316,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 500,
+              flex: 1, padding: '6px 0', fontSize: isLarge ? 14 : 11, fontWeight: 500,
               textTransform: 'uppercase', letterSpacing: '0.06em',
               background: 'none', border: 'none', cursor: 'pointer',
               color: activeTab === tab ? '#e2e8f0' : '#4d5a73',
@@ -339,7 +343,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
         {/* Source code viewer */}
         {activeTab === 'code' && code !== null && (
           <div style={{
-            fontSize: 12,
+            fontSize: isLarge ? 14 : 12,
           }}>
             <SyntaxHighlighter
               language={language}
@@ -357,7 +361,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
                 margin: 0,
                 padding: '8px 0',
                 background: 'rgba(10,10,16,0.5)',
-                fontSize: 12,
+                fontSize: isLarge ? 14 : 12,
               }}
             >
               {code}
@@ -400,7 +404,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
                     boxShadow: `0 0 4px ${entColor}40`,
                   }} />
                   <span style={{
-                    fontSize: 12,
+                    fontSize: isLarge ? 14 : 12,
                     color: '#e2e8f0',
                     flex: 1,
                     overflow: 'hidden',
@@ -456,6 +460,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 
 /** Section header with label and count badge. */
 function SectionHeader({ label, count }: { label: string; count: number }) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   return (
     <div style={{
       display: 'flex',
@@ -464,7 +469,7 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
       marginBottom: 6,
     }}>
       <span style={{
-        fontSize: 10,
+        fontSize: isLarge ? 13 : 10,
         textTransform: 'uppercase',
         color: '#64748b',
         letterSpacing: '0.8px',
@@ -508,6 +513,7 @@ function EdgeRow({ edge, entities, onEntityClick }: {
   entities: GraphNode[];
   onEntityClick: (entityId: string) => void;
 }) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const displayLabel = edge.label || resolveTargetLabel(edge.target, entities);
   return (
     <div
@@ -519,7 +525,7 @@ function EdgeRow({ edge, entities, onEntityClick }: {
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
         fontFamily: '"GeistMono", "Geist Mono", "Fira Code", monospace',
-        fontSize: 11,
+        fontSize: isLarge ? 13 : 11,
         cursor: 'pointer',
         borderRadius: 4,
         transition: 'background 0.12s',

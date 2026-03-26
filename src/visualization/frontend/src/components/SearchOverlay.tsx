@@ -10,6 +10,7 @@ interface Props {
 }
 
 export default function SearchOverlay({ onSelect, onClose }: Props) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: 520,
+          width: isLarge ? 680 : 520,
           maxWidth: '90vw',
           background: 'rgba(14,14,28,0.9)',
           border: '1px solid rgba(255,255,255,0.08)',
@@ -143,7 +144,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
               border: 'none',
               outline: 'none',
               color: '#e4e4ed',
-              fontSize: 15,
+              fontSize: isLarge ? 18 : 15,
               fontFamily: 'inherit',
             }}
           />
@@ -185,7 +186,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
               <div key={type}>
                 <div style={{
                   padding: '6px 16px',
-                  fontSize: 9,
+                  fontSize: isLarge ? 12 : 9,
                   color: '#4d5a73',
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
@@ -222,7 +223,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
                       }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: 13,
+                          fontSize: isLarge ? 16 : 13,
                           color: '#e4e4ed',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -231,7 +232,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
                           {r.name}
                         </div>
                         <div style={{
-                          fontSize: 11,
+                          fontSize: isLarge ? 13 : 11,
                           color: '#4d5a73',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -241,7 +242,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
                         </div>
                       </div>
                       <span style={{
-                        fontSize: 9,
+                        fontSize: isLarge ? 12 : 9,
                         color: '#6b7a99',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',

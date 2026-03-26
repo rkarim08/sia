@@ -34,15 +34,6 @@ const DEPTH_OPTIONS: { value: number | null; label: string }[] = [
   { value: 5, label: '5-hops' },
 ];
 
-const sectionHeaderStyle: React.CSSProperties = {
-  fontSize: 10,
-  textTransform: 'uppercase',
-  color: '#6b7a99',
-  marginBottom: 8,
-  letterSpacing: '0.08em',
-  fontWeight: 600,
-};
-
 export default function Sidebar({
   combos,
   nodes,
@@ -63,9 +54,19 @@ export default function Sidebar({
   nodeColors,
   onColorChange,
 }: Props) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const sectionHeader: React.CSSProperties = {
+    fontSize: isLarge ? 13 : 10,
+    textTransform: 'uppercase',
+    color: '#6b7a99',
+    marginBottom: isLarge ? 12 : 8,
+    letterSpacing: '0.08em',
+    fontWeight: 600,
+  };
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -101,7 +102,7 @@ export default function Sidebar({
       color: '#b0bcd0',
     }}>
       {/* Search */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ padding: isLarge ? '14px 16px' : '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ position: 'relative' }}>
           <svg
             width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -124,7 +125,7 @@ export default function Sidebar({
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 5,
               color: '#e0e0e0',
-              fontSize: 12,
+              fontSize: isLarge ? 15 : 12,
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -172,8 +173,8 @@ export default function Sidebar({
       </div>
 
       {/* Node Types */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={sectionHeaderStyle}>Node Types</div>
+      <div style={{ padding: isLarge ? '14px 16px' : '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={sectionHeader}>Node Types</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {FILTERABLE_TYPES.map(type => {
             const active = !hiddenTypes.has(type);
@@ -185,9 +186,9 @@ export default function Sidebar({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '4px 6px',
+                  padding: isLarge ? '6px 8px' : '4px 6px',
                   cursor: 'pointer',
-                  fontSize: 12,
+                  fontSize: isLarge ? 14 : 12,
                   background: active ? 'rgba(255,255,255,0.04)' : 'transparent',
                   border: 'none',
                   borderRadius: 4,
@@ -211,8 +212,8 @@ export default function Sidebar({
                 >
                   <span style={{
                     display: 'block',
-                    width: 10,
-                    height: 10,
+                    width: isLarge ? 14 : 10,
+                    height: isLarge ? 14 : 10,
                     borderRadius: '50%',
                     background: nodeColors[type],
                     opacity: active ? 1 : 0.35,
@@ -252,8 +253,8 @@ export default function Sidebar({
       </div>
 
       {/* Graph Controls */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={sectionHeaderStyle}>Display</div>
+      <div style={{ padding: isLarge ? '14px 16px' : '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={sectionHeader}>Display</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <ToggleBtn
             label="Blast Radius"
@@ -277,8 +278,8 @@ export default function Sidebar({
       </div>
 
       {/* Focus Depth */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={sectionHeaderStyle}>Focus Depth</div>
+      <div style={{ padding: isLarge ? '14px 16px' : '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={sectionHeader}>Focus Depth</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {DEPTH_OPTIONS.map(({ value, label }) => {
             const active = focusDepth === value;
@@ -287,8 +288,8 @@ export default function Sidebar({
                 key={label}
                 onClick={() => onFocusDepthChange(value)}
                 style={{
-                  padding: '4px 10px',
-                  fontSize: 11,
+                  padding: isLarge ? '6px 14px' : '4px 10px',
+                  fontSize: isLarge ? 14 : 11,
                   fontWeight: 500,
                   border: 'none',
                   borderRadius: 4,
@@ -315,10 +316,10 @@ export default function Sidebar({
       <div style={{
         flex: 1,
         overflow: 'auto',
-        padding: '10px 12px',
+        padding: isLarge ? '14px 16px' : '10px 12px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={sectionHeaderStyle as React.CSSProperties}>Explorer</div>
+          <div style={sectionHeader as React.CSSProperties}>Explorer</div>
           {activeFolder && (
             <button
               onClick={() => onFolderClick(null)}
@@ -358,12 +359,12 @@ export default function Sidebar({
 
       {/* Legend */}
       <div style={{
-        padding: '10px 12px',
+        padding: isLarge ? '14px 16px' : '10px 12px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
-        fontSize: 11,
+        fontSize: isLarge ? 13 : 11,
         color: '#4d5a73',
       }}>
-        <div style={{ ...sectionHeaderStyle, marginBottom: 4 }}>Legend</div>
+        <div style={{ ...sectionHeader, marginBottom: 4 }}>Legend</div>
         <div>Hover: highlight neighbors</div>
         <div>Click node: inspect details</div>
         <div>Right-click: context menu</div>
@@ -380,6 +381,7 @@ function ToggleBtn({ label, active, onClick, hint }: {
   onClick: () => void;
   hint: string;
 }) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   return (
     <button
       onClick={onClick}
@@ -388,8 +390,8 @@ function ToggleBtn({ label, active, onClick, hint }: {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '5px 8px',
-        fontSize: 11,
+        padding: isLarge ? '7px 10px' : '5px 8px',
+        fontSize: isLarge ? 14 : 11,
         fontWeight: 500,
         border: active ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
         borderRadius: 5,
@@ -432,6 +434,7 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
   onFileClick?: (node: GraphNode) => void;
   nodeColors: Record<SiaNodeType, string>;
 }) {
+  const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [expanded, setExpanded] = useState(depth < 1);
   const children = combos.filter(c => c.parentId === combo.id);
   const fileChildren = nodes.filter(n => n.parentId === combo.id);
@@ -454,7 +457,7 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
           padding: '3px 0',
           paddingLeft: depth * 14,
           cursor: 'pointer',
-          fontSize: 12,
+          fontSize: isLarge ? 14 : 12,
           display: 'flex',
           alignItems: 'center',
           gap: 5,
@@ -533,7 +536,7 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
                 padding: '3px 0',
                 paddingLeft: (depth + 1) * 14,
                 cursor: 'pointer',
-                fontSize: 12,
+                fontSize: isLarge ? 14 : 12,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,

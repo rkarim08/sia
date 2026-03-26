@@ -19,6 +19,16 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
+      /* Scale up for large/ultrawide displays */
+      @media (min-width: 2000px) {
+        body { font-size: 16px; }
+      }
+      @media (min-width: 2800px) {
+        body { font-size: 19px; }
+      }
+      @media (min-width: 3400px) {
+        body { font-size: 22px; }
+      }
       /* Subtle scrollbar */
       ::-webkit-scrollbar { width: 5px; }
       ::-webkit-scrollbar-track { background: transparent; }
@@ -36,7 +46,7 @@
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
-    <script type="module" crossorigin src="/assets/index-CGcqGN6G.js"></script>
+    <script type="module" crossorigin src="/assets/index-CH5EhSHW.js"></script>
   </head>
   <body>
     <div id="root"></div>
