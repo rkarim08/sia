@@ -11,8 +11,7 @@ import type { GraphResponse, GraphNode } from '../lib/api';
 import type { SigmaNodeAttributes, SigmaEdgeAttributes } from '../types';
 import { graphResponseToGraphology, filterGraphByTypes } from '../lib/graph-adapter';
 import { useSigma } from '../hooks/useSigma';
-import { NODE_COLORS, BG_PRIMARY, DEFAULT_VISIBLE_TYPES } from '../lib/constants';
-import type { SiaNodeType } from '../lib/constants';
+import { BG_PRIMARY, DEFAULT_VISIBLE_TYPES } from '../lib/constants';
 
 interface Props {
   data: GraphResponse | null;
