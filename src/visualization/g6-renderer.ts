@@ -1,5 +1,5 @@
 // src/visualization/g6-renderer.ts
-// Full G6 v5 renderer — returns a self-contained HTML string for the visualizer.
+// Sigma.js v3 + Graphology renderer — returns a self-contained HTML string for the visualizer.
 
 export function renderG6Html(): string {
 	return `<!DOCTYPE html>
@@ -8,7 +8,9 @@ export function renderG6Html(): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SIA Knowledge Graph</title>
-<script src="https://cdn.jsdelivr.net/npm/@antv/g6@5/dist/g6.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/dist/sigma.min.js"><\/script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -142,6 +144,7 @@ export function renderG6Html(): string {
     flex: 1;
     width: 100%;
     height: 100%;
+    position: relative;
   }
 
   /* Zoom controls */
@@ -152,6 +155,7 @@ export function renderG6Html(): string {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    z-index: 10;
   }
 
   .zoom-btn {
@@ -438,6 +442,7 @@ export function renderG6Html(): string {
     color: #7986cb;
     font-size: 14px;
     pointer-events: none;
+    z-index: 5;
   }
 <\/style>
 <\/head>
@@ -482,9 +487,9 @@ export function renderG6Html(): string {
 
     <div class="sidebar-section">
       <h3>Legend<\/h3>
-      <div class="legend-row"><div class="legend-shape">\u25a3<\/div> File node<\/div>
-      <div class="legend-row"><div class="legend-shape">\u25c6<\/div> Function / Class<\/div>
-      <div class="legend-row"><div class="legend-shape">\u2b1f<\/div> Decision / Bug<\/div>
+      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> File node<\/div>
+      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> Function / Class<\/div>
+      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> Decision / Bug<\/div>
       <div class="legend-row">
         <div class="legend-shape" style="background:#4fc3f7;width:18px;height:2px;border-radius:1px"><\/div>
         Imports
@@ -590,175 +595,246 @@ function edgeColor(type) { return EDGE_COLORS[type] || '#555'; }
 
 function nodeSize(importance) {
   const imp = typeof importance === 'number' ? importance : 0.5;
-  return Math.max(12, Math.min(40, 12 + imp * 28));
+  return Math.max(3, Math.min(15, 3 + imp * 12));
 }
 
-function adjustBrightness(hex, factor) {
-  try {
-    const n = parseInt(hex.replace('#',''), 16);
-    const r = Math.min(255, Math.round(((n >> 16) & 0xff) * factor));
-    const g = Math.min(255, Math.round(((n >> 8) & 0xff) * factor));
-    const b = Math.min(255, Math.round((n & 0xff) * factor));
-    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
-  } catch { return hex; }
+// ── Convert API graph to Graphology data ──────────────────────────────────────
+
+function topFolder(parentId) {
+  if (!parentId) return '_root';
+  const path = parentId.replace(/^combo:/, '');
+  return path.split('/')[0] || '_root';
 }
 
-// ── Convert API graph to G6 format ───────────────────────────────────────────
-
-function convertToG6Data(apiData) {
-  // Build set of valid combo IDs so we only assign nodes to existing combos
-  const comboIds = new Set((apiData.combos || []).map(c => String(c.id)));
+function convertApiData(apiData) {
+  const folderColors = {};
+  for (const c of (apiData.combos || [])) {
+    folderColors[String(c.id)] = c.color || '#7986cb';
+  }
 
   const nodes = (apiData.nodes || []).map(n => {
-    const parentId = n.parentId ? String(n.parentId) : undefined;
-    // Use the folder color from the API for file nodes; fall back to type-based color for knowledge nodes
     const isKnowledge = ['decision','bug','convention','solution'].includes(n.nodeType || '');
-    const fill = isKnowledge ? nodeColor(n.nodeType) : (n.color || nodeColor(n.nodeType || 'file'));
+    const folder = isKnowledge ? '_knowledge' : topFolder(n.parentId);
+    const fill = isKnowledge ? nodeColor(n.nodeType) : (n.color || folderColors[n.parentId] || nodeColor('file'));
     return {
       id: String(n.id),
-      data: {
-        label:     n.label || n.id,
-        nodeType:  n.nodeType || n.type || 'file',
-        filePath:  n.filePath || n.path || '',
-        importance: n.importance || 0.5,
-        fill:      fill,
-        size:      nodeSize(n.importance),
-      },
-      combo: (parentId && comboIds.has(parentId)) ? parentId : undefined,
+      label:      n.label || n.id,
+      nodeType:   n.nodeType || n.type || 'file',
+      filePath:   n.filePath || n.path || '',
+      importance: n.importance || 0.5,
+      color:      fill,
+      size:       nodeSize(n.importance),
+      cluster:    folder,
     };
   });
 
-  const edges = (apiData.edges || []).map((e, i) => ({
+  const nodeIds = new Set(nodes.map(n => n.id));
+
+  const edges = (apiData.edges || []).filter(e =>
+    nodeIds.has(String(e.source)) && nodeIds.has(String(e.target))
+  ).map((e, i) => ({
     id: e.id ? String(e.id) : 'e' + i,
     source: String(e.source),
     target: String(e.target),
-    data: {
-      edgeType: e.edgeType || e.type || 'default',
-      stroke:   edgeColor(e.edgeType || e.type || 'default'),
-    },
+    edgeType: e.edgeType || e.type || 'default',
+    color: edgeColor(e.edgeType || e.type || 'default'),
   }));
 
-  const combos = (apiData.combos || []).map(c => {
-    const parentId = c.parentId ? String(c.parentId) : undefined;
-    const isTopLevel = !parentId || !comboIds.has(parentId);
-    return {
-      id: String(c.id),
-      data: {
-        label:      c.label || c.id,
-        childCount: c.childCount || 0,
-        color:      c.color || '#7986cb',
-        collapsed:  isTopLevel,  // Start top-level combos collapsed
-      },
-      style: {
-        collapsed: isTopLevel,
-      },
-      combo: (parentId && comboIds.has(parentId)) ? parentId : undefined,
-    };
-  });
-
-  return { nodes, edges, combos };
+  return { nodes, edges };
 }
 
-// ── Graph initialization ──────────────────────────────────────────────────────
+// ── Graph state ──────────────────────────────────────────────────────────────
 
-let graph = null;
-window._g6graph = null; // exposed for debugging
+let sigmaInstance = null;
+let graphInstance = null;
+let nodeDataMap = {};  // id -> { nodeType, filePath, cluster, ... }
+let hoveredNode = null;
+let hoveredNeighbors = null;
+window._g6graph = null;
 let activeTab = 'code';
+
+// ── Graph initialization ──────────────────────────────────────────────────────
 
 async function initGraph() {
   const loadingEl = document.getElementById('loading');
   const res = await fetch('/api/graph');
   if (!res.ok) { loadingEl.textContent = 'Failed to load graph.'; return; }
   const apiData = await res.json();
-  const g6Data = convertToG6Data(apiData);
+  const data = convertApiData(apiData);
 
-  loadingEl.style.display = 'none';
+  loadingEl.textContent = 'Laying out graph\u2026';
   buildFileTree(apiData.combos || [], apiData.nodes || []);
 
-  const G6 = window.G6;
-  if (!G6) { loadingEl.textContent = 'G6 library failed to load.'; loadingEl.style.display = 'block'; return; }
+  // Check libraries loaded
+  const GraphClass = (typeof graphology !== 'undefined') ? graphology.Graph : null;
+  const SigmaClass = (typeof Sigma !== 'undefined') ? Sigma : null;
+  const gLib = (typeof graphologyLibrary !== 'undefined') ? graphologyLibrary : {};
+  const fa2Layout = gLib.layoutForceAtlas2 || gLib.forceAtlas2 || null;
+  const noverlapLayout = gLib.layoutNoverlap || gLib.noverlap || null;
+
+  if (!GraphClass || !SigmaClass) {
+    loadingEl.textContent = 'Sigma/Graphology libraries failed to load.';
+    return;
+  }
 
   try {
-    graph = new G6.Graph({
-      container: 'graph-canvas',
-      autoFit: 'view',
-      layout: {
-        type: 'force',
-        preventOverlap: true,
-        nodeSize: 40,
-        linkDistance: 150,
-        nodeStrength: -800,
-        edgeStrength: 0.1,
-        collideStrength: 0.8,
-        alphaDecay: 0.02,
-      },
-      node: {
-        style: {
-          size:         d => d.data.size || 18,
-          fill:         d => d.data.fill || '#7986cb',
-          stroke:       d => adjustBrightness(d.data.fill || '#7986cb', 0.7),
-          lineWidth:    1,
-          labelText:    d => (d.data.size || 18) >= 16 ? (d.data.label || '') : '',
-          labelFill:    '#ccc',
-          labelFontSize: 9,
-          labelOffsetY: 12,
-          labelBackground: true,
-          labelBackgroundFill: 'rgba(26,26,46,0.8)',
-          labelBackgroundRadius: 2,
-          cursor:       'pointer',
+    // Create graphology graph
+    const graph = new GraphClass();
+    graphInstance = graph;
+
+    // Add nodes with random initial positions
+    const spread = Math.max(100, data.nodes.length * 2);
+    for (const n of data.nodes) {
+      graph.addNode(n.id, {
+        x: (Math.random() - 0.5) * spread,
+        y: (Math.random() - 0.5) * spread,
+        size: n.size,
+        color: n.color,
+        label: n.label,
+        nodeType: n.nodeType,
+        filePath: n.filePath,
+        cluster: n.cluster,
+      });
+      nodeDataMap[n.id] = n;
+    }
+
+    // Add edges
+    for (const e of data.edges) {
+      try {
+        graph.addEdge(e.source, e.target, {
+          color: e.color,
+          edgeType: e.edgeType,
+          size: 0.5,
+        });
+      } catch (_) {
+        // skip duplicate edges
+      }
+    }
+
+    // Run ForceAtlas2 synchronously for 300 iterations
+    if (fa2Layout) {
+      loadingEl.textContent = 'Running layout\u2026';
+      const fa2Fn = fa2Layout.default || fa2Layout;
+      // Assign positions synchronously
+      const positions = fa2Fn(graph, {
+        iterations: 300,
+        settings: {
+          barnesHutOptimize: true,
+          gravity: 1,
+          scalingRatio: 10,
+          slowDown: 1,
+          adjustSizes: false,
         },
+      });
+      // Apply positions if returned (some versions mutate in-place, others return)
+      if (positions) {
+        for (const [nodeId, pos] of Object.entries(positions)) {
+          if (graph.hasNode(nodeId)) {
+            graph.setNodeAttribute(nodeId, 'x', pos.x);
+            graph.setNodeAttribute(nodeId, 'y', pos.y);
+          }
+        }
+      }
+    }
+
+    // Run noverlap to prevent overlapping
+    if (noverlapLayout) {
+      const noverlapFn = noverlapLayout.default || noverlapLayout;
+      const nPositions = noverlapFn(graph, {
+        maxIterations: 100,
+        settings: { margin: 2, ratio: 1.5 },
+      });
+      if (nPositions) {
+        for (const [nodeId, pos] of Object.entries(nPositions)) {
+          if (graph.hasNode(nodeId)) {
+            graph.setNodeAttribute(nodeId, 'x', pos.x);
+            graph.setNodeAttribute(nodeId, 'y', pos.y);
+          }
+        }
+      }
+    }
+
+    loadingEl.style.display = 'none';
+
+    // Create Sigma renderer
+    const container = document.getElementById('graph-canvas');
+    const renderer = new SigmaClass(graph, container, {
+      renderEdgeLabels: false,
+      labelRenderedSizeThreshold: 8,
+      labelColor: { color: '#cccccc' },
+      labelFont: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      labelSize: 11,
+      defaultEdgeColor: '#333',
+      defaultEdgeType: 'arrow',
+      edgeLabelColor: { color: '#888' },
+      stagePadding: 40,
+      nodeReducer: function(node, data) {
+        const res = Object.assign({}, data);
+        if (hoveredNode && hoveredNeighbors) {
+          if (node === hoveredNode) {
+            res.highlighted = true;
+            res.zIndex = 1;
+          } else if (hoveredNeighbors.has(node)) {
+            res.highlighted = true;
+          } else {
+            res.color = '#2a2a4a';
+            res.label = '';
+          }
+        }
+        // Apply filter visibility
+        if (res.hidden) {
+          res.hidden = true;
+        }
+        return res;
       },
-      edge: {
-        style: {
-          stroke:       d => d.data.stroke || '#555',
-          lineWidth:    0.5,
-          endArrow:     true,
-          endArrowSize: 4,
-          opacity:      0.15,
-        },
+      edgeReducer: function(edge, data) {
+        const res = Object.assign({}, data);
+        if (!hoveredNode || !hoveredNeighbors) {
+          res.color = data.color || '#333';
+          // Low opacity for edges by default — encode as alpha in color
+          if (res.color && !res.color.includes('rgba')) {
+            res.color = hexToRgba(res.color, 0.12);
+          }
+          return res;
+        }
+        const src = graph.source(edge);
+        const tgt = graph.target(edge);
+        if (src === hoveredNode || tgt === hoveredNode) {
+          res.color = data.color || '#888';
+          res.size = 1.5;
+        } else {
+          res.color = 'rgba(42,42,74,0.05)';
+        }
+        return res;
       },
-      combo: {
-        style: {
-          fill:         d => (d.data.color || '#7986cb') + '15',
-          stroke:       d => (d.data.color || '#7986cb') + 'aa',
-          lineWidth:    2,
-          radius:       16,
-          labelText:    d => {
-            const label = d.data.label || d.id;
-            const count = d.data.childCount || 0;
-            return count > 0 ? label + '/ (' + count + ')' : label + '/';
-          },
-          labelFill:    d => d.data.color || '#aaa',
-          labelFontSize: 11,
-          labelFontWeight: 600,
-          labelPlacement: 'top',
-          padding:      20,
-          cursor:       'pointer',
-          collapsedFill:       d => (d.data.color || '#7986cb') + '40',
-          collapsedStroke:     d => (d.data.color || '#7986cb') + 'cc',
-          collapsedLineWidth:  2.5,
-          collapsedRadius:     12,
-        },
-      },
-      behaviors: ['drag-canvas', 'zoom-canvas', 'drag-element', 'collapse-expand'],
-      data: g6Data,
     });
 
-    window._g6graph = graph;
-    await graph.render();
-    bindGraphEvents();
+    sigmaInstance = renderer;
+    window._g6graph = renderer;
+
+    bindGraphEvents(renderer, graph);
+
   } catch (err) {
-    console.error('G6 init error:', err);
+    console.error('Sigma init error:', err);
     loadingEl.textContent = 'Graph render error: ' + String(err);
     loadingEl.style.display = 'block';
   }
+}
+
+function hexToRgba(hex, alpha) {
+  try {
+    const n = parseInt(hex.replace('#',''), 16);
+    const r = (n >> 16) & 0xff;
+    const g = (n >> 8) & 0xff;
+    const b = n & 0xff;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  } catch (_) { return hex; }
 }
 
 // ── File tree ─────────────────────────────────────────────────────────────────
 
 function buildFileTree(combos, nodes) {
   const treeEl = document.getElementById('file-tree');
-  // Clear using textContent to remove all children safely
   treeEl.textContent = '';
 
   const folderIds = new Set(combos.map(c => String(c.id || '')));
@@ -768,11 +844,10 @@ function buildFileTree(combos, nodes) {
     el.className = 'tree-folder';
     const label = combo.label || combo.id || '';
     el.title = label;
-    // Use textContent — no user content inserted as HTML
     el.textContent = '\uD83D\uDCC1 ' + label;
     el.dataset.comboId = String(combo.id || '');
     el.addEventListener('click', () => {
-      if (graph) { try { graph.focusElement(String(combo.id), { animate: true, padding: 40 }); } catch {} }
+      focusOnCluster(label);
     });
     treeEl.appendChild(el);
   }
@@ -786,9 +861,31 @@ function buildFileTree(combos, nodes) {
     el.title = label;
     el.textContent = '\uD83D\uDCC4 ' + label;
     el.addEventListener('click', () => {
-      if (graph) { try { graph.focusElement(String(node.id), { animate: true, padding: 40 }); } catch {} }
+      const nodeId = String(node.id);
+      if (sigmaInstance && graphInstance && graphInstance.hasNode(nodeId)) {
+        const attrs = graphInstance.getNodeAttributes(nodeId);
+        sigmaInstance.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.3 }, { duration: 400 });
+      }
     });
     treeEl.appendChild(el);
+  }
+}
+
+function focusOnCluster(folderLabel) {
+  if (!sigmaInstance || !graphInstance) return;
+  // Find nodes in this cluster, compute centroid
+  let cx = 0, cy = 0, count = 0;
+  graphInstance.forEachNode(function(nodeId, attrs) {
+    if (attrs.cluster === folderLabel || attrs.cluster === folderLabel.replace(/\\/$/, '')) {
+      cx += attrs.x;
+      cy += attrs.y;
+      count++;
+    }
+  });
+  if (count > 0) {
+    cx /= count;
+    cy /= count;
+    sigmaInstance.getCamera().animate({ x: cx, y: cy, ratio: 0.5 }, { duration: 400 });
   }
 }
 
@@ -801,37 +898,53 @@ document.getElementById('tree-search').addEventListener('input', function() {
 
 // ── Graph events ──────────────────────────────────────────────────────────────
 
-function bindGraphEvents() {
-  if (!graph) return;
-
-  graph.on('node:click', async evt => {
-    const nodeId = evt.target?.id || '';
+function bindGraphEvents(renderer, graph) {
+  // Node click
+  renderer.on('clickNode', function(evt) {
+    var nodeId = evt.node;
     if (!nodeId) return;
-    const nodeData = graph.getNodeData(nodeId);
-    if (!nodeData) return;
-    const data = nodeData.data || {};
-    const nodeType = data.nodeType || '';
-    const filePath = data.filePath || '';
+    var data = nodeDataMap[nodeId] || {};
+    var nodeType = data.nodeType || '';
+    var filePath = data.filePath || '';
 
     if (nodeType === 'file' && filePath) {
-      await openInspector(nodeId, filePath);
+      openInspector(nodeId, filePath);
     }
   });
 
-  graph.on('canvas:click', () => { closeInspector(); });
+  // Canvas click (deselect)
+  renderer.on('clickStage', function() {
+    closeInspector();
+  });
+
+  // Hover: highlight neighbors
+  renderer.on('enterNode', function(evt) {
+    hoveredNode = evt.node;
+    hoveredNeighbors = new Set(graph.neighbors(evt.node));
+    renderer.refresh();
+  });
+
+  renderer.on('leaveNode', function() {
+    hoveredNode = null;
+    hoveredNeighbors = null;
+    renderer.refresh();
+  });
 }
 
 // ── Inspector ─────────────────────────────────────────────────────────────────
 
 window.openInspector = openInspector;
 async function openInspector(nodeId, filePath) {
-  // Use textContent to safely set path — no HTML injection
   document.getElementById('inspector-path').textContent = filePath;
   document.getElementById('inspector-placeholder').style.display = 'none';
   document.getElementById('inspector-content').classList.add('visible');
   document.getElementById('app').classList.add('inspector-open');
 
-  if (graph) { try { graph.fitView({ animate: false }); } catch {} }
+  // Animate camera to the clicked node
+  if (sigmaInstance && graphInstance && graphInstance.hasNode(nodeId)) {
+    var attrs = graphInstance.getNodeAttributes(nodeId);
+    sigmaInstance.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.4 }, { duration: 300 });
+  }
 
   const [fileData, entityData] = await Promise.all([
     fetchFile(filePath),
@@ -847,7 +960,6 @@ function closeInspector() {
   document.getElementById('inspector-content').classList.remove('visible');
   document.getElementById('inspector-placeholder').style.display = 'flex';
   document.getElementById('app').classList.remove('inspector-open');
-  if (graph) { try { graph.fitView({ animate: false }); } catch {} }
 }
 
 async function fetchFile(filePath) {
@@ -876,7 +988,7 @@ async function fetchEntities(nodeId, filePath) {
   } catch { return null; }
 }
 
-// Render code viewer using DOM methods — source code escaped via esc()
+// Render code viewer using DOM methods — source code escaped via textContent
 function renderCodeViewer(content) {
   const viewer = document.getElementById('code-viewer');
   viewer.textContent = '';
@@ -903,7 +1015,6 @@ function renderCodeViewer(content) {
 
     const codeSpan = document.createElement('span');
     codeSpan.className = 'line-code';
-    // textContent safely handles all special chars in source code
     codeSpan.textContent = line;
 
     row.appendChild(numSpan);
@@ -998,13 +1109,21 @@ document.getElementById('inspector-close').addEventListener('click', closeInspec
 // ── Zoom controls ─────────────────────────────────────────────────────────────
 
 document.getElementById('zoom-in').addEventListener('click', () => {
-  if (graph) { try { graph.zoom(1.2); } catch {} }
+  if (sigmaInstance) {
+    const cam = sigmaInstance.getCamera();
+    cam.animatedZoom({ duration: 200 });
+  }
 });
 document.getElementById('zoom-out').addEventListener('click', () => {
-  if (graph) { try { graph.zoom(0.8); } catch {} }
+  if (sigmaInstance) {
+    const cam = sigmaInstance.getCamera();
+    cam.animatedUnzoom({ duration: 200 });
+  }
 });
 document.getElementById('zoom-fit').addEventListener('click', () => {
-  if (graph) { try { graph.fitView({ animate: true }); } catch {} }
+  if (sigmaInstance) {
+    sigmaInstance.getCamera().animatedReset({ duration: 300 });
+  }
 });
 
 // ── Search overlay (Cmd+K) ────────────────────────────────────────────────────
@@ -1095,8 +1214,9 @@ function renderSearchResults(results) {
 
     const nodeId = String(r.id || '');
     item.addEventListener('click', () => {
-      if (nodeId && graph) {
-        try { graph.focusElement(nodeId, { animate: true, padding: 60 }); } catch {}
+      if (nodeId && sigmaInstance && graphInstance && graphInstance.hasNode(nodeId)) {
+        var attrs = graphInstance.getNodeAttributes(nodeId);
+        sigmaInstance.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.3 }, { duration: 400 });
       }
       closeSearchOverlay();
     });
@@ -1113,28 +1233,19 @@ document.querySelectorAll('.filter-row input[type=checkbox]').forEach(cb => {
 });
 
 function applyFilters() {
-  if (!graph) return;
+  if (!graphInstance || !sigmaInstance) return;
   const activeTypes = new Set(
     [...document.querySelectorAll('.filter-row input[type=checkbox]')]
       .filter(cb => cb.checked)
       .map(cb => cb.dataset.type)
   );
-  try {
-    graph.getNodeData().forEach(node => {
-      const nodeType = (node.data && node.data.nodeType) || 'file';
-      graph.updateNodeData([{ id: node.id, data: { visible: activeTypes.has(nodeType) } }]);
-    });
-    graph.draw();
-  } catch {}
+  graphInstance.forEachNode(function(nodeId, attrs) {
+    var nodeType = attrs.nodeType || 'file';
+    var shouldHide = !activeTypes.has(nodeType);
+    graphInstance.setNodeAttribute(nodeId, 'hidden', shouldHide);
+  });
+  sigmaInstance.refresh();
 }
-
-// ── Resize handler ────────────────────────────────────────────────────────────
-
-window.addEventListener('resize', () => {
-  if (!graph) return;
-  const canvas = document.getElementById('graph-canvas');
-  try { graph.changeSize(canvas.clientWidth, canvas.clientHeight); } catch {}
-});
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 

@@ -16,3 +16,7 @@ sia-native/node_modules/
 .sia-learn-progress.json
 .sia-graph/augment-cache.json
 .sia-graph/*
+.superpowers/*
+.playwright-mcp/*
+src/visualization/frontend-dist/
+src/visualization/frontend/node_modules/

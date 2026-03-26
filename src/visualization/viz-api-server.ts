@@ -1,14 +1,62 @@
 // src/visualization/viz-api-server.ts
-// HTTP server exposing the G6 visualizer and graph data API.
+// HTTP server exposing the visualizer frontend and graph data API.
 // Uses Node's http module so it runs in both Bun and Node/vitest environments.
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { extname, join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { SiaDb } from "@/graph/db-interface";
 import { expandFolder, extractInitialGraph, getFileEntities, searchNodes } from "@/visualization/file-graph-extract";
 import { renderG6Html } from "@/visualization/g6-renderer";
 import { extToLanguage } from "@/visualization/types";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const FRONTEND_DIST = resolve(__dirname, "frontend-dist");
+
+/** MIME types for static files. */
+const MIME_TYPES: Record<string, string> = {
+	".html": "text/html; charset=utf-8",
+	".js": "application/javascript; charset=utf-8",
+	".css": "text/css; charset=utf-8",
+	".json": "application/json; charset=utf-8",
+	".svg": "image/svg+xml",
+	".png": "image/png",
+	".ico": "image/x-icon",
+	".woff": "font/woff",
+	".woff2": "font/woff2",
+};
+
+/** Serve a static file from the frontend-dist directory. Returns true if served. */
+function serveStatic(res: ServerResponse, urlPath: string): boolean {
+	if (!existsSync(FRONTEND_DIST)) return false;
+
+	// Normalize path, prevent traversal
+	const safePath = urlPath.replace(/^\/+/, "").replace(/\.\./g, "");
+	let filePath = join(FRONTEND_DIST, safePath);
+
+	// If path is directory or root, serve index.html
+	if (safePath === "" || safePath === "/" || (existsSync(filePath) && statSync(filePath).isDirectory())) {
+		filePath = join(FRONTEND_DIST, "index.html");
+	}
+
+	if (!existsSync(filePath)) return false;
+
+	try {
+		const content = readFileSync(filePath);
+		const ext = extname(filePath);
+		const mime = MIME_TYPES[ext] || "application/octet-stream";
+		res.writeHead(200, {
+			"Content-Type": mime,
+			"Access-Control-Allow-Origin": "*",
+			"Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=31536000, immutable",
+		});
+		res.end(content);
+		return true;
+	} catch {
+		return false;
+	}
+}
 
 /** Shape returned by createVizApiServer. */
 export interface VizServer {
@@ -51,10 +99,19 @@ async function handleRequest(
 	const url = parseUrl(req);
 	const { pathname } = url;
 
-	// GET / — serve shell HTML
+	// GET / — serve built frontend (with fallback to legacy HTML)
 	if (req.method === "GET" && pathname === "/") {
+		if (serveStatic(res, "index.html")) return;
+		// Fallback: serve legacy inline HTML if frontend not built
 		sendHtml(res, renderG6Html());
 		return;
+	}
+
+	// Static assets from frontend-dist (e.g. /assets/index-xxx.js)
+	if (req.method === "GET" && !pathname.startsWith("/api/") && pathname !== "/health") {
+		if (serveStatic(res, pathname)) return;
+		// SPA fallback: serve index.html for unknown paths
+		if (serveStatic(res, "index.html")) return;
 	}
 
 	// GET /health
