@@ -648,6 +648,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
     const nodeCount = graph ? graph.order : 0;
     const edgeCount = graph ? graph.size : 0;
+    const visibleCount = graph ? graph.nodes().filter(n => !graph.getNodeAttributes(n).hidden).length : 0;
 
     const selectedNodeInfo = useMemo(() => {
       if (!selectedNodeId || !graph || !graph.hasNode(selectedNodeId)) return null;
@@ -884,7 +885,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           onClick={handleMinimapClick}
           style={{
             position: 'absolute',
-            bottom: 46,
+            bottom: 64,
             right: 16,
             width: 150,
             height: 100,
@@ -904,7 +905,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
             onClick={handleLocalGraphClick}
             style={{
               position: 'absolute',
-              bottom: 36,
+              bottom: 64,
               left: 14,
               width: 200,
               height: 150,
@@ -963,45 +964,38 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
           <span style={{ flexShrink: 0 }}>Show all</span>
         </div>
 
-        {/* Stats -- bottom-left */}
+        {/* Status bar */}
         <div style={{
-          position: 'absolute',
-          bottom: 46,
-          left: 14,
-          display: 'flex',
-          gap: 10,
-          fontSize: 10,
-          fontFamily: '"GeistMono", "Geist Mono", monospace',
-          color: 'rgba(255,255,255,0.18)',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          zIndex: 10,
-          letterSpacing: '0.02em',
+          position: 'absolute', bottom: 36, left: 0, right: 0,
+          height: 24, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 14px',
+          background: 'rgba(8,8,18,0.5)', backdropFilter: 'blur(8px)',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          fontSize: 10, fontFamily: "'GeistMono', 'Geist Mono', monospace",
+          color: 'rgba(255,255,255,0.25)',
+          zIndex: 10, pointerEvents: 'none',
         }}>
-          <span>{nodeCount} nodes</span>
-          <span>{edgeCount} edges</span>
-        </div>
-
-        {/* Keyboard shortcuts hint -- bottom-right */}
-        <div style={{
-          position: 'absolute',
-          bottom: 46,
-          right: 180,
-          fontSize: 9,
-          fontFamily: '"GeistMono", "Geist Mono", monospace',
-          color: 'rgba(255,255,255,0.12)',
-          pointerEvents: 'none',
-          userSelect: 'none',
-          zIndex: 10,
-        }}>
-          Arrows: navigate | Tab: cycle | Esc: deselect | Shift+click: path
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span>{nodeCount} nodes</span>
+            <span>{edgeCount} edges</span>
+            <span>{visibleCount} visible</span>
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {blastRadiusMode && <span style={{ color: '#f97316' }}>BLAST</span>}
+            {colorByFolder && <span style={{ color: '#60a5fa' }}>FOLDER</span>}
+            {showHulls && <span style={{ color: '#a78bfa' }}>HULLS</span>}
+            <span>{layoutMode.toUpperCase()}</span>
+          </div>
+          <div>
+            <span>? shortcuts</span>
+          </div>
         </div>
 
         {/* Selection info -- bottom-center */}
         {selectedNodeInfo && (
           <div style={{
             position: 'absolute',
-            bottom: 46,
+            bottom: 64,
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
