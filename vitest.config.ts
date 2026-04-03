@@ -30,6 +30,8 @@ export default defineConfig({
 			"@/hooks": resolve(__dirname, "src/hooks"),
 			"@/llm": resolve(__dirname, "src/llm"),
 			"@/sandbox": resolve(__dirname, "src/sandbox"),
+			"@/models": resolve(__dirname, "src/models"),
+			"@/feedback": resolve(__dirname, "src/feedback"),
 		},
 	},
 });

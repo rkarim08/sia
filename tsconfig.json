@@ -35,7 +35,9 @@
 			"@/native/*": ["./src/native/*"],
 			"@/hooks/*": ["./src/hooks/*"],
 			"@/llm/*": ["./src/llm/*"],
-			"@/sandbox/*": ["./src/sandbox/*"]
+			"@/sandbox/*": ["./src/sandbox/*"],
+			"@/models/*": ["./src/models/*"],
+			"@/feedback/*": ["./src/feedback/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],
