@@ -8,6 +8,7 @@ import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaSearchInput } from "@/mcp/server";
+import type { PipelineDeps } from "@/retrieval/search";
 import { hybridSearch } from "@/retrieval/search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
 
@@ -61,6 +62,8 @@ export async function handleSiaSearch(
 	input: z.infer<typeof SiaSearchInput>,
 	_embedder?: Embedder,
 	workspaceDeps?: WorkspaceDeps,
+	config?: { crossEncoderTimeoutMs?: number },
+	pipelineDeps?: PipelineDeps,
 ): Promise<SiaSearchResult[]> {
 	// Workspace-scoped search
 	if (input.workspace && workspaceDeps) {
@@ -96,7 +99,8 @@ export async function handleSiaSearch(
 		paranoid: input.paranoid,
 		limit: effectiveLimit,
 		includeProvenance: input.include_provenance,
-	});
+		crossEncoderTimeoutMs: config?.crossEncoderTimeoutMs,
+	}, pipelineDeps);
 
 	return (await annotateFreshness(
 		searchResult.results as unknown as Record<string, unknown>[],

@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import type { ModelManager } from "@/models/manager";
+import type { PipelineDeps } from "@/retrieval/search";
 import { getNextStepHint } from "@/mcp/next-step-hints";
 import {
 	handleSiaAstQuery,
@@ -231,6 +232,8 @@ export interface McpServerDeps {
 	config: SiaConfig;
 	sessionId: string;
 	modelManager?: ModelManager | null;
+	crossEncoder?: import("@/retrieval/cross-encoder").CrossEncoderReranker | null;
+	attentionFusionSession?: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -305,9 +308,20 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
+				const pipelineDeps: PipelineDeps = {
+					crossEncoder: deps.crossEncoder ?? undefined,
+					attentionFusionSession: deps.attentionFusionSession ?? undefined,
+				};
 				return safeToolCall(
 					"sia_search",
-					() => handleSiaSearch(deps.graphDb, args, deps.embedder ?? undefined),
+					() => handleSiaSearch(
+						deps.graphDb,
+						args,
+						deps.embedder ?? undefined,
+						undefined,
+						{ crossEncoderTimeoutMs: deps.config.crossEncoderTimeoutMs },
+						pipelineDeps,
+					),
 					maxChars,
 				);
 			}
