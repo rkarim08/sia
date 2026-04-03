@@ -46,6 +46,43 @@ describe("graph distance cache", () => {
 		await expect(updateLandmarkCache(db, { topN: 5 })).resolves.not.toThrow();
 	});
 
+	it("computes correct distances for a linear chain A→B→C", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("gd-chain", tmpDir);
+
+		const now = Date.now();
+		// Insert 3 nodes with access_count to make them landmarks
+		for (const id of ["a", "b", "c"]) {
+			await db.execute(
+				`INSERT INTO graph_nodes (id, type, name, content, summary, trust_tier, confidence, importance, access_count, last_accessed, t_valid_from, t_created, created_at, created_by)
+				 VALUES (?, 'Concept', ?, 'content', 'summary', 2, 0.9, 0.8, 10, ?, ?, ?, ?, 'test')`,
+				[id, `Node_${id}`, now, now, now, now],
+			);
+		}
+
+		// Insert edges: a→b, b→c (linear chain)
+		await db.execute(
+			"INSERT INTO graph_edges (id, from_id, to_id, type, weight, t_created) VALUES (?, ?, ?, 'DEPENDS_ON', 1.0, ?)",
+			["e1", "a", "b", now],
+		);
+		await db.execute(
+			"INSERT INTO graph_edges (id, from_id, to_id, type, weight, t_created) VALUES (?, ?, ?, 'DEPENDS_ON', 1.0, ?)",
+			["e2", "b", "c", now],
+		);
+
+		await updateLandmarkCache(db, { topN: 3 });
+
+		const matrix = await computeGraphDistances(db, ["a", "b", "c"]);
+		// a→b = 1 hop, b→c = 1 hop, a→c = 2 hops (via triangle inequality)
+		expect(matrix[0][1]).toBeLessThanOrEqual(1); // a→b
+		expect(matrix[1][2]).toBeLessThanOrEqual(1); // b→c
+		expect(matrix[0][2]).toBeLessThanOrEqual(2); // a→c
+		// Self-distances
+		expect(matrix[0][0]).toBe(0);
+		expect(matrix[1][1]).toBe(0);
+		expect(matrix[2][2]).toBe(0);
+	});
+
 	it("distances are capped at 5", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("gd-cap", tmpDir);

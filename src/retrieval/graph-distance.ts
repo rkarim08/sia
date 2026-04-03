@@ -44,45 +44,63 @@ export async function updateLandmarkCache(
 
 	if (landmarkRows.length === 0) return;
 
+	// Pre-fetch the entire active adjacency list in one query
+	const { rows: allEdges } = await db.execute(
+		"SELECT from_id, to_id FROM graph_edges WHERE t_valid_until IS NULL",
+	);
+
+	// Build in-memory adjacency map (bidirectional)
+	const adjacency = new Map<string, Set<string>>();
+	for (const row of allEdges) {
+		const from = row.from_id as string;
+		const to = row.to_id as string;
+		if (!adjacency.has(from)) adjacency.set(from, new Set());
+		if (!adjacency.has(to)) adjacency.set(to, new Set());
+		adjacency.get(from)!.add(to);
+		adjacency.get(to)!.add(from);
+	}
+
 	const now = Date.now();
 
 	for (const lmRow of landmarkRows) {
 		const landmarkId = lmRow.id as string;
 
-		// BFS from landmark to all reachable nodes
-		const distances = new Map<string, number>();
-		distances.set(landmarkId, 0);
-		const queue: [string, number][] = [[landmarkId, 0]];
+		try {
+			// BFS from landmark — purely in-memory using pre-fetched adjacency
+			const distances = new Map<string, number>();
+			distances.set(landmarkId, 0);
+			const queue: [string, number][] = [[landmarkId, 0]];
+			let head = 0;
 
-		while (queue.length > 0) {
-			const [nodeId, dist] = queue.shift()!;
-			if (dist >= GRAPHORMER_MAX_DIST) continue; // Do not expand beyond cap
+			while (head < queue.length) {
+				const [nodeId, dist] = queue[head++];
+				if (dist >= GRAPHORMER_MAX_DIST) continue;
 
-			// Fetch neighbours via graph edges (both directions)
-			const { rows: edgeRows } = await db.execute(
-				`SELECT CASE WHEN from_id = ? THEN to_id ELSE from_id END as neighbour_id
-				 FROM graph_edges
-				 WHERE (from_id = ? OR to_id = ?) AND t_valid_until IS NULL`,
-				[nodeId, nodeId, nodeId],
-			);
+				const neighbours = adjacency.get(nodeId);
+				if (!neighbours) continue;
 
-			for (const edgeRow of edgeRows) {
-				const neighbour = edgeRow.neighbour_id as string;
-				if (!distances.has(neighbour)) {
-					const newDist = dist + 1;
-					distances.set(neighbour, newDist);
-					queue.push([neighbour, newDist]);
+				for (const neighbour of neighbours) {
+					if (!distances.has(neighbour)) {
+						const newDist = dist + 1;
+						distances.set(neighbour, newDist);
+						queue.push([neighbour, newDist]);
+					}
 				}
 			}
-		}
 
-		// Upsert all distances for this landmark
-		for (const [targetId, dist] of distances) {
-			await db.execute(
-				`INSERT OR REPLACE INTO landmark_distances
-				 (landmark_id, target_id, distance, computed_at)
-				 VALUES (?, ?, ?, ?)`,
-				[landmarkId, targetId, Math.min(dist, GRAPHORMER_MAX_DIST), now],
+			// Upsert all distances for this landmark
+			for (const [targetId, dist] of distances) {
+				await db.execute(
+					`INSERT OR REPLACE INTO landmark_distances
+					 (landmark_id, target_id, distance, computed_at)
+					 VALUES (?, ?, ?, ?)`,
+					[landmarkId, targetId, Math.min(dist, GRAPHORMER_MAX_DIST), now],
+				);
+			}
+		} catch (err) {
+			console.error(
+				`[sia] landmark cache: failed for landmark ${landmarkId}:`,
+				err instanceof Error ? err.message : String(err),
 			);
 		}
 	}
