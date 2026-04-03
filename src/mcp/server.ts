@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import type { ModelManager } from "@/models/manager";
 import { getNextStepHint } from "@/mcp/next-step-hints";
 import {
 	handleSiaAstQuery,
@@ -30,6 +31,7 @@ import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
+import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
@@ -189,6 +191,7 @@ export const SiaSnapshotPruneInput = z.object({
 // ---------------------------------------------------------------------------
 
 export const TOOL_NAMES = [
+	"sia_models",
 	"sia_search",
 	"sia_by_file",
 	"sia_expand",
@@ -227,6 +230,7 @@ export interface McpServerDeps {
 	embedder: Embedder | null;
 	config: SiaConfig;
 	sessionId: string;
+	modelManager?: ModelManager | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,6 +276,24 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 	// workingMemoryTokenBudget is token-denominated; multiply by ~4 to approximate
 	// a character budget for JSON truncation (1 token ≈ 4 chars in JSON output).
 	const maxChars = deps ? deps.config.workingMemoryTokenBudget * 4 : undefined;
+
+	// --- sia_models --------------------------------------------------------
+	server.registerTool(
+		"sia_models",
+		{
+			description:
+				"Check transformer model tier status, installed models, and attention head training phase",
+			inputSchema: SiaModelsInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			return safeToolCall(
+				"sia_models",
+				async () => handleSiaModels(args, deps?.modelManager ?? null),
+				maxChars,
+			);
+		},
+	);
 
 	// --- sia_search --------------------------------------------------------
 	server.registerTool(
