@@ -26,7 +26,7 @@ export interface RerankOpts {
 }
 
 /** Trust weights keyed by tier number (1-4). No index-0. */
-const TRUST_WEIGHTS: Record<number, number> = {
+export const TRUST_WEIGHTS: Record<number, number> = {
 	1: 1.0,
 	2: 0.9,
 	3: 0.7,
