@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	assembleFeatureVector,
+	attentionFusion,
 	type CandidateFeatures,
+	FEATURE_DIM,
+	FEATURE_DIM_T1,
 	rrfFallback,
 } from "@/retrieval/attention-fusion";
 
@@ -50,5 +53,60 @@ describe("attention fusion", () => {
 
 	it("rrfFallback returns empty for empty input", () => {
 		expect(rrfFallback([])).toEqual([]);
+	});
+
+	it("assembleFeatureVector produces 406d with codeVectorScore (T1)", () => {
+		const t1Candidate: CandidateFeatures = {
+			...candidate,
+			codeVectorScore: 0.55,
+		};
+		const vec = assembleFeatureVector(t1Candidate);
+		expect(vec.length).toBe(FEATURE_DIM_T1);
+		expect(vec[405]).toBeCloseTo(0.55, 5);
+	});
+
+	it("assembleFeatureVector throws on wrong embedding dimension", () => {
+		const bad: CandidateFeatures = {
+			...candidate,
+			entityEmbedding: new Float32Array(256), // wrong!
+		};
+		expect(() => assembleFeatureVector(bad)).toThrow("384d");
+	});
+
+	it("assembleFeatureVector clamps negative daysSinceCapture to 0", () => {
+		const neg: CandidateFeatures = { ...candidate, daysSinceCapture: -5 };
+		const vec = assembleFeatureVector(neg);
+		expect(vec.length).toBe(FEATURE_DIM);
+	});
+
+	it("attentionFusion uses ONNX scores when session returns valid output", async () => {
+		const c1: CandidateFeatures = { ...candidate, entityId: "c1", bm25Score: 0.1 };
+		const c2: CandidateFeatures = { ...candidate, entityId: "c2", bm25Score: 0.9 };
+		const mockSession = {
+			run: async () => ({
+				scores: { data: new Float32Array([0.9, 0.1]), dims: [2] },
+			}),
+		};
+		const result = await attentionFusion([c1, c2], [[0, 5], [5, 0]], null, mockSession);
+		expect(result[0].entityId).toBe("c1");
+		expect(result[0].score).toBeCloseTo(0.9, 3);
+	});
+
+	it("attentionFusion falls back to RRF on ONNX error", async () => {
+		const c1: CandidateFeatures = { ...candidate, entityId: "c1", bm25Score: 0.9 };
+		const c2: CandidateFeatures = { ...candidate, entityId: "c2", bm25Score: 0.1 };
+		const throwingSession = {
+			run: async () => { throw new Error("ONNX crashed"); },
+		};
+		const result = await attentionFusion([c1, c2], [[0, 5], [5, 0]], null, throwingSession);
+		expect(result[0].entityId).toBe("c1");
+		expect(result.length).toBe(2);
+	});
+
+	it("attentionFusion falls back to RRF on null session", async () => {
+		const c1: CandidateFeatures = { ...candidate, entityId: "c1" };
+		const result = await attentionFusion([c1], [[0]], null, null);
+		expect(result.length).toBe(1);
+		expect(result[0].entityId).toBe("c1");
 	});
 });

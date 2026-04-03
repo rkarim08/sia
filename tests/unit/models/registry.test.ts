@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getModelsForTier, MODEL_REGISTRY } from "@/models/registry";
+import { getModelsForTier, getModelsToDownload, getModelsToRemove, MODEL_REGISTRY } from "@/models/registry";
 
 describe("model registry", () => {
 	it("T0 includes bge-small and ms-marco-MiniLM", () => {
@@ -36,5 +36,43 @@ describe("model registry", () => {
 			expect(entry.sizeBytes, `${name} missing sizeBytes`).toBeGreaterThan(0);
 			expect(entry.tier, `${name} missing tier`).toBeTruthy();
 		}
+	});
+
+	it("getModelsToDownload T0→T1 returns exactly jina-code, nomic, attention-head", () => {
+		const toDownload = getModelsToDownload("T0", "T1");
+		const names = Object.keys(toDownload);
+		expect(names).toContain("jina-embeddings-v2-base-code");
+		expect(names).toContain("nomic-embed-text-v1.5");
+		expect(names).toContain("sia-attention-head");
+		expect(names).not.toContain("bge-small-en-v1.5");
+		expect(names).not.toContain("gliner-small-v2.1");
+	});
+
+	it("getModelsToDownload same tier returns empty", () => {
+		const toDownload = getModelsToDownload("T1", "T1");
+		expect(Object.keys(toDownload).length).toBe(0);
+	});
+
+	it("getModelsToDownload downgrade returns empty", () => {
+		const toDownload = getModelsToDownload("T3", "T1");
+		expect(Object.keys(toDownload).length).toBe(0);
+	});
+
+	it("getModelsToRemove T3→T1 returns gliner and mxbai", () => {
+		const toRemove = getModelsToRemove("T3", "T1");
+		expect(toRemove).toContain("gliner-small-v2.1");
+		expect(toRemove).toContain("mxbai-rerank-base-v1");
+		expect(toRemove).not.toContain("bge-small-en-v1.5");
+		expect(toRemove).not.toContain("jina-embeddings-v2-base-code");
+	});
+
+	it("getModelsToRemove same tier returns empty", () => {
+		const toRemove = getModelsToRemove("T1", "T1");
+		expect(toRemove.length).toBe(0);
+	});
+
+	it("getModelsToRemove upgrade returns empty", () => {
+		const toRemove = getModelsToRemove("T1", "T3");
+		expect(toRemove.length).toBe(0);
 	});
 });
