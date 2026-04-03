@@ -5,7 +5,7 @@ import CodeInspector from './components/CodeInspector';
 import Sidebar from './components/Sidebar';
 import SearchOverlay from './components/SearchOverlay';
 import ShortcutsModal from './components/ShortcutsModal';
-import { fetchGraph } from './lib/api';
+import { fetchGraph, expandCombo } from './lib/api';
 import type { GraphResponse, GraphNode } from './lib/api';
 import { BG_PRIMARY, loadNodeColors, saveNodeColors, setNodeColors } from './lib/constants';
 import type { SiaNodeType } from './lib/constants';
@@ -100,6 +100,31 @@ export default function App() {
     setSelectedNode(node);
     if (window.innerWidth < 640) setSidebarOpen(false);
   }, [selectedNode]);
+
+  // Lazy loading: double-click a folder node to expand its children
+  const expandedFoldersRef = useRef<Set<string>>(new Set());
+  const handleNodeDoubleClick = useCallback((node: GraphNode) => {
+    // Only expand folder/combo nodes (parentId is empty for top-level combos)
+    const isFolder = graphData?.combos.some(c => c.id === node.id);
+    if (!isFolder || expandedFoldersRef.current.has(node.id)) return;
+
+    expandedFoldersRef.current.add(node.id);
+    expandCombo(node.id).then(expanded => {
+      setGraphData(prev => {
+        if (!prev) return prev;
+        const existingNodeIds = new Set(prev.nodes.map(n => n.id));
+        const existingEdgeIds = new Set(prev.edges.map(e => e.id));
+        const existingComboIds = new Set(prev.combos.map(c => c.id));
+        return {
+          nodes: [...prev.nodes, ...expanded.nodes.filter(n => !existingNodeIds.has(n.id))],
+          edges: [...prev.edges, ...expanded.edges.filter(e => !existingEdgeIds.has(e.id))],
+          combos: [...prev.combos, ...expanded.combos.filter(c => !existingComboIds.has(c.id))],
+        };
+      });
+    }).catch(() => {
+      expandedFoldersRef.current.delete(node.id);
+    });
+  }, [graphData]);
 
   // Track shift key for path finder
   const shiftHeldRef = useRef(false);
@@ -400,6 +425,7 @@ export default function App() {
               ref={graphRef}
               data={graphData}
               onNodeClick={handleNodeClick}
+              onNodeDoubleClick={handleNodeDoubleClick}
               onStageClick={handleStageClick}
               selectedNodeId={selectedNode?.id ?? null}
               hiddenTypes={hiddenTypes}

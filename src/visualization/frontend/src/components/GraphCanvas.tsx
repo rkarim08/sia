@@ -30,6 +30,7 @@ import type { ContextMenuItem } from './ContextMenu';
 interface Props {
   data: GraphResponse | null;
   onNodeClick: (node: GraphNode) => void;
+  onNodeDoubleClick?: (node: GraphNode) => void;
   onStageClick: () => void;
   selectedNodeId: string | null;
   hiddenTypes: Set<string>;
@@ -58,7 +59,7 @@ export interface GraphCanvasHandle {
 const BOOKMARKS_KEY = 'sia.viewBookmarks';
 
 const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
-  ({ data, onNodeClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange, focusDepth }, ref) => {
+  ({ data, onNodeClick, onNodeDoubleClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange, focusDepth }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Responsive state
@@ -159,6 +160,21 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       });
     };
 
+    const handleNodeDoubleClick = (nodeId: string, attrs: SigmaNodeAttributes) => {
+      if (!onNodeDoubleClick) return;
+      onNodeDoubleClick({
+        id: nodeId,
+        label: attrs.label,
+        parentId: attrs.parentId,
+        nodeType: attrs.nodeType as GraphNode['nodeType'],
+        filePath: attrs.filePath || undefined,
+        importance: attrs.importance,
+        trustTier: attrs.trustTier,
+        color: attrs.color,
+        entityId: attrs.entityId,
+      });
+    };
+
     const handleRightClick = useCallback((nodeId: string, attrs: SigmaNodeAttributes, event: { x: number; y: number }) => {
       setContextMenu({ x: event.x, y: event.y, nodeId, attrs });
     }, []);
@@ -176,6 +192,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
       graph,
       {
         onNodeClick: handleNodeClick,
+        onNodeDoubleClick: handleNodeDoubleClick,
         onStageClick: handleStageClick,
         onRightClickNode: handleRightClick,
         selectedNodeId,

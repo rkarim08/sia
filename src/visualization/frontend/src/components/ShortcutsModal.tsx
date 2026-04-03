@@ -15,6 +15,7 @@ const SHORTCUTS = [
   ]},
   { category: 'Actions', items: [
     { keys: '⌘K', desc: 'Search nodes' },
+    { keys: 'Double-click', desc: 'Expand folder node (lazy load)' },
     { keys: 'Shift+Click', desc: 'Path finder between two nodes' },
     { keys: 'Right-click', desc: 'Context menu on node' },
     { keys: '?', desc: 'Toggle this shortcuts panel' },

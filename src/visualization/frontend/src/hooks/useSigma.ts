@@ -153,6 +153,7 @@ const getFA2Iterations = (nodeCount: number): number => {
 
 export interface UseSigmaOptions {
   onNodeClick?: (nodeId: string, attrs: SigmaNodeAttributes) => void;
+  onNodeDoubleClick?: (nodeId: string, attrs: SigmaNodeAttributes) => void;
   onStageClick?: () => void;
   onRightClickNode?: (nodeId: string, attrs: SigmaNodeAttributes, event: { x: number; y: number }) => void;
   selectedNodeId?: string | null;
@@ -600,6 +601,12 @@ export function useSigma(
     renderer.on('clickNode', ({ node }) => {
       const attrs = graph.getNodeAttributes(node) as SigmaNodeAttributes;
       optionsRef.current.onNodeClick?.(node, attrs);
+    });
+
+    renderer.on('doubleClickNode', ({ node, event }) => {
+      event.preventSigmaDefault();
+      const attrs = graph.getNodeAttributes(node) as SigmaNodeAttributes;
+      optionsRef.current.onNodeDoubleClick?.(node, attrs);
     });
 
     renderer.on('clickStage', () => {
