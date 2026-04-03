@@ -6,14 +6,14 @@
 // - Bash   → ExecutionEvent entity + git commit detection + error detection
 // - Read   → touch for importance (no new entities)
 
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { incrementalReindex, readStoredHead } from "@/capture/incremental-reindexer";
 import { extractTrackA } from "@/capture/track-a-ast";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { detectCommitPatterns, detectKnowledgePatterns } from "@/hooks/extractors/pattern-detector";
 import type { HookEvent, HookHandler, HookResponse } from "@/hooks/types";
+import type { SiaConfig } from "@/shared/config";
 
 /** Extract the basename from a file path. */
 function basename(filePath: string): string {
@@ -255,7 +255,7 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 	return { status: "processed", nodes_created: nodesCreated };
 }
 
-async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
+async function handleBash(db: SiaDb, event: HookEvent, config?: SiaConfig, repoHash?: string): Promise<HookResponse> {
 	const command = inputStr(event, "command") ?? "";
 	const output = responseStr(event);
 
@@ -344,54 +344,30 @@ async function handleBash(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 		}
 	}
 
-	// Detect git graph-mutating operations and check for staleness
+	// Detect git graph-mutating operations and trigger incremental reindex
 	const exitCode = event.tool_input?.exit_code ?? 0;
 	const isGitMutatingOp =
-		/\bgit\s+(commit|merge|rebase|cherry-pick|pull)(\s|$)/.test(command) && exitCode === 0;
+		/\bgit\s+(pull|merge|checkout|switch|rebase|cherry-pick|reset)(\s|$)/.test(command) && exitCode === 0;
 
-	let stalenessWarning: string | undefined;
-	if (isGitMutatingOp) {
-		stalenessWarning = checkStaleness(event.cwd);
+	let reindexMessage: string | undefined;
+	if (isGitMutatingOp && config && repoHash) {
+		try {
+			const repoDataDir = join(config.repoDir, repoHash);
+			const storedHead = readStoredHead(repoDataDir);
+			const result = await incrementalReindex(db, event.cwd, repoHash, config, storedHead);
+			if (result.triggered && result.filesReparsed > 0) {
+				reindexMessage = `Auto-reindex: ${result.filesChanged} files changed by git (${result.filesReparsed} re-parsed, ${result.filesSkippedByHash} unchanged content)`;
+			}
+		} catch {
+			// Non-fatal — don't block the hook
+		}
 	}
 
 	const response: HookResponse = { status: "processed", nodes_created: nodesCreated };
-	if (stalenessWarning) {
-		response.staleness_warning = stalenessWarning;
+	if (reindexMessage) {
+		response.reindex_message = reindexMessage;
 	}
 	return response;
-}
-
-/**
- * Check if the SIA index is stale by comparing the last indexed commit
- * stored in `.sia-graph/last-indexed-commit` against the current HEAD.
- *
- * Returns a warning message if stale, or undefined if up-to-date.
- */
-export function checkStaleness(cwd: string): string | undefined {
-	try {
-		const siaGraphDir = join(cwd, ".sia-graph");
-		const lastIndexedPath = join(siaGraphDir, "last-indexed-commit");
-
-		if (!existsSync(lastIndexedPath)) {
-			return "SIA index may be stale. Run `/sia-learn` to update.";
-		}
-
-		const lastIndexed = readFileSync(lastIndexedPath, "utf-8").trim();
-
-		// Get current HEAD using execFileSync (no shell injection risk)
-		const currentHead = execFileSync("git", ["rev-parse", "HEAD"], {
-			cwd,
-			encoding: "utf-8",
-			timeout: 5000,
-		}).trim();
-
-		if (lastIndexed !== currentHead) {
-			return "SIA index may be stale. Run `/sia-learn` to update.";
-		}
-	} catch {
-		// If we can't determine staleness, don't warn
-	}
-	return undefined;
 }
 
 async function handleRead(db: SiaDb, event: HookEvent): Promise<HookResponse> {
@@ -431,7 +407,11 @@ async function handleRead(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 /**
  * Create a PostToolUse hook handler bound to the given graph database.
  */
-export function createPostToolUseHandler(db: SiaDb): HookHandler {
+export function createPostToolUseHandler(
+	db: SiaDb,
+	config?: SiaConfig,
+	repoHash?: string,
+): HookHandler {
 	return async (event: HookEvent): Promise<HookResponse> => {
 		if (!event.tool_name || !event.tool_input) {
 			return { status: "skipped", nodes_created: 0 };
@@ -443,7 +423,7 @@ export function createPostToolUseHandler(db: SiaDb): HookHandler {
 			case "Edit":
 				return handleEdit(db, event);
 			case "Bash":
-				return handleBash(db, event);
+				return handleBash(db, event, config, repoHash);
 			case "Read":
 				return handleRead(db, event);
 			default:

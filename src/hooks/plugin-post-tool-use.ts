@@ -8,6 +8,7 @@ import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
 import { createPostToolUseHandler } from "@/hooks/handlers/post-tool-use";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
+import { getConfig } from "@/shared/config";
 
 async function main() {
 	try {
@@ -22,7 +23,8 @@ async function main() {
 		const db = openGraphDb(repoHash);
 
 		try {
-			const handler = createPostToolUseHandler(db);
+			const config = getConfig();
+			const handler = createPostToolUseHandler(db, config, repoHash);
 			const result = await handler(event);
 			process.stdout.write(JSON.stringify(result));
 		} finally {
