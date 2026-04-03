@@ -305,6 +305,32 @@ describe("hybridSearch — three-stage pipeline", () => {
 		expect(result.results.length).toBeGreaterThanOrEqual(1);
 	});
 
+	it("pipeline accepts optional attentionFusionSession in deps", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-attn", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "FusionTest",
+			content: "Test entity for attention fusion.",
+			summary: "Fusion test",
+			trust_tier: 1,
+			confidence: 0.95,
+			importance: 0.9,
+		});
+
+		const result = await hybridSearch(db, null, {
+			query: "FusionTest",
+			limit: 10,
+		}, {
+			// attentionFusionSession: null means RRF fallback
+			attentionFusionSession: null,
+		});
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
 	it("cross-encoder timeout falls back to RRF ordering", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("search-ce-timeout", tmpDir);

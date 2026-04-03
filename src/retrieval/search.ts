@@ -38,6 +38,7 @@ export interface SearchResult {
 /** Optional pipeline dependencies for extended stages. */
 export interface PipelineDeps {
 	crossEncoder?: CrossEncoderReranker | null;
+	attentionFusionSession?: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
 }
 
 /** Default minimum graph size before community summaries are available. */
@@ -166,13 +167,31 @@ export async function hybridSearch(
 
 	const rrfScores = rrfCombine(bm25Candidates, graphCandidates, vecCandidates);
 
-	let results = await rerank(db, rrfScores, {
-		taskType: opts.taskType,
-		packagePath: opts.packagePath,
-		paranoid: opts.paranoid,
-		limit,
-		includeProvenance: opts.includeProvenance,
-	});
+	// --- Stage 5: Attention fusion or RRF fallback -------------------------
+	// attentionFusionSession is null until ≥50 real feedback events exist AND
+	// a trained .onnx head is on disk. Until that gate passes, RRF rerank is used.
+	let results: SiaSearchResult[];
+
+	if (deps?.attentionFusionSession) {
+		// TODO: assemble CandidateFeatures from entity data and call attentionFusion().
+		// For now, fall through to RRF rerank — the session is accepted but not yet
+		// invoked until Phase 4 populates entity embeddings in the DB.
+		results = await rerank(db, rrfScores, {
+			taskType: opts.taskType,
+			packagePath: opts.packagePath,
+			paranoid: opts.paranoid,
+			limit,
+			includeProvenance: opts.includeProvenance,
+		});
+	} else {
+		results = await rerank(db, rrfScores, {
+			taskType: opts.taskType,
+			packagePath: opts.packagePath,
+			paranoid: opts.paranoid,
+			limit,
+			includeProvenance: opts.includeProvenance,
+		});
+	}
 
 	// --- Post-filter by nodeTypes ------------------------------------------
 	if (opts.nodeTypes && opts.nodeTypes.length > 0) {
