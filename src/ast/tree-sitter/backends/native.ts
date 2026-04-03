@@ -18,7 +18,7 @@ export interface ParserBackend {
 
 export async function tryLoadNativeBackend(): Promise<ParserBackend | null> {
 	try {
-		const Parser = (await import("tree-sitter")).default;
+		const Parser = (await import("tree-sitter")).default as new () => unknown;
 
 		return {
 			type: "native",
