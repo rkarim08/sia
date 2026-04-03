@@ -8,7 +8,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
+import { incrementalReindex, readStoredHead } from "@/capture/incremental-reindexer";
 import { openGraphDb } from "@/graph/semantic-db";
+import { getConfig } from "@/shared/config";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
 import type { HookEvent } from "@/hooks/types";
@@ -94,6 +96,21 @@ async function main() {
 		ensureMcpConfig(cwd);
 		const repoHash = resolveRepoHash(cwd);
 		const db = openGraphDb(repoHash);
+
+		// Incremental reindex: detect changes since last session
+		try {
+			const config = getConfig();
+			const repoDataDir = join(config.repoDir, repoHash);
+			const storedHead = readStoredHead(repoDataDir);
+			const reindexResult = await incrementalReindex(db, cwd, repoHash, config, storedHead);
+			if (reindexResult.triggered && reindexResult.filesReparsed > 0) {
+				process.stderr.write(
+					`[sia] Auto-reindex: ${reindexResult.filesChanged} files changed since last session (${reindexResult.filesReparsed} re-parsed, ${reindexResult.filesSkippedByHash} unchanged content)${reindexResult.reason ? ` — ${reindexResult.reason}` : ""}\n`
+				);
+			}
+		} catch (err) {
+			process.stderr.write(`[sia] Auto-reindex failed (non-fatal): ${err}\n`);
+		}
 
 		try {
 			const isResume = event.source === "resume";
