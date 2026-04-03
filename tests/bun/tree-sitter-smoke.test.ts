@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 describe("tree-sitter under Bun runtime", () => {
 	test("native backend loads or gracefully fails", async () => {
 		try {
-			const Parser = (await import("tree-sitter")).default;
+			const Parser = (await import("tree-sitter")).default as new () => unknown;
 			const parser = new Parser();
 			expect(parser).toBeDefined();
 		} catch (e) {

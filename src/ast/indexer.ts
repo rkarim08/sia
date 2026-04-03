@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import { parseFileWithRetry } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
+import { getCurrentHead, writeStoredHead } from "@/capture/incremental-reindexer";
 import type { CandidateFact } from "@/capture/types";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
@@ -90,13 +91,14 @@ export interface IndexOptions {
 	workerCount?: number; // Number of worker threads (default: cpus - 1, 0 = sequential)
 }
 
-interface CacheEntry {
+export interface CacheEntry {
 	mtimeMs: number;
+	contentHash?: string; // SHA-256 truncated to 16 hex chars
 }
 
-type CacheMap = Record<string, CacheEntry>;
+export type CacheMap = Record<string, CacheEntry>;
 
-function loadCache(cachePath: string): CacheMap {
+export function loadCache(cachePath: string): CacheMap {
 	if (!existsSync(cachePath)) return {};
 	try {
 		const raw = readFileSync(cachePath, "utf-8");
@@ -106,8 +108,12 @@ function loadCache(cachePath: string): CacheMap {
 	}
 }
 
-function saveCache(cachePath: string, cache: CacheMap): void {
+export function saveCache(cachePath: string, cache: CacheMap): void {
 	writeFileSync(cachePath, JSON.stringify(cache, null, 2), "utf-8");
+}
+
+export function computeContentHash(content: string): string {
+	return createHash("sha256").update(content).digest("hex").slice(0, 16);
 }
 
 const BATCH_SIZE = 100;
@@ -346,7 +352,7 @@ async function dispatchToWorkerPool(
 	filesToProcess: Array<{ absPath: string; relPath: string }>,
 	numWorkers: number,
 ): Promise<WorkerResult[]> {
-	const isBun = typeof globalThis.Bun !== "undefined";
+	const isBun = typeof (globalThis as Record<string, unknown>).Bun !== "undefined";
 	const adapter = isBun ? getBunAdapter() : getNodeAdapter();
 	const workerUrl = new URL("./index-worker.ts", import.meta.url);
 	const workerPath = isBun ? workerUrl : workerUrl.pathname;
@@ -568,6 +574,13 @@ export async function indexRepository(
 
 	// Restore total filesProcessed to include cache hits
 	filesProcessed = totalFilesScanned;
+
+	// Store current HEAD so incremental reindex knows the baseline
+	const head = getCurrentHead(root);
+	if (head) {
+		const repoDataDir = join(config.repoDir, repoHash);
+		writeStoredHead(repoDataDir, head);
+	}
 
 	return {
 		filesProcessed,

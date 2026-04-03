@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
-# Rebuild tree-sitter native binding with C++20 (required for Node 23.x headers).
-# Falls back to WASM if native build fails — no user action needed.
+# Post-install steps for Sia plugin.
+# 1. Strip .git from installed plugin copies (prevents VS Code Source Control clutter)
+# 2. Rebuild tree-sitter native binding with C++20
 set -uo pipefail
+
+# When installed as a Claude Code plugin, remove .git so VS Code
+# doesn't show the plugin as a separate repo in Source Control.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ "$PLUGIN_ROOT" == *"/.claude/plugins/"* ]] && [ -d "$PLUGIN_ROOT/.git" ]; then
+    rm -rf "$PLUGIN_ROOT/.git"
+fi
 
 TS_DIR="node_modules/tree-sitter"
 

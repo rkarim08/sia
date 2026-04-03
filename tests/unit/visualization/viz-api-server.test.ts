@@ -60,12 +60,12 @@ describe("viz-api-server", () => {
 		}
 	});
 
-	it("GET / returns HTML with g6 reference", async () => {
+	it("GET / returns HTML with root element", async () => {
 		const res = await fetch(`${baseUrl}/`);
 		expect(res.status).toBe(200);
 		const text = await res.text();
 		expect(text).toContain("<!DOCTYPE html>");
-		expect(text.toLowerCase()).toContain("g6");
+		expect(text).toContain('<div id="root">');
 	});
 
 	it("GET /api/graph returns graph data", async () => {

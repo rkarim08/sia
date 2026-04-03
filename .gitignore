@@ -20,3 +20,4 @@ sia-native/node_modules/
 .playwright-mcp/*
 src/visualization/frontend-dist/
 src/visualization/frontend/node_modules/
+.sia/visualize/
