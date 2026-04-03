@@ -43,7 +43,8 @@ export function createCachedEmbedder(inner: Embedder, opts?: CacheOpts): Embedde
 			// paranoid mode: block Tier 4 content
 			if (paranoid && trustTier === 4) return null;
 
-			const key = contentHash(text);
+			const modelPrefix = (inner as { modelName?: string }).modelName ?? "default";
+			const key = contentHash(`${modelPrefix}:${text}`);
 
 			// Cache hit — move entry to end (most-recently-used)
 			const cached = cache.get(key);

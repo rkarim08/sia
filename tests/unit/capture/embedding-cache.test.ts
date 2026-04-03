@@ -122,6 +122,50 @@ describe("createCachedEmbedder", () => {
 	});
 
 	// ---------------------------------------------------------------
+	// Model-name keying — same text, different model → separate entries
+	// ---------------------------------------------------------------
+
+	it("caches by model name — same text different model gets different entries", async () => {
+		let callCount = 0;
+		const modelAEmbedder = {
+			modelName: "model-a",
+			embeddingDim: 384,
+			embed: async () => {
+				callCount++;
+				return new Float32Array(384).fill(callCount);
+			},
+			embedBatch: async (texts: string[]) => texts.map(() => new Float32Array(384)),
+			close: () => {},
+		};
+
+		const cached = createCachedEmbedder(modelAEmbedder, { maxSize: 100 });
+
+		// First call — cache miss
+		await cached.embed("hello");
+		expect(callCount).toBe(1);
+
+		// Second call same text — cache hit
+		await cached.embed("hello");
+		expect(callCount).toBe(1); // Not incremented
+
+		// Different model name — cache miss even for same text
+		const modelBEmbedder = {
+			modelName: "model-b",
+			embeddingDim: 768,
+			embed: async () => {
+				callCount++;
+				return new Float32Array(768).fill(callCount);
+			},
+			embedBatch: async (texts: string[]) => texts.map(() => new Float32Array(768)),
+			close: () => {},
+		};
+
+		const cached2 = createCachedEmbedder(modelBEmbedder, { maxSize: 100 });
+		await cached2.embed("hello");
+		expect(callCount).toBe(2); // Different model, cache miss
+	});
+
+	// ---------------------------------------------------------------
 	// close() delegates to inner.close()
 	// ---------------------------------------------------------------
 
