@@ -101,6 +101,9 @@ export function useFeedback(options: UseFeedbackOptions = {}) {
 		return events;
 	}, []);
 
+	/** Get current pending count. Use this instead of destructuring pendingCount. */
+	const getPendingCount = useCallback(() => eventsRef.current.length, []);
+
 	return {
 		recordClick,
 		recordExpand,
@@ -109,9 +112,14 @@ export function useFeedback(options: UseFeedbackOptions = {}) {
 		recordCodeInspect,
 		recordSearchClick,
 		flush,
-		/** Current number of pending events (snapshot at call time). */
+		/**
+		 * Current pending count snapshot.
+		 * WARNING: Do not destructure — `const { pendingCount } = useFeedback()`
+		 * captures the value at call time. Use `getPendingCount()` for up-to-date reads.
+		 */
 		get pendingCount() {
 			return eventsRef.current.length;
 		},
+		getPendingCount,
 	};
 }
