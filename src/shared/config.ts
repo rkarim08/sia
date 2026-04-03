@@ -120,6 +120,13 @@ export interface SiaConfig {
 	throttleReducedMax: number;
 	// Upgrade
 	upgradeReleaseUrl: string | null;
+	// Transformer stack
+	/** Installed model tier: T0, T1, T2, or T3. */
+	modelTier: string;
+	/** Maximum concurrent ONNX sessions. */
+	maxOnnxSessions: number;
+	/** Whether to collect implicit feedback for ranking. */
+	feedbackCollection: boolean;
 }
 
 /** Valid keys for the decayHalfLife object. */
@@ -191,6 +198,9 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	throttleNormalMax: 3,
 	throttleReducedMax: 8,
 	upgradeReleaseUrl: null,
+	modelTier: "T0",
+	maxOnnxSessions: 4,
+	feedbackCollection: true,
 };
 
 /**
