@@ -31,7 +31,7 @@ export function reconcileExtractions(input: ReconciliationInput): Reconciliation
 	// Deduplicate: key by text+label+start, keep highest confidence
 	const dedupMap = new Map<string, GlinerSpan>();
 	for (const span of allSpans) {
-		const key = `${span.text}::${span.label}::${span.start}`;
+		const key = `${span.text}::${span.label}`;
 		const existing = dedupMap.get(key);
 		if (!existing || span.score > existing.score) {
 			dedupMap.set(key, span);

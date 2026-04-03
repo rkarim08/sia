@@ -31,7 +31,7 @@ export type SiaEntityLabel = (typeof SIA_ENTITY_LABELS)[number];
  * they are high-precision pattern matches. Semantic labels (Decision,
  * Convention) require more contextual certainty to prevent noise.
  */
-export const CONFIDENCE_THRESHOLDS: Record<string, number> = {
+export const CONFIDENCE_THRESHOLDS: Record<SiaEntityLabel, number> = {
 	FilePath: 0.6,
 	FunctionName: 0.6,
 	Dependency: 0.65,
@@ -50,7 +50,7 @@ const REJECT_THRESHOLD = 0.3;
 /** A span extracted by GLiNER. */
 export interface GlinerSpan {
 	text: string;
-	label: string;
+	label: SiaEntityLabel;
 	score: number;
 	start: number;
 	end: number;
@@ -67,7 +67,7 @@ export type ExtractionClassification = "accept" | "confirm" | "reject";
  * - "reject": score < REJECT_THRESHOLD → discard
  */
 export function classifyExtractionResult(span: GlinerSpan): ExtractionClassification {
-	const threshold = CONFIDENCE_THRESHOLDS[span.label] ?? 0.8;
+	const threshold = CONFIDENCE_THRESHOLDS[span.label];
 
 	if (span.score >= threshold) return "accept";
 	if (span.score >= REJECT_THRESHOLD) return "confirm";

@@ -20,9 +20,8 @@ export interface CandidateFeatures {
 	graphScore: number;
 	crossEncoderScore: number;
 	trustTierWeight: number;
-	entityEmbedding: Float32Array; // 384d from bge-small
-	daysSinceCapture: number;
-	graphHopDistance: number;
+	entityEmbedding: Float32Array; // Must be exactly 384d from bge-small
+	daysSinceCapture: number; // Must be >= 0
 	/** Optional second vector score from jina-code (T1+). */
 	codeVectorScore?: number;
 }
@@ -66,14 +65,18 @@ export function assembleFeatureVector(candidate: CandidateFeatures): Float32Arra
 	// Trust tier weight (index 4)
 	vec[4] = candidate.trustTierWeight;
 
-	// Entity embedding (indices 5-388)
+	// Entity embedding (indices 5-388) — must be exactly 384d
 	const emb = candidate.entityEmbedding;
-	for (let i = 0; i < Math.min(emb.length, 384); i++) {
+	if (emb.length !== 384) {
+		throw new Error(`entityEmbedding must be 384d; got ${emb.length}d for entity ${candidate.entityId}`);
+	}
+	for (let i = 0; i < 384; i++) {
 		vec[5 + i] = emb[i];
 	}
 
 	// Time2Vec temporal encoding (indices 389-404)
-	const logDays = Math.log2(1 + candidate.daysSinceCapture);
+	const days = Math.max(0, candidate.daysSinceCapture);
+	const logDays = Math.log2(1 + days);
 	const t2vParams = createDefaultTime2VecParams();
 	const temporal = time2vecEncode(logDays, t2vParams);
 	for (let i = 0; i < TIME2VEC_DIM; i++) {

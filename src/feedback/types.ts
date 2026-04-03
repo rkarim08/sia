@@ -37,3 +37,29 @@ export const SIGNAL_STRENGTHS = {
 } as const;
 
 export type SignalType = keyof typeof SIGNAL_STRENGTHS;
+
+/**
+ * Create a validated FeedbackEvent from a signal type.
+ *
+ * Enforces:
+ * - `signalStrength` is looked up from `SIGNAL_STRENGTHS[signalType]`
+ * - `rankPosition` is in `[0, candidatesShown)`
+ * - `candidatesShown` is > 0
+ */
+export function createFeedbackEvent(
+	fields: Omit<FeedbackEvent, "signalStrength"> & { signalType: SignalType },
+): FeedbackEvent {
+	if (fields.candidatesShown <= 0) {
+		throw new Error(`candidatesShown must be > 0; got ${fields.candidatesShown}`);
+	}
+	if (fields.rankPosition < 0 || fields.rankPosition >= fields.candidatesShown) {
+		throw new Error(
+			`rankPosition ${fields.rankPosition} out of range [0, ${fields.candidatesShown})`,
+		);
+	}
+	const { signalType, ...rest } = fields;
+	return {
+		...rest,
+		signalStrength: SIGNAL_STRENGTHS[signalType],
+	};
+}

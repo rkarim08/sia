@@ -51,6 +51,15 @@ export const TIER_ORDER: Record<ModelTier, number> = {
 	T3: 3,
 };
 
+/** Training phase ordering for comparisons. */
+export const TRAINING_PHASE_ORDER: Record<AttentionHeadMeta["trainingPhase"], number> = {
+	none: 0,
+	rrf: 1,
+	distillation: 2,
+	implicit: 3,
+	online: 4,
+};
+
 /** Default empty manifest for fresh installs. */
 export function createEmptyManifest(): ModelManifest {
 	return {

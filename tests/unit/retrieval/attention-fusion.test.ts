@@ -15,7 +15,6 @@ describe("attention fusion", () => {
 		trustTierWeight: 0.9,
 		entityEmbedding: new Float32Array(384).fill(0.01),
 		daysSinceCapture: 30,
-		graphHopDistance: 2,
 	};
 
 	it("assembleFeatureVector produces correct dimension (405)", () => {

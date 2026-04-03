@@ -9,13 +9,16 @@ export interface VectorResult {
 	score: number;
 }
 
+/** Embedding column names in graph_nodes. Must stay in sync with DB schema. */
+export type EmbeddingColumn = "embedding" | "embedding_code";
+
 /** Options for vectorSearch. */
 export interface VectorSearchOpts {
 	limit?: number;
 	paranoid?: boolean;
 	packagePath?: string;
 	/** Which embedding column to search. Defaults to "embedding" (NL). Use "embedding_code" for code-specific search. */
-	embeddingColumn?: "embedding" | "embedding_code";
+	embeddingColumn?: EmbeddingColumn;
 }
 
 /** Default similarity threshold below which results are discarded. */
@@ -154,7 +157,7 @@ function tryVssSearch(
 async function bruteForceCosineSearch(
 	db: SiaDb,
 	queryEmbedding: Float32Array,
-	embeddingColumn: "embedding" | "embedding_code",
+	embeddingColumn: EmbeddingColumn,
 	limit: number,
 	opts?: VectorSearchOpts,
 ): Promise<VectorResult[]> {
