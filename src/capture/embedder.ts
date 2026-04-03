@@ -132,6 +132,116 @@ export function createEmbedder(modelPath: string, tokenizerPath: string): Embedd
 	};
 }
 
+/** Configuration for a named model embedder. */
+export interface MultiModelEmbedderConfig {
+	modelName: string;
+	modelPath: string;
+	tokenizerPath: string;
+	embeddingDim: number;
+	maxSeqLength: number;
+}
+
+/** Extended Embedder with model metadata. */
+export interface NamedEmbedder extends Embedder {
+	readonly modelName: string;
+	readonly embeddingDim: number;
+}
+
+/**
+ * Create a named embedder with configurable model, dimensions, and sequence length.
+ * Same lazy ONNX loading as createEmbedder, but parameterized for multi-model use.
+ */
+export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): NamedEmbedder {
+	const { modelName, modelPath, tokenizerPath, embeddingDim, maxSeqLength } = config;
+
+	let session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null =
+		null;
+	let tokenizer: Tokenizer | null = null;
+	let initialized = false;
+	let ort: typeof import("onnxruntime-node") | null = null;
+
+	async function ensureSession(): Promise<boolean> {
+		if (initialized) return session !== null;
+		initialized = true;
+
+		if (!existsSync(modelPath)) return false;
+		if (!existsSync(tokenizerPath)) return false;
+
+		try {
+			tokenizer = loadTokenizer(tokenizerPath);
+		} catch {
+			return false;
+		}
+
+		try {
+			ort = await loadOnnxRuntime();
+			if (!ort) return false;
+
+			session = (await ort.InferenceSession.create(modelPath, {
+				executionProviders: ["cpu"],
+			})) as unknown as typeof session;
+			return true;
+		} catch {
+			session = null;
+			return false;
+		}
+	}
+
+	return {
+		modelName,
+		embeddingDim,
+
+		async embed(text: string): Promise<Float32Array | null> {
+			const ready = await ensureSession();
+			if (!ready || !session || !tokenizer || !ort) return null;
+
+			const { inputIds, attentionMask } = tokenize(tokenizer, text, maxSeqLength);
+			const tokenTypeIds = new BigInt64Array(maxSeqLength);
+
+			const shape = [1, maxSeqLength] as const;
+			const feeds = {
+				input_ids: new ort.Tensor("int64", inputIds, shape),
+				attention_mask: new ort.Tensor("int64", attentionMask, shape),
+				token_type_ids: new ort.Tensor("int64", tokenTypeIds, shape),
+			};
+
+			const results = await session.run(feeds);
+			const lastHiddenState = results.last_hidden_state as {
+				data: Float32Array;
+				dims: readonly number[];
+			};
+			if (!lastHiddenState?.data) return null;
+
+			return meanPoolAndNormalize(
+				lastHiddenState.data,
+				attentionMask,
+				lastHiddenState.dims[1] ?? maxSeqLength,
+				embeddingDim,
+			);
+		},
+
+		async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
+			const results: (Float32Array | null)[] = [];
+			for (let i = 0; i < texts.length; i += 16) {
+				const batch = texts.slice(i, i + 16);
+				const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
+				results.push(...batchResults);
+			}
+			return results;
+		},
+
+		close(): void {
+			if (session && "release" in session) {
+				(session as { release(): void }).release();
+			}
+			session = null;
+			tokenizer = null;
+			ort = null;
+			initialized = false;
+		},
+	};
+}
+
 /**
  * Mean-pool the hidden states for non-padding tokens, then L2-normalize.
  */

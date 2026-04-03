@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Embedder } from "@/capture/embedder";
-import { createEmbedder } from "@/capture/embedder";
+import { createEmbedder, createMultiModelEmbedder } from "@/capture/embedder";
 
 describe("embedder", () => {
 	let tmpDir: string;
@@ -179,5 +179,34 @@ describe("embedder", () => {
 	it("embedBatch method exists on Embedder interface", () => {
 		const embedder = createEmbedder("/nonexistent/model.onnx", "/nonexistent/tokenizer.json");
 		expect(typeof embedder.embedBatch).toBe("function");
+	});
+
+	it("createMultiModelEmbedder returns an Embedder with model name", () => {
+		const embedder = createMultiModelEmbedder({
+			modelName: "bge-small-en-v1.5",
+			modelPath: "/nonexistent/model.onnx",
+			tokenizerPath: "/nonexistent/tokenizer.json",
+			embeddingDim: 384,
+			maxSeqLength: 512,
+		});
+
+		expect(embedder).toBeDefined();
+		expect(typeof embedder.embed).toBe("function");
+		expect(typeof embedder.close).toBe("function");
+		expect(embedder.modelName).toBe("bge-small-en-v1.5");
+		expect(embedder.embeddingDim).toBe(384);
+	});
+
+	it("multi-model embedder returns null when model file missing", async () => {
+		const embedder = createMultiModelEmbedder({
+			modelName: "bge-small-en-v1.5",
+			modelPath: "/nonexistent/model.onnx",
+			tokenizerPath: "/nonexistent/tokenizer.json",
+			embeddingDim: 384,
+			maxSeqLength: 512,
+		});
+
+		const result = await embedder.embed("hello world");
+		expect(result).toBeNull();
 	});
 });
