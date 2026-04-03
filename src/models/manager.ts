@@ -44,15 +44,30 @@ export function createModelManager(baseDir: string): ModelManager {
 	// Load or create manifest
 	let manifest: ModelManifest;
 	if (existsSync(manifestPath)) {
-		const raw = readFileSync(manifestPath, "utf-8");
-		manifest = JSON.parse(raw) as ModelManifest;
+		try {
+			const raw = readFileSync(manifestPath, "utf-8");
+			manifest = JSON.parse(raw) as ModelManifest;
+		} catch (err) {
+			console.error(
+				`[sia] Failed to read manifest at ${manifestPath} — resetting to empty:`,
+				err instanceof Error ? err.message : String(err),
+			);
+			manifest = createEmptyManifest();
+		}
 	} else {
 		manifest = createEmptyManifest();
-		writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
 	}
+	// Always persist on init to ensure file exists and is valid
+	writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
 
 	function persistManifest(): void {
-		writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+		try {
+			writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+		} catch (err) {
+			throw new Error(
+				`[sia] Failed to persist model manifest to ${manifestPath}: ${err instanceof Error ? err.message : String(err)}`,
+			);
+		}
 	}
 
 	return {
@@ -91,9 +106,14 @@ export function createModelManager(baseDir: string): ModelManager {
 
 		async verifyChecksum(filePath: string, expectedSha256: string): Promise<boolean> {
 			if (!existsSync(filePath)) return false;
-			const content = readFileSync(filePath);
-			const actual = createHash("sha256").update(content).digest("hex");
-			return actual === expectedSha256;
+			const { createReadStream } = await import("node:fs");
+			return new Promise<boolean>((resolve, reject) => {
+				const hash = createHash("sha256");
+				const stream = createReadStream(filePath);
+				stream.on("data", (chunk) => hash.update(chunk));
+				stream.on("end", () => resolve(hash.digest("hex") === expectedSha256));
+				stream.on("error", (err) => reject(err));
+			});
 		},
 
 		getModelsDir(): string {

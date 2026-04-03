@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -123,5 +123,43 @@ describe("ModelManager", () => {
 			"wrong_hash",
 		);
 		expect(result).toBe(false);
+	});
+
+	it("recovers from corrupt manifest.json", () => {
+		tmpDir = makeTmp();
+		const modelsDir = join(tmpDir, "models");
+		mkdirSync(modelsDir, { recursive: true });
+		writeFileSync(join(modelsDir, "manifest.json"), "NOT VALID JSON{{{", "utf-8");
+
+		// Should not throw — should recover to empty manifest
+		const manager = createModelManager(tmpDir);
+		const manifest = manager.getManifest();
+		expect(manifest.schemaVersion).toBe(1);
+		expect(manifest.installedTier).toBe("T0");
+		expect(manifest.models).toEqual({});
+	});
+
+	it("verifyChecksum returns false for missing file", async () => {
+		tmpDir = makeTmp();
+		const manager = createModelManager(tmpDir);
+		const result = await manager.verifyChecksum("/nonexistent/path.onnx", "abc123");
+		expect(result).toBe(false);
+	});
+
+	it("removeModel with deleteFiles removes directory", () => {
+		tmpDir = makeTmp();
+		const manager = createModelManager(tmpDir);
+		const modelDir = join(tmpDir, "models", "test-model");
+		mkdirSync(modelDir, { recursive: true });
+		writeFileSync(join(modelDir, "model.onnx"), "fake model");
+
+		manager.recordModelInstalled("test-model", {
+			version: "1.0.0", variant: "int8", sha256: "abc",
+			sizeBytes: 100, source: "test", installedAt: new Date().toISOString(), tier: "T0",
+		});
+		manager.removeModel("test-model", true);
+
+		expect(manager.isModelInstalled("test-model")).toBe(false);
+		expect(existsSync(modelDir)).toBe(false);
 	});
 });
