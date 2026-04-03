@@ -351,6 +351,6 @@ describe("hybridSearch — three-stage pipeline", () => {
 		const result = await hybridSearch(db, null, { query: "SlowEntity", limit: 10 },
 			{ crossEncoder: neverResolves as any });
 
-		expect(result.results.length).toBeGreaterThanOrEqual(0); // does not throw
+		expect(result.results.length).toBeGreaterThanOrEqual(1); // RRF fallback returns the entity
 	});
 });

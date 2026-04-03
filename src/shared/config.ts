@@ -127,6 +127,8 @@ export interface SiaConfig {
 	maxOnnxSessions: number;
 	/** Whether to collect implicit feedback for ranking. */
 	feedbackCollection: boolean;
+	/** Cross-encoder scoring timeout (ms). Must exceed typical inference time (~200ms on CPU). */
+	crossEncoderTimeoutMs: number;
 }
 
 /** Valid keys for the decayHalfLife object. */
@@ -201,6 +203,7 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	modelTier: "T0",
 	maxOnnxSessions: 4,
 	feedbackCollection: true,
+	crossEncoderTimeoutMs: 500,
 };
 
 /**

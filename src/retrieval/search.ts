@@ -26,6 +26,7 @@ export interface SearchOptions {
 	limit?: number;
 	includeProvenance?: boolean;
 	communityMinGraphSize?: number;
+	crossEncoderTimeoutMs?: number;
 }
 
 /** Result returned by hybridSearch. */
@@ -129,14 +130,17 @@ export async function hybridSearch(
 			.filter((id) => textMap.has(id))
 			.map((id) => ({ entityId: id, text: textMap.get(id)! }));
 
-		// Stage 3 must not block the pipeline. Hard timeout: 50ms (per spec Section 2).
+		// Stage 3 must not block the pipeline. Timeout configurable via crossEncoderTimeoutMs.
 		// On timeout, ceResults is empty — all candidates survive with crossEncoderScore=0.
-		const CE_TIMEOUT_MS = 50;
+		const ceTimeoutMs = opts.crossEncoderTimeoutMs ?? 500;
 		const ceResults = await Promise.race([
 			deps.crossEncoder.rerank(opts.query, candidates),
-			new Promise<Array<{ entityId: string; score: number }>>((resolve) =>
-				setTimeout(() => resolve([]), CE_TIMEOUT_MS),
-			),
+			new Promise<Array<{ entityId: string; score: number }>>((resolve) => {
+				const handle = setTimeout(() => resolve([]), ceTimeoutMs);
+				if (typeof handle === "object" && "unref" in handle) {
+					(handle as NodeJS.Timeout).unref();
+				}
+			}),
 		]);
 		const crossEncoderScores = new Map(ceResults.map((r) => [r.entityId, r.score]));
 
