@@ -36,6 +36,15 @@ export function sigmoid(x: number): number {
 	return 1 / (1 + Math.exp(-x));
 }
 
+/** Pad or truncate a BigInt64Array to exactly `length` elements. */
+function padOrTruncate(arr: BigInt64Array, length: number): BigInt64Array {
+	if (arr.length === length) return arr;
+	const result = new BigInt64Array(length);
+	const copyLen = Math.min(arr.length, length);
+	for (let i = 0; i < copyLen; i++) result[i] = arr[i];
+	return result;
+}
+
 /**
  * Create a cross-encoder reranker.
  *
@@ -64,10 +73,12 @@ export function createCrossEncoderReranker(config: CrossEncoderConfig): CrossEnc
 			// Score each pair sequentially (small N, typically 10-15)
 			for (const candidate of candidates) {
 				try {
-					const { inputIds, attentionMask, tokenTypeIds } = tokenize(
-						query,
-						candidate.text,
-					);
+					const tokens = tokenize(query, candidate.text);
+
+					// Pad or truncate to exactly maxSeqLength
+					const inputIds = padOrTruncate(tokens.inputIds, maxSeqLength);
+					const attentionMask = padOrTruncate(tokens.attentionMask, maxSeqLength);
+					const tokenTypeIds = padOrTruncate(tokens.tokenTypeIds, maxSeqLength);
 
 					const shape = [1, maxSeqLength] as const;
 					const feeds: Record<string, unknown> = {
