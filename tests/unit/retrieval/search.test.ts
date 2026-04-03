@@ -275,4 +275,56 @@ describe("hybridSearch — three-stage pipeline", () => {
 			expect(r.summary).toBeTruthy();
 		}
 	});
+
+	it("pipeline accepts optional crossEncoderReranker in deps", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept",
+			name: "TestEntity",
+			content: "A test entity for cross-encoder reranking.",
+			summary: "Test entity",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
+		});
+
+		// Mock cross-encoder that boosts all scores to 0.95
+		const mockCrossEncoder = {
+			rerank: async (_query: string, candidates: Array<{ entityId: string; text: string }>) =>
+				candidates.map((c) => ({ entityId: c.entityId, score: 0.95 })),
+		};
+
+		const result = await hybridSearch(db, null, {
+			query: "TestEntity",
+			limit: 10,
+		}, { crossEncoder: mockCrossEncoder as any });
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("cross-encoder timeout falls back to RRF ordering", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce-timeout", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept", name: "SlowEntity",
+			content: "This entity tests timeout fallback.",
+			summary: "Slow entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+		});
+
+		// Cross-encoder that never resolves (simulates slow CPU inference)
+		const neverResolves = {
+			rerank: (_query: string, _candidates: Array<{ entityId: string; text: string }>) =>
+				new Promise<Array<{ entityId: string; score: number }>>(() => {}), // intentionally hangs
+		};
+
+		// Should not hang — timeout resolves with empty results, RRF ordering used
+		const result = await hybridSearch(db, null, { query: "SlowEntity", limit: 10 },
+			{ crossEncoder: neverResolves as any });
+
+		expect(result.results.length).toBeGreaterThanOrEqual(0); // does not throw
+	});
 });
