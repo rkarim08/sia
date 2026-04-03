@@ -14,7 +14,6 @@ describe("verifyModelChecksum", () => {
 	});
 
 	afterEach(() => {
-		// Cleanup temp dir if it still exists
 		import("node:fs").then(({ rmSync }) => {
 			try {
 				rmSync(tempDir, { recursive: true, force: true });
@@ -24,26 +23,28 @@ describe("verifyModelChecksum", () => {
 		});
 	});
 
-	it("should not throw when hash matches file content", () => {
+	it("should return true when hash matches file content", async () => {
 		const filePath = join(tempDir, "test-file.bin");
 		const content = "hello, sia model verification";
 		writeFileSync(filePath, content);
 
 		const expectedHash = createHash("sha256").update(content).digest("hex");
 
-		expect(() => verifyModelChecksum(filePath, expectedHash)).not.toThrow();
+		const result = await verifyModelChecksum(filePath, expectedHash);
+		expect(result).toBe(true);
 		// File should still exist
 		expect(existsSync(filePath)).toBe(true);
 	});
 
-	it("should throw and delete the file when hash does not match", () => {
+	it("should return false and delete the file when hash does not match", async () => {
 		const filePath = join(tempDir, "bad-model.bin");
 		const content = "corrupted or wrong content";
 		writeFileSync(filePath, content);
 
 		const wrongHash = "0".repeat(64); // 64 zeros — definitely wrong
 
-		expect(() => verifyModelChecksum(filePath, wrongHash)).toThrow(/checksum/i);
+		const result = await verifyModelChecksum(filePath, wrongHash);
+		expect(result).toBe(false);
 		// File should be deleted after mismatch
 		expect(existsSync(filePath)).toBe(false);
 	});
