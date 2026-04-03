@@ -137,8 +137,9 @@ function tryVssSearch(
 
 		results.sort((a, b) => b.score - a.score);
 		return results.slice(0, limit);
-	} catch {
-		// VSS extension not loaded or table doesn't exist — fall through to brute-force
+	} catch (err) {
+		console.error("[sia] vector-search: sqlite-vss unavailable, falling back to brute-force:",
+			err instanceof Error ? err.message : String(err));
 		return null;
 	}
 }

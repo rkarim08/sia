@@ -134,8 +134,11 @@ export function createGlinerExtractor(config: GlinerExtractorConfig): GlinerExtr
 					if (spans) {
 						allSpans.push(...spans);
 					}
-				} catch {
-					// Skip failed chunks — partial extraction is better than complete failure
+				} catch (err) {
+					console.error(
+						`[sia] gliner-extractor: chunk ${chunks.indexOf(chunk)}/${chunks.length} inference failed:`,
+						err instanceof Error ? err.message : String(err),
+					);
 				}
 			}
 

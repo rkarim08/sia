@@ -173,6 +173,7 @@ export async function hybridSearch(
 	let results: SiaSearchResult[];
 
 	if (deps?.attentionFusionSession) {
+		console.error("[sia] attention fusion session provided but not yet active — using RRF fallback");
 		// TODO: assemble CandidateFeatures from entity data and call attentionFusion().
 		// For now, fall through to RRF rerank — the session is accepted but not yet
 		// invoked until Phase 4 populates entity embeddings in the DB.

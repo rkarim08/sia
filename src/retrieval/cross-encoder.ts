@@ -84,8 +84,11 @@ export function createCrossEncoderReranker(config: CrossEncoderConfig): CrossEnc
 					const score = sigmoid(logit);
 
 					results.push({ entityId: candidate.entityId, score });
-				} catch {
-					// If scoring fails for one candidate, give it zero score
+				} catch (err) {
+					console.error(
+						`[sia] cross-encoder: scoring failed for entity ${candidate.entityId}:`,
+						err instanceof Error ? err.message : String(err),
+					);
 					results.push({ entityId: candidate.entityId, score: 0 });
 				}
 			}

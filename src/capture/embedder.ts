@@ -58,7 +58,8 @@ export function createEmbedder(modelPath: string, tokenizerPath: string): Embedd
 
 		try {
 			tokenizer = loadTokenizer(tokenizerPath);
-		} catch {
+		} catch (err) {
+			console.error(`[sia] embedder: failed to load tokenizer from ${tokenizerPath}:`, err instanceof Error ? err.message : String(err));
 			return false;
 		}
 
@@ -70,7 +71,8 @@ export function createEmbedder(modelPath: string, tokenizerPath: string): Embedd
 				executionProviders: ["cpu"],
 			})) as unknown as typeof session;
 			return true;
-		} catch {
+		} catch (err) {
+			console.error(`[sia] embedder: failed to create ONNX session from ${modelPath}:`, err instanceof Error ? err.message : String(err));
 			session = null;
 			return false;
 		}
@@ -169,7 +171,8 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 
 		try {
 			tokenizer = loadTokenizer(tokenizerPath);
-		} catch {
+		} catch (err) {
+			console.error(`[sia] embedder(${modelName}): failed to load tokenizer from ${tokenizerPath}:`, err instanceof Error ? err.message : String(err));
 			return false;
 		}
 
@@ -181,7 +184,8 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 				executionProviders: ["cpu"],
 			})) as unknown as typeof session;
 			return true;
-		} catch {
+		} catch (err) {
+			console.error(`[sia] embedder(${modelName}): failed to create ONNX session from ${modelPath}:`, err instanceof Error ? err.message : String(err));
 			session = null;
 			return false;
 		}

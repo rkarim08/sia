@@ -181,6 +181,7 @@ export async function attentionFusion(
 		const scores = output.scores as { data: Float32Array; dims: readonly number[] };
 
 		if (!scores?.data) {
+			console.error("[sia] attention-fusion: ONNX output missing 'scores' tensor — model schema mismatch?");
 			return rrfFallback(candidates);
 		}
 
@@ -194,8 +195,11 @@ export async function attentionFusion(
 
 		results.sort((a, b) => b.score - a.score);
 		return results;
-	} catch {
-		// On any ONNX error, fall back to RRF
+	} catch (err) {
+		console.error(
+			`[sia] attention-fusion: ONNX inference failed (K=${K}, featureDim=${featureDim}):`,
+			err instanceof Error ? err.message : String(err),
+		);
 		return rrfFallback(candidates);
 	}
 }
