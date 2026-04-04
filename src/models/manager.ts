@@ -1,6 +1,6 @@
 // Module: models/manager — model lifecycle: download, verify SHA-256, load, evict, upgrade/downgrade
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
 	createEmptyManifest,
@@ -49,9 +49,16 @@ export function createModelManager(baseDir: string): ModelManager {
 			manifest = JSON.parse(raw) as ModelManifest;
 		} catch (err) {
 			console.error(
-				`[sia] Failed to read manifest at ${manifestPath} — resetting to empty:`,
+				`[sia] Failed to read manifest at ${manifestPath} — backing up corrupt file and resetting:`,
 				err instanceof Error ? err.message : String(err),
 			);
+			try {
+				const backupPath = `${manifestPath}.corrupt.${Date.now()}`;
+				renameSync(manifestPath, backupPath);
+				console.error(`[sia] Corrupt manifest backed up to ${backupPath}`);
+			} catch {
+				// Best-effort backup — proceed with reset even if rename fails
+			}
 			manifest = createEmptyManifest();
 		}
 	} else {
@@ -72,7 +79,7 @@ export function createModelManager(baseDir: string): ModelManager {
 
 	return {
 		getManifest(): ModelManifest {
-			return manifest;
+			return structuredClone(manifest);
 		},
 
 		getModelPath(modelName: string, fileName: string): string {
