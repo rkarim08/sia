@@ -1,5 +1,7 @@
 // Module: cross-encoder — Stage 3 cross-encoder reranking via ONNX inference
 
+import type { OnnxSession } from "@/models/types";
+
 /** Input candidate for cross-encoder reranking. */
 export interface CrossEncoderCandidate {
 	entityId: string;
@@ -21,7 +23,7 @@ export type PairTokenizer = (query: string, text: string) => {
 
 /** Configuration for creating a cross-encoder reranker. */
 export interface CrossEncoderConfig {
-	session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
+	session: OnnxSession | null;
 	tokenize: PairTokenizer;
 	maxSeqLength: number;
 }
@@ -55,6 +57,7 @@ function padOrTruncate(arr: BigInt64Array, length: number): BigInt64Array {
  */
 export function createCrossEncoderReranker(config: CrossEncoderConfig): CrossEncoderReranker {
 	const { session, tokenize, maxSeqLength } = config;
+	let nullSessionLogged = false;
 
 	return {
 		async rerank(
@@ -64,7 +67,10 @@ export function createCrossEncoderReranker(config: CrossEncoderConfig): CrossEnc
 			if (candidates.length === 0) return [];
 
 			if (!session) {
-				// No model available — return all with zero score
+				if (!nullSessionLogged) {
+					console.error("[sia] cross-encoder: session is null — returning zero scores (graceful degradation)");
+					nullSessionLogged = true;
+				}
 				return candidates.map((c) => ({ entityId: c.entityId, score: 0 }));
 			}
 

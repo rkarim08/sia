@@ -22,7 +22,7 @@ export interface ReconciliationResult {
  * Reconcile extractions from GLiNER and regex, deduplicating and classifying.
  *
  * 1. Merge all spans into a single list.
- * 2. Deduplicate overlapping spans (same text + label + start offset), keeping highest confidence.
+ * 2. Deduplicate by `text::label` key (position-agnostic for cross-source dedup), keeping highest confidence.
  * 3. Classify each unique span as accept/confirm/reject based on per-label thresholds.
  */
 export function reconcileExtractions(input: ReconciliationInput): ReconciliationResult {

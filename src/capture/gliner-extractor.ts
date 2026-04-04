@@ -3,6 +3,7 @@
 // Reference: Zaratiana et al., 2023 — "GLiNER: Generalist Model for NER"
 // https://arxiv.org/abs/2311.08526
 //
+import type { OnnxSession } from "@/models/types";
 // At T2+, this supplements the LLM capture pipeline:
 // - High confidence → accepted directly into the graph
 // - Mid confidence → sent to Haiku for confirmation
@@ -76,7 +77,7 @@ export function classifyExtractionResult(span: GlinerSpan): ExtractionClassifica
 
 /** Configuration for the GLiNER extractor. */
 export interface GlinerExtractorConfig {
-	session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
+	session: OnnxSession | null;
 	maxChunkLength: number;
 }
 
@@ -95,10 +96,17 @@ export interface GlinerExtractor {
  */
 export function createGlinerExtractor(config: GlinerExtractorConfig): GlinerExtractor {
 	const { session, maxChunkLength } = config;
+	let nullSessionLogged = false;
 
 	return {
 		async extract(text: string): Promise<GlinerSpan[]> {
-			if (!session) return [];
+			if (!session) {
+				if (!nullSessionLogged) {
+					console.error("[sia] gliner-extractor: session is null — extraction disabled (T0/T1 degradation)");
+					nullSessionLogged = true;
+				}
+				return [];
+			}
 
 			// Chunk text by character limit (~4 chars per token)
 			const charLimit = maxChunkLength * 4;

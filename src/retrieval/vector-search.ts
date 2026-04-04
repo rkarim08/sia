@@ -34,6 +34,9 @@ const BRUTE_FORCE_LIMIT = 1000;
  * has zero magnitude (degenerate case).
  */
 function cosineSim(a: Float32Array, b: Float32Array): number {
+	if (a.length !== b.length) {
+		throw new Error(`cosineSim: dimension mismatch — a.length=${a.length}, b.length=${b.length}`);
+	}
 	let dot = 0;
 	let normA = 0;
 	let normB = 0;

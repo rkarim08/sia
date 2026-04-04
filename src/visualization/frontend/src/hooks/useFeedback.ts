@@ -6,19 +6,17 @@
 
 import { useCallback, useRef } from "react";
 
-/** A feedback event from the visualizer. */
-export interface VisualizerFeedbackEvent {
-	type: "click" | "expand" | "dwell" | "code_inspect" | "search_click" | "skip";
-	entityId: string;
-	queryText?: string;
-	timestamp: number;
-	dwellMs?: number;
-}
+/** A feedback event from the visualizer — discriminated union on type. */
+export type VisualizerFeedbackEvent =
+	| { type: "click"; entityId: string; timestamp: number }
+	| { type: "expand"; entityId: string; timestamp: number }
+	| { type: "dwell"; entityId: string; timestamp: number; dwellMs: number }
+	| { type: "code_inspect"; entityId: string; timestamp: number }
+	| { type: "search_click"; entityId: string; queryText: string; timestamp: number }
+	| { type: "skip"; entityId: string; timestamp: number };
 
 /** Feedback hook options. */
 export interface UseFeedbackOptions {
-	/** API endpoint to send feedback events. */
-	apiUrl?: string;
 	/** Minimum dwell time (ms) to record as a dwell event. Default: 5000ms. */
 	dwellThreshold?: number;
 	/** Whether feedback collection is enabled. */
