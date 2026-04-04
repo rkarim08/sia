@@ -9,7 +9,7 @@ import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 import { hybridSearch } from "@/retrieval/search";
 
-describe("hybridSearch — three-stage pipeline", () => {
+describe("hybridSearch — five-stage pipeline", () => {
 	let tmpDir: string;
 	let db: SiaDb | undefined;
 
@@ -274,5 +274,111 @@ describe("hybridSearch — three-stage pipeline", () => {
 			expect(r.type).toBe("Community");
 			expect(r.summary).toBeTruthy();
 		}
+	});
+
+	it("pipeline accepts optional crossEncoderReranker in deps", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept",
+			name: "TestEntity",
+			content: "A test entity for cross-encoder reranking.",
+			summary: "Test entity",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
+		});
+
+		// Mock cross-encoder that boosts all scores to 0.95
+		const mockCrossEncoder = {
+			rerank: async (_query: string, candidates: Array<{ entityId: string; text: string }>) =>
+				candidates.map((c) => ({ entityId: c.entityId, score: 0.95 })),
+		};
+
+		const result = await hybridSearch(db, null, {
+			query: "TestEntity",
+			limit: 10,
+		}, { crossEncoder: mockCrossEncoder as any });
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("pipeline accepts optional attentionFusionSession in deps", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-attn", tmpDir);
+
+		await insertEntity(db, {
+			type: "Decision",
+			name: "FusionTest",
+			content: "Test entity for attention fusion.",
+			summary: "Fusion test",
+			trust_tier: 1,
+			confidence: 0.95,
+			importance: 0.9,
+		});
+
+		const result = await hybridSearch(db, null, {
+			query: "FusionTest",
+			limit: 10,
+		}, {
+			// attentionFusionSession: null means RRF fallback
+			attentionFusionSession: null,
+		});
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("cross-encoder timeout returns results when CE is slow (1ms timeout)", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce-fast-timeout", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept", name: "TimeoutEntity",
+			content: "This entity tests timeout with very fast timeout.",
+			summary: "Timeout entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+		});
+
+		// Cross-encoder that takes 100ms — much longer than the 1ms timeout
+		const slowCE = {
+			rerank: async (_query: string, candidates: Array<{ entityId: string; text: string }>) => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+				return candidates.map(c => ({ entityId: c.entityId, score: 0.95 }));
+			},
+		};
+
+		const result = await hybridSearch(db, null, {
+			query: "TimeoutEntity",
+			limit: 10,
+			crossEncoderTimeoutMs: 1,
+		}, { crossEncoder: slowCE as any });
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("cross-encoder timeout falls back to RRF ordering", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce-timeout", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept", name: "SlowEntity",
+			content: "This entity tests timeout fallback.",
+			summary: "Slow entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+		});
+
+		// Cross-encoder that never resolves (simulates slow CPU inference)
+		const neverResolves = {
+			rerank: (_query: string, _candidates: Array<{ entityId: string; text: string }>) =>
+				new Promise<Array<{ entityId: string; score: number }>>(() => {}), // intentionally hangs
+		};
+
+		// Should not hang — timeout resolves with empty results, RRF ordering used
+		const result = await hybridSearch(db, null, { query: "SlowEntity", limit: 10 },
+			{ crossEncoder: neverResolves as any });
+
+		expect(result.results.length).toBeGreaterThanOrEqual(1); // RRF fallback returns the entity
 	});
 });

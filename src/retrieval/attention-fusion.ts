@@ -1,0 +1,238 @@
+// Module: attention-fusion — Stage 4 SIA Attention Fusion Head
+//
+// Architecture (from spec):
+// - Input: per-candidate feature vector (405d)
+// - Input projection: Linear(405 → 128) + LayerNorm
+// - Self-Attention Block 1: 4-head MHA + QKNorm + Graphormer spatial bias + GeGLU FFN
+// - Self-Attention Block 2: 4-head MHA + QKNorm + Graphormer spatial bias + GeGLU FFN
+// - Output: Linear(128 → 1) per entity → sigmoid
+//
+// At T0 (no attention head ONNX model), falls back to RRF.
+// At T1+, runs the ONNX attention fusion model.
+// Note: The architecture above describes the ONNX model loaded at inference time,
+// not TypeScript-side logic. This module handles feature assembly, model invocation,
+// and fallback when no ONNX model is available.
+
+import { GRAPHORMER_MAX_DIST } from "@/retrieval/graph-distance";
+import { createDefaultTime2VecParams, time2vecEncode, TIME2VEC_DIM } from "@/retrieval/time2vec";
+import type { OnnxSession } from "@/models/types";
+
+/** Per-candidate features assembled before fusion. */
+export interface CandidateFeatures {
+	entityId: string;
+	bm25Score: number;
+	vectorScore: number;
+	graphScore: number;
+	crossEncoderScore: number;
+	trustTierWeight: number;
+	entityEmbedding: Float32Array; // Must be exactly 384d from bge-small
+	daysSinceCapture: number; // Must be >= 0
+	/** Optional second vector score from jina-code (T1+). */
+	codeVectorScore?: number;
+}
+
+/** Result after attention fusion or RRF fallback. */
+export interface FusionResult {
+	entityId: string;
+	score: number;
+}
+
+/** Feature vector dimension: 4 scores + 1 trust + 384 embedding + 16 time2vec = 405. */
+export const FEATURE_DIM = 405;
+/** Feature vector dimension with code score (T1+): 406. */
+export const FEATURE_DIM_T1 = 406;
+
+/**
+ * Assemble a feature vector for one candidate entity.
+ *
+ * Layout (405 floats):
+ *   [0]     BM25 score
+ *   [1]     Vector similarity score
+ *   [2]     Graph traversal score
+ *   [3]     Cross-encoder score
+ *   [4]     Trust tier weight
+ *   [5-388] Entity embedding (384d)
+ *   [389-404] Time2Vec temporal encoding (16d)
+ *
+ * If codeVectorScore is provided (T1+), appended as [405] making it 406d.
+ */
+export function assembleFeatureVector(candidate: CandidateFeatures): Float32Array {
+	const hasCodeScore = candidate.codeVectorScore !== undefined;
+	const dim = hasCodeScore ? FEATURE_DIM_T1 : FEATURE_DIM;
+	const vec = new Float32Array(dim);
+
+	// Retrieval scores (indices 0-3)
+	vec[0] = candidate.bm25Score;
+	vec[1] = candidate.vectorScore;
+	vec[2] = candidate.graphScore;
+	vec[3] = candidate.crossEncoderScore;
+
+	// Trust tier weight (index 4)
+	vec[4] = candidate.trustTierWeight;
+
+	// Entity embedding (indices 5-388) — must be exactly 384d
+	const emb = candidate.entityEmbedding;
+	if (emb.length !== 384) {
+		throw new Error(`entityEmbedding must be 384d; got ${emb.length}d for entity ${candidate.entityId}`);
+	}
+	for (let i = 0; i < 384; i++) {
+		vec[5 + i] = emb[i];
+	}
+
+	// Time2Vec temporal encoding (indices 389-404)
+	const days = Math.max(0, candidate.daysSinceCapture);
+	const logDays = Math.log2(1 + days);
+	const t2vParams = createDefaultTime2VecParams();
+	const temporal = time2vecEncode(logDays, t2vParams);
+	for (let i = 0; i < TIME2VEC_DIM; i++) {
+		vec[389 + i] = temporal[i];
+	}
+
+	// Optional code vector score (index 405)
+	if (hasCodeScore) {
+		vec[405] = candidate.codeVectorScore!;
+	}
+
+	return vec;
+}
+
+const FALLBACK_WEIGHTS = { bm25: 0.3, vector: 0.25, graph: 0.2, crossEncoder: 0.25 } as const;
+let _attentionFusionNullLogged = false;
+
+/**
+ * Weighted score fallback fusion (used at T0 when no attention head is available).
+ *
+ * Computes a weighted combination of the 4 retrieval scores:
+ *   score = 0.3*bm25 + 0.25*vector + 0.2*graph + 0.25*crossEncoder
+ *   final = score * trustWeight
+ *
+ * Weights hand-tuned for zero-shot retrieval before the attention head is trained.
+ */
+export function weightedScoreFallback(candidates: CandidateFeatures[]): FusionResult[] {
+	if (candidates.length === 0) return [];
+
+	const results: FusionResult[] = candidates.map((c) => {
+		const score =
+			FALLBACK_WEIGHTS.bm25 * c.bm25Score +
+			FALLBACK_WEIGHTS.vector * c.vectorScore +
+			FALLBACK_WEIGHTS.graph * c.graphScore +
+			FALLBACK_WEIGHTS.crossEncoder * c.crossEncoderScore;
+		return {
+			entityId: c.entityId,
+			score: score * c.trustTierWeight,
+		};
+	});
+
+	results.sort((a, b) => b.score - a.score);
+	return results;
+}
+
+/**
+ * Run the attention fusion head via ONNX inference.
+ *
+ * Takes assembled feature vectors for all candidates + optional code context,
+ * runs the 2-layer 4-head transformer, returns relevance scores.
+ *
+ * If the ONNX session is null, falls back to weightedScoreFallback.
+ *
+ * @param candidates - Feature vectors for each candidate entity
+ * @param graphDistances - Pairwise graph hop distances between candidates (for Graphormer bias)
+ * @param codeContextEmbedding - Optional code context embedding for [CODE_CTX] token
+ * @param session - ONNX InferenceSession for the attention head model (null = fallback)
+ */
+export async function attentionFusion(
+	candidates: CandidateFeatures[],
+	graphDistances: number[][],
+	codeContextEmbedding: Float32Array | null,
+	session: OnnxSession | null,
+): Promise<FusionResult[]> {
+	if (candidates.length === 0) return [];
+
+	if (graphDistances.length !== candidates.length) {
+		throw new Error(
+			`graphDistances length (${graphDistances.length}) must equal candidates length (${candidates.length})`,
+		);
+	}
+
+	// Fallback to weighted score when no model is available
+	if (!session) {
+		if (!_attentionFusionNullLogged) {
+			console.error("[sia] attention-fusion: session is null — using weighted score fallback (T0 degradation)");
+			_attentionFusionNullLogged = true;
+		}
+		return weightedScoreFallback(candidates);
+	}
+
+	// Assemble feature matrix: [K, FEATURE_DIM]
+	const K = candidates.length;
+	const hasCode = candidates[0].codeVectorScore !== undefined;
+	const inconsistent = candidates.some((c) => (c.codeVectorScore !== undefined) !== hasCode);
+	if (inconsistent) {
+		console.warn("[sia] attention-fusion: heterogeneous codeVectorScore presence across candidates — using first candidate's mode");
+	}
+	const featureDim = hasCode ? FEATURE_DIM_T1 : FEATURE_DIM;
+
+	const features = new Float32Array(K * featureDim);
+	for (let i = 0; i < K; i++) {
+		const vec = assembleFeatureVector(candidates[i]);
+		features.set(vec, i * featureDim);
+	}
+
+	// Flatten graph distances: [K, K]
+	// Fallback to GRAPHORMER_MAX_DIST ("far away") for missing entries — distance 0
+	// would incorrectly mean "same node" in the Graphormer spatial bias table.
+	const distMatrix = new Float32Array(K * K);
+	for (let i = 0; i < K; i++) {
+		if (graphDistances[i].length !== K) {
+			throw new Error(
+				`graphDistances[${i}] length (${graphDistances[i].length}) must equal candidates length (${K})`,
+			);
+		}
+		for (let j = 0; j < K; j++) {
+			distMatrix[i * K + j] = graphDistances[i][j] ?? GRAPHORMER_MAX_DIST;
+		}
+	}
+
+	const hasCodeCtx = codeContextEmbedding !== null;
+
+	try {
+		const feeds: Record<string, unknown> = {
+			features: { data: features, dims: [K, featureDim], type: "float32" },
+			graph_distances: { data: distMatrix, dims: [K, K], type: "float32" },
+			has_code_context: { data: new Float32Array([hasCodeCtx ? 1.0 : 0.0]), dims: [1], type: "float32" },
+		};
+
+		if (hasCodeCtx && codeContextEmbedding) {
+			feeds.code_context = {
+				data: codeContextEmbedding,
+				dims: [1, codeContextEmbedding.length],
+				type: "float32",
+			};
+		}
+
+		const output = await session.run(feeds);
+		const scores = output.scores as { data: Float32Array; dims: readonly number[] };
+
+		if (!scores?.data) {
+			console.error("[sia] attention-fusion: ONNX output missing 'scores' tensor — model schema mismatch?");
+			return weightedScoreFallback(candidates);
+		}
+
+		const results: FusionResult[] = [];
+		for (let i = 0; i < K; i++) {
+			results.push({
+				entityId: candidates[i].entityId,
+				score: scores.data[i] ?? 0,
+			});
+		}
+
+		results.sort((a, b) => b.score - a.score);
+		return results;
+	} catch (err) {
+		console.error(
+			`[sia] attention-fusion: ONNX inference failed (K=${K}, featureDim=${featureDim}):`,
+			err instanceof Error ? err.message : String(err),
+		);
+		return weightedScoreFallback(candidates);
+	}
+}

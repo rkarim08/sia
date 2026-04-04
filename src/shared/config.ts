@@ -2,6 +2,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
+import type { ModelTier } from "@/models/types";
+
+/** Recognized task types for the retrieval pipeline. */
+export type TaskType = "orientation" | "feature" | "bug-fix" | "regression" | "review";
 
 /**
  * Resolve the SIA home directory.
@@ -120,6 +124,15 @@ export interface SiaConfig {
 	throttleReducedMax: number;
 	// Upgrade
 	upgradeReleaseUrl: string | null;
+	// Transformer stack
+	/** Installed model tier: T0, T1, T2, or T3. */
+	modelTier: ModelTier;
+	/** Maximum concurrent ONNX sessions. */
+	maxOnnxSessions: number;
+	/** Whether to collect implicit feedback for ranking. */
+	feedbackCollection: boolean;
+	/** Cross-encoder scoring timeout (ms). Must exceed typical inference time (~200ms on CPU). */
+	crossEncoderTimeoutMs: number;
 }
 
 /** Valid keys for the decayHalfLife object. */
@@ -191,6 +204,10 @@ export const DEFAULT_CONFIG: SiaConfig = {
 	throttleNormalMax: 3,
 	throttleReducedMax: 8,
 	upgradeReleaseUrl: null,
+	modelTier: "T0",
+	maxOnnxSessions: 4,
+	feedbackCollection: true,
+	crossEncoderTimeoutMs: 500,
 };
 
 /**

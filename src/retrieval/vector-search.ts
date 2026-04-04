@@ -9,11 +9,16 @@ export interface VectorResult {
 	score: number;
 }
 
+/** Embedding column names in graph_nodes. Must stay in sync with DB schema. */
+export type EmbeddingColumn = "embedding" | "embedding_code";
+
 /** Options for vectorSearch. */
 export interface VectorSearchOpts {
 	limit?: number;
 	paranoid?: boolean;
 	packagePath?: string;
+	/** Which embedding column to search. Defaults to "embedding" (NL). Use "embedding_code" for code-specific search. */
+	embeddingColumn?: EmbeddingColumn;
 }
 
 /** Default similarity threshold below which results are discarded. */
@@ -29,6 +34,9 @@ const BRUTE_FORCE_LIMIT = 1000;
  * has zero magnitude (degenerate case).
  */
 function cosineSim(a: Float32Array, b: Float32Array): number {
+	if (a.length !== b.length) {
+		throw new Error(`cosineSim: dimension mismatch — a.length=${a.length}, b.length=${b.length}`);
+	}
 	let dot = 0;
 	let normA = 0;
 	let normB = 0;
@@ -67,12 +75,16 @@ export async function vectorSearch(
 	const queryEmbedding = await embedder.embed(query);
 	if (!queryEmbedding) return [];
 
-	// Step 2: Try sqlite-vss via rawSqlite()
-	const vssResults = tryVssSearch(db, queryEmbedding, limit, opts);
-	if (vssResults !== null) return vssResults;
+	const embeddingColumn = opts?.embeddingColumn ?? "embedding";
+
+	// Step 2: Try sqlite-vss via rawSqlite() (only for the NL embedding column)
+	if (embeddingColumn === "embedding") {
+		const vssResults = tryVssSearch(db, queryEmbedding, limit, opts);
+		if (vssResults !== null) return vssResults;
+	}
 
 	// Step 3: Brute-force cosine scan fallback
-	return bruteForceCosineSearch(db, queryEmbedding, limit, opts);
+	return bruteForceCosineSearch(db, queryEmbedding, embeddingColumn, limit, opts);
 }
 
 /**
@@ -131,8 +143,9 @@ function tryVssSearch(
 
 		results.sort((a, b) => b.score - a.score);
 		return results.slice(0, limit);
-	} catch {
-		// VSS extension not loaded or table doesn't exist — fall through to brute-force
+	} catch (err) {
+		console.error("[sia] vector-search: sqlite-vss unavailable, falling back to brute-force:",
+			err instanceof Error ? err.message : String(err));
 		return null;
 	}
 }
@@ -147,12 +160,13 @@ function tryVssSearch(
 async function bruteForceCosineSearch(
 	db: SiaDb,
 	queryEmbedding: Float32Array,
+	embeddingColumn: EmbeddingColumn,
 	limit: number,
 	opts?: VectorSearchOpts,
 ): Promise<VectorResult[]> {
-	// Build WHERE clauses
+	// Build WHERE clauses — column name is a constrained union, not user input
 	const clauses: string[] = [
-		"embedding IS NOT NULL",
+		`${embeddingColumn} IS NOT NULL`,
 		"t_valid_until IS NULL",
 		"archived_at IS NULL",
 	];
@@ -168,13 +182,13 @@ async function bruteForceCosineSearch(
 
 	params.push(Math.min(limit * 10, BRUTE_FORCE_LIMIT));
 
-	const sql = `SELECT id, embedding FROM graph_nodes WHERE ${clauses.join(" AND ")} LIMIT ?`;
+	const sql = `SELECT id, ${embeddingColumn} FROM graph_nodes WHERE ${clauses.join(" AND ")} LIMIT ?`;
 	const { rows } = await db.execute(sql, params);
 
 	const results: VectorResult[] = [];
 
 	for (const row of rows) {
-		const embeddingBlob = row.embedding;
+		const embeddingBlob = row[embeddingColumn];
 		if (!embeddingBlob) continue;
 
 		// Convert stored BLOB to Float32Array

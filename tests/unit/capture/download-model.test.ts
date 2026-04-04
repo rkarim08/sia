@@ -45,48 +45,53 @@ describe("downloadModel", () => {
 		expect(existsSync(modelsDir)).toBe(true);
 	});
 
-	it("skips download when model and tokenizer files already exist", async () => {
+	it("skips download when model files already exist", async () => {
 		const modelsDir = join(tempHome, "models");
-		mkdirSync(modelsDir, { recursive: true });
 
-		// Pre-create both files with content
-		writeFileSync(join(modelsDir, "all-MiniLM-L6-v2.onnx"), "existing-model-data");
-		writeFileSync(join(modelsDir, "tokenizer.json"), "existing-tokenizer-data");
+		// Pre-create T0 model subdirectories with files matching the registry layout
+		const bgeDir = join(modelsDir, "bge-small-en-v1.5");
+		const miniLMDir = join(modelsDir, "ms-marco-MiniLM-L-6-v2");
+		mkdirSync(bgeDir, { recursive: true });
+		mkdirSync(miniLMDir, { recursive: true });
+
+		writeFileSync(join(bgeDir, "model_quantized.onnx"), "existing-model-data");
+		writeFileSync(join(bgeDir, "tokenizer.json"), "existing-tokenizer-data");
+		writeFileSync(join(miniLMDir, "model_quantized.onnx"), "existing-model-data");
+		writeFileSync(join(miniLMDir, "tokenizer.json"), "existing-tokenizer-data");
 
 		const fetchSpy = vi.spyOn(globalThis, "fetch");
-		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		vi.spyOn(console, "log").mockImplementation(() => {});
 
-		const result = await downloadModel(tempHome);
+		await downloadModel(tempHome);
 
 		// fetch should never be called since files exist
 		expect(fetchSpy).not.toHaveBeenCalled();
-		// Should log that model is already downloaded
-		expect(logSpy).toHaveBeenCalledWith("Model already downloaded");
-		// Should return the model path
-		expect(result).toBe(join(modelsDir, "all-MiniLM-L6-v2.onnx"));
 	});
 
-	it("returns the correct model path", async () => {
+	it("returns the models directory path", async () => {
 		const modelsDir = join(tempHome, "models");
-		mkdirSync(modelsDir, { recursive: true });
 
-		// Pre-create both files
-		writeFileSync(join(modelsDir, "all-MiniLM-L6-v2.onnx"), "data");
-		writeFileSync(join(modelsDir, "tokenizer.json"), "data");
+		// Pre-create T0 model subdirectories with files
+		const bgeDir = join(modelsDir, "bge-small-en-v1.5");
+		const miniLMDir = join(modelsDir, "ms-marco-MiniLM-L-6-v2");
+		mkdirSync(bgeDir, { recursive: true });
+		mkdirSync(miniLMDir, { recursive: true });
+
+		writeFileSync(join(bgeDir, "model_quantized.onnx"), "data");
+		writeFileSync(join(bgeDir, "tokenizer.json"), "data");
+		writeFileSync(join(miniLMDir, "model_quantized.onnx"), "data");
+		writeFileSync(join(miniLMDir, "tokenizer.json"), "data");
 
 		vi.spyOn(console, "log").mockImplementation(() => {});
 
 		const result = await downloadModel(tempHome);
 		expect(typeof result).toBe("string");
-		expect(result).toBe(join(tempHome, "models", "all-MiniLM-L6-v2.onnx"));
+		expect(result).toBe(join(tempHome, "models"));
 	});
 
-	it("downloads model when only tokenizer exists", async () => {
+	it("downloads model when files do not exist", async () => {
 		const modelsDir = join(tempHome, "models");
 		mkdirSync(modelsDir, { recursive: true });
-
-		// Only create tokenizer
-		writeFileSync(join(modelsDir, "tokenizer.json"), "existing-tokenizer-data");
 
 		const fakeBody = () =>
 			new ReadableStream({
@@ -96,20 +101,21 @@ describe("downloadModel", () => {
 				},
 			});
 
-		const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(fakeBody(), {
-				status: 200,
-				headers: { "content-length": "9" },
-			}),
+		vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+			Promise.resolve(
+				new Response(fakeBody(), {
+					status: 200,
+					headers: { "content-length": "9" },
+				}),
+			),
 		);
 
 		vi.spyOn(console, "log").mockImplementation(() => {});
 
 		await downloadModel(tempHome);
 
-		// Should have called fetch once for the model only
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		// The model file should now exist
-		expect(existsSync(join(modelsDir, "all-MiniLM-L6-v2.onnx"))).toBe(true);
+		// T0 model files should now exist in per-model subdirectories
+		expect(existsSync(join(modelsDir, "bge-small-en-v1.5", "model_quantized.onnx"))).toBe(true);
+		expect(existsSync(join(modelsDir, "ms-marco-MiniLM-L-6-v2", "model_quantized.onnx"))).toBe(true);
 	});
 });

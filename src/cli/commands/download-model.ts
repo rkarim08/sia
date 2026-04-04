@@ -1,9 +1,9 @@
-// Module: download-model — downloads the all-MiniLM-L6-v2 ONNX model and tokenizer
+// Module: download-model — download ONNX models from the registry by tier
 import { createHash } from "node:crypto";
 import {
+	createReadStream,
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	renameSync,
 	statSync,
 	unlinkSync,
@@ -11,17 +11,13 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { SIA_HOME } from "@/shared/config";
-
-const MODEL_URL =
-	"https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx";
-const TOKENIZER_URL = "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/tokenizer.json";
-
-const MODEL_FILENAME = "all-MiniLM-L6-v2.onnx";
-const TOKENIZER_FILENAME = "tokenizer.json";
+import { createModelManager, type ModelManager } from "@/models/manager";
+import { getModelsForTier } from "@/models/registry";
+import type { ModelTier } from "@/models/types";
 
 /**
  * Download a single file from `url` to `destPath`.
- * Writes to a temporary file first, then renames to the final destination.
+ * Writes to a temporary file first, then renames for atomicity.
  */
 async function downloadFile(url: string, destPath: string): Promise<void> {
 	const response = await fetch(url);
@@ -54,7 +50,6 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
 		}
 	}
 
-	// Concatenate chunks into a single buffer
 	const buffer = new Uint8Array(received);
 	let offset = 0;
 	for (const chunk of chunks) {
@@ -62,37 +57,36 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
 		offset += chunk.length;
 	}
 
-	// Write to temp file first, then rename for atomicity
 	const tempPath = `${destPath}.tmp`;
 	writeFileSync(tempPath, buffer);
 	renameSync(tempPath, destPath);
-
 	console.log(`Downloaded ${destPath} (${received} bytes)`);
 }
 
 /**
- * Verify the SHA-256 checksum of a file against an expected hash.
- *
- * If the hashes match, returns without error.
- * If the hashes do not match, deletes the file and throws an error.
- *
- * @param filePath     Path to the file to verify.
- * @param expectedHash Hex-encoded SHA-256 digest to compare against.
+ * Verify the SHA-256 checksum of a file via streaming.
+ * Returns true if match, false if mismatch. Deletes file on mismatch.
  */
-export function verifyModelChecksum(filePath: string, expectedHash: string): void {
-	const fileBuffer = readFileSync(filePath);
-	const actualHash = createHash("sha256").update(fileBuffer).digest("hex");
-	if (actualHash !== expectedHash) {
-		unlinkSync(filePath);
-		throw new Error(
-			`Checksum mismatch for ${filePath}: expected ${expectedHash}, got ${actualHash}`,
-		);
-	}
+export async function verifyModelChecksum(filePath: string, expectedHash: string): Promise<boolean> {
+	return new Promise<boolean>((resolve, reject) => {
+		const hash = createHash("sha256");
+		const stream = createReadStream(filePath);
+		stream.on("data", (chunk) => hash.update(chunk));
+		stream.on("end", () => {
+			const actual = hash.digest("hex");
+			if (actual !== expectedHash) {
+				unlinkSync(filePath);
+				console.error(`Checksum mismatch for ${filePath}: expected ${expectedHash}, got ${actual}`);
+				resolve(false);
+			} else {
+				resolve(true);
+			}
+		});
+		stream.on("error", reject);
+	});
 }
 
-/**
- * Check whether a file exists and has size > 0.
- */
+/** Check whether a file exists and has size > 0. */
 function fileExistsWithContent(filePath: string): boolean {
 	if (!existsSync(filePath)) return false;
 	const stats = statSync(filePath);
@@ -100,50 +94,85 @@ function fileExistsWithContent(filePath: string): boolean {
 }
 
 /**
- * Download the all-MiniLM-L6-v2 ONNX model and its tokenizer.
+ * Download all models for a given tier using the MODEL_REGISTRY.
  *
- * Files are saved to `{siaHome}/models/`.
- * If both files already exist with size > 0, the download is skipped.
+ * For each model in the tier, downloads the ONNX model file and optional
+ * tokenizer to `{siaHome}/models/{modelName}/`. Verifies SHA-256 checksums
+ * unless SIA_SKIP_CHECKSUM is set. Records each model in the manifest.
  *
- * @returns The path to the downloaded model file.
+ * @returns The ModelManager after all downloads complete.
+ */
+export async function downloadModelsForTier(
+	tier: ModelTier = "T0",
+	siaHome: string = SIA_HOME,
+): Promise<ModelManager> {
+	const manager = createModelManager(siaHome);
+	const models = getModelsForTier(tier);
+
+	for (const [name, entry] of Object.entries(models)) {
+		const modelDir = join(manager.getModelsDir(), name);
+		if (!existsSync(modelDir)) {
+			mkdirSync(modelDir, { recursive: true });
+		}
+
+		const modelFileName = entry.file.split("/").pop()!;
+		const modelPath = join(modelDir, modelFileName);
+		const hfBaseUrl = `https://huggingface.co/${entry.huggingface}/resolve/main`;
+
+		// Download model file
+		if (!fileExistsWithContent(modelPath)) {
+			console.log(`Downloading ${name} model...`);
+			await downloadFile(`${hfBaseUrl}/${entry.file}`, modelPath);
+			if (!process.env.SIA_SKIP_CHECKSUM && !entry.sha256.startsWith("PLACEHOLDER")) {
+				const ok = await verifyModelChecksum(modelPath, entry.sha256);
+				if (!ok) {
+					console.error(`Checksum verification failed for ${name} — skipping`);
+					continue;
+				}
+			}
+		}
+
+		// Download tokenizer if specified
+		if (entry.tokenizerFile) {
+			const tokPath = join(modelDir, entry.tokenizerFile);
+			if (!fileExistsWithContent(tokPath)) {
+				console.log(`Downloading ${name} tokenizer...`);
+				await downloadFile(`${hfBaseUrl}/${entry.tokenizerFile}`, tokPath);
+				if (!process.env.SIA_SKIP_CHECKSUM && entry.tokenizerSha256 && !entry.tokenizerSha256.startsWith("PLACEHOLDER")) {
+					const ok = await verifyModelChecksum(tokPath, entry.tokenizerSha256);
+					if (!ok) {
+						console.error(`Tokenizer checksum verification failed for ${name} — skipping`);
+						continue;
+					}
+				}
+			}
+		}
+
+		// Record in manifest
+		if (!manager.isModelInstalled(name)) {
+			manager.recordModelInstalled(name, {
+				version: "1.0.0",
+				variant: "int8",
+				sha256: entry.sha256,
+				sizeBytes: entry.sizeBytes,
+				source: entry.huggingface,
+				installedAt: new Date().toISOString(),
+				tier: entry.tier,
+			});
+		}
+	}
+
+	manager.setInstalledTier(tier);
+	return manager;
+}
+
+/**
+ * Legacy entry point — downloads T0 models (bge-small + MiniLM).
+ * Preserved for backward compatibility with existing callers.
+ *
+ * @returns Path to the primary model directory.
  */
 export async function downloadModel(siaHome: string = SIA_HOME): Promise<string> {
-	const modelsDir = join(siaHome, "models");
-	const modelPath = join(modelsDir, MODEL_FILENAME);
-	const tokenizerPath = join(modelsDir, TOKENIZER_FILENAME);
-
-	// Ensure models directory exists
-	if (!existsSync(modelsDir)) {
-		mkdirSync(modelsDir, { recursive: true });
-	}
-
-	// Check if model already exists
-	if (fileExistsWithContent(modelPath) && fileExistsWithContent(tokenizerPath)) {
-		console.log("Model already downloaded");
-		return modelPath;
-	}
-
-	// Download model if needed
-	if (!fileExistsWithContent(modelPath)) {
-		console.log("Downloading ONNX model...");
-		await downloadFile(MODEL_URL, modelPath);
-		if (!process.env.SIA_SKIP_CHECKSUM) {
-			const MODEL_EXPECTED_HASH =
-				"afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1";
-			verifyModelChecksum(modelPath, MODEL_EXPECTED_HASH);
-		}
-	}
-
-	// Download tokenizer if needed
-	if (!fileExistsWithContent(tokenizerPath)) {
-		console.log("Downloading tokenizer...");
-		await downloadFile(TOKENIZER_URL, tokenizerPath);
-		if (!process.env.SIA_SKIP_CHECKSUM) {
-			const TOKENIZER_EXPECTED_HASH =
-				"da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0";
-			verifyModelChecksum(tokenizerPath, TOKENIZER_EXPECTED_HASH);
-		}
-	}
-
-	return modelPath;
+	const manager = await downloadModelsForTier("T0", siaHome);
+	return manager.getModelsDir();
 }

@@ -1,0 +1,14 @@
+# Python dependencies for offline attention head training only.
+# These are NOT required for running Sia — only for (re)training the attention fusion head.
+# Requires Python 3.10+.
+#
+# Usage:
+#   pip install -r requirements.txt
+#   python scripts/train-attention-head.py   (planned — activation phase)
+#   python scripts/export-attention-head.py  (planned — activation phase)
+# Note: The training scripts above are planned for the activation phase and
+# are not yet created. This file lists the Python dependencies they will need.
+
+torch>=2.0
+onnx>=1.14
+onnxruntime>=1.16
