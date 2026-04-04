@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { time2vecEncode, type Time2VecParams } from "@/retrieval/time2vec";
+import { createDefaultTime2VecParams, time2vecEncode, type Time2VecParams } from "@/retrieval/time2vec";
 
 describe("Time2Vec encoding", () => {
 	const params: Time2VecParams = {
@@ -43,5 +43,23 @@ describe("Time2Vec encoding", () => {
 		const result = time2vecEncode(logDays, params);
 		// Linear component: 0.1 * 4.95 + 0.0 ≈ 0.495
 		expect(result[0]).toBeCloseTo(0.495, 2);
+	});
+
+	it("createDefaultTime2VecParams returns correct invariants", () => {
+		const params = createDefaultTime2VecParams();
+
+		// Linear weight should be negative (recency bias)
+		expect(params.linearWeight).toBeLessThan(0);
+
+		// 15 periodic weights
+		expect(params.periodicWeights.length).toBe(15);
+
+		// 15 periodic biases
+		expect(params.periodicBiases.length).toBe(15);
+
+		// All periodic biases should be zero at bootstrap
+		for (let i = 0; i < 15; i++) {
+			expect(params.periodicBiases[i]).toBe(0);
+		}
 	});
 });

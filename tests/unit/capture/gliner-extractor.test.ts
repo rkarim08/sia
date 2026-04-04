@@ -78,4 +78,26 @@ describe("GLiNER extractor", () => {
 
 		expect(chunks.length).toBe(2);
 	});
+
+	it("returns spans from successful chunks when other chunks fail", async () => {
+		let chunkIdx = 0;
+		const mockSession = {
+			run: async () => {
+				chunkIdx++;
+				if (chunkIdx === 2) throw new Error("ONNX inference failed");
+				return {
+					spans: [
+						{ text: "express", label: "Dependency", score: 0.9, start: 0, end: 7 },
+					],
+				};
+			},
+		};
+
+		const extractor = createGlinerExtractor({ session: mockSession, maxChunkLength: 2 }); // 2 tokens → 8 chars
+		const spans = await extractor.extract("chunk1aaachunk2aaachunk3aaa"); // ~27 chars → 3+ chunks
+
+		// chunk1 succeeds (1 span), chunk2 fails (0 spans), chunk3+ succeed
+		expect(spans.length).toBeGreaterThanOrEqual(1);
+		expect(spans[0].text).toBe("express");
+	});
 });

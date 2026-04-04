@@ -5,7 +5,7 @@ import {
 	type CandidateFeatures,
 	FEATURE_DIM,
 	FEATURE_DIM_T1,
-	rrfFallback,
+	weightedScoreFallback,
 } from "@/retrieval/attention-fusion";
 
 describe("attention fusion", () => {
@@ -39,20 +39,20 @@ describe("attention fusion", () => {
 		expect(vec[4]).toBeCloseTo(0.9);
 	});
 
-	it("rrfFallback returns sorted scores matching RRF behavior", () => {
+	it("weightedScoreFallback returns sorted scores matching RRF behavior", () => {
 		const candidates: CandidateFeatures[] = [
 			{ ...candidate, entityId: "a", bm25Score: 0.9, vectorScore: 0.8, graphScore: 0.7, crossEncoderScore: 0.9 },
 			{ ...candidate, entityId: "b", bm25Score: 0.3, vectorScore: 0.2, graphScore: 0.1, crossEncoderScore: 0.3 },
 		];
 
-		const results = rrfFallback(candidates);
+		const results = weightedScoreFallback(candidates);
 		expect(results.length).toBe(2);
 		expect(results[0].entityId).toBe("a");
 		expect(results[0].score).toBeGreaterThan(results[1].score);
 	});
 
-	it("rrfFallback returns empty for empty input", () => {
-		expect(rrfFallback([])).toEqual([]);
+	it("weightedScoreFallback returns empty for empty input", () => {
+		expect(weightedScoreFallback([])).toEqual([]);
 	});
 
 	it("assembleFeatureVector produces 406d with codeVectorScore (T1)", () => {
@@ -108,5 +108,32 @@ describe("attention fusion", () => {
 		const result = await attentionFusion([c1], [[0]], null, null);
 		expect(result.length).toBe(1);
 		expect(result[0].entityId).toBe("c1");
+	});
+
+	it("falls back to weightedScoreFallback when ONNX returns fewer scores than candidates", async () => {
+		const c1: CandidateFeatures = { ...candidate, entityId: "c1" };
+		const c2: CandidateFeatures = { ...candidate, entityId: "c2" };
+		const c3: CandidateFeatures = { ...candidate, entityId: "c3" };
+
+		// Session returns only 1 score instead of 3 — the scores tensor data length is 1
+		const partialSession = {
+			run: async () => ({
+				scores: { data: new Float32Array([0.5]), dims: [1] },
+			}),
+		};
+
+		const result = await attentionFusion(
+			[c1, c2, c3],
+			[[0, 5, 5], [5, 0, 5], [5, 5, 0]],
+			null,
+			partialSession,
+		);
+
+		// Should still return 3 results (c2 and c3 get score 0 from undefined data[1], data[2])
+		expect(result.length).toBe(3);
+		// All should have scores (even if some are 0 from missing data)
+		for (const r of result) {
+			expect(typeof r.score).toBe("number");
+		}
 	});
 });

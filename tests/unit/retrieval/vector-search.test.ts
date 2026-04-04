@@ -158,4 +158,19 @@ describe("vectorSearch — dual-column support", () => {
 		const tier4 = results.find((r) => r.entityId === "tier4-entity-1");
 		expect(tier4).toBeUndefined();
 	});
+
+	it("handles mismatched embedding dimensions without crashing", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("vs-mismatch", tmpDir);
+
+		// Store a 4d embedding but query with a 2d vector
+		const stored = new Float32Array([1, 0, 0, 0]);
+		await insertRawEntity(db, "mismatch-1", { embedding: toBlob(stored) });
+
+		const queryVec = new Float32Array([1, 0]); // Different dimension
+		const embedder = makeEmbedder(queryVec);
+
+		// Should throw due to dimension mismatch in cosineSim
+		await expect(vectorSearch(db, "test", embedder, { limit: 5 })).rejects.toThrow("dimension mismatch");
+	});
 });

@@ -96,4 +96,47 @@ describe("graph distance cache", () => {
 		const dist = matrix[0][1]; // lm1 → t1
 		expect(dist).toBeLessThanOrEqual(5);
 	});
+
+	it("returns GRAPHORMER_MAX_DIST between disconnected components", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("gd-disconnected", tmpDir);
+
+		const now = Date.now();
+		// Cluster A: nodes a1, a2 connected
+		for (const id of ["a1", "a2"]) {
+			await db.execute(
+				`INSERT INTO graph_nodes (id, type, name, content, summary, trust_tier, confidence, importance, access_count, last_accessed, t_valid_from, t_created, created_at, created_by)
+				 VALUES (?, 'Concept', ?, 'content', 'summary', 2, 0.9, 0.8, 10, ?, ?, ?, ?, 'test')`,
+				[id, `Node_${id}`, now, now, now, now],
+			);
+		}
+		// Cluster B: nodes b1, b2 connected
+		for (const id of ["b1", "b2"]) {
+			await db.execute(
+				`INSERT INTO graph_nodes (id, type, name, content, summary, trust_tier, confidence, importance, access_count, last_accessed, t_valid_from, t_created, created_at, created_by)
+				 VALUES (?, 'Concept', ?, 'content', 'summary', 2, 0.9, 0.8, 10, ?, ?, ?, ?, 'test')`,
+				[id, `Node_${id}`, now, now, now, now],
+			);
+		}
+
+		// Edges within clusters only — no cross-cluster edges
+		await db.execute(
+			"INSERT INTO graph_edges (id, from_id, to_id, type, weight, t_created) VALUES (?, ?, ?, 'DEPENDS_ON', 1.0, ?)",
+			["e-a", "a1", "a2", now],
+		);
+		await db.execute(
+			"INSERT INTO graph_edges (id, from_id, to_id, type, weight, t_created) VALUES (?, ?, ?, 'DEPENDS_ON', 1.0, ?)",
+			["e-b", "b1", "b2", now],
+		);
+
+		await updateLandmarkCache(db, { topN: 4 });
+
+		const matrix = await computeGraphDistances(db, ["a1", "b1"]);
+		// a1 and b1 are in disconnected components
+		expect(matrix[0][1]).toBe(5); // GRAPHORMER_MAX_DIST
+		expect(matrix[1][0]).toBe(5);
+		// Self-distances
+		expect(matrix[0][0]).toBe(0);
+		expect(matrix[1][1]).toBe(0);
+	});
 });

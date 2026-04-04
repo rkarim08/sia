@@ -9,7 +9,7 @@ import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
 import { hybridSearch } from "@/retrieval/search";
 
-describe("hybridSearch — three-stage pipeline", () => {
+describe("hybridSearch — five-stage pipeline", () => {
 	let tmpDir: string;
 	let db: SiaDb | undefined;
 
@@ -326,6 +326,34 @@ describe("hybridSearch — three-stage pipeline", () => {
 			// attentionFusionSession: null means RRF fallback
 			attentionFusionSession: null,
 		});
+
+		expect(result.mode).toBe("local");
+		expect(result.results.length).toBeGreaterThanOrEqual(1);
+	});
+
+	it("cross-encoder timeout returns results when CE is slow (1ms timeout)", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("search-ce-fast-timeout", tmpDir);
+
+		await insertEntity(db, {
+			type: "Concept", name: "TimeoutEntity",
+			content: "This entity tests timeout with very fast timeout.",
+			summary: "Timeout entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+		});
+
+		// Cross-encoder that takes 100ms — much longer than the 1ms timeout
+		const slowCE = {
+			rerank: async (_query: string, candidates: Array<{ entityId: string; text: string }>) => {
+				await new Promise(resolve => setTimeout(resolve, 100));
+				return candidates.map(c => ({ entityId: c.entityId, score: 0.95 }));
+			},
+		};
+
+		const result = await hybridSearch(db, null, {
+			query: "TimeoutEntity",
+			limit: 10,
+			crossEncoderTimeoutMs: 1,
+		}, { crossEncoder: slowCE as any });
 
 		expect(result.mode).toBe("local");
 		expect(result.results.length).toBeGreaterThanOrEqual(1);

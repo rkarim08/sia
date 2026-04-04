@@ -80,4 +80,18 @@ describe("entity reconciler", () => {
 		expect(result.needsConfirmation).toHaveLength(0);
 		expect(result.rejected).toHaveLength(0);
 	});
+
+	it("score exactly at threshold is classified as 'accept'", () => {
+		// FilePath threshold is 0.6 — exact boundary should be "accept"
+		const input: ReconciliationInput = {
+			glinerSpans: [
+				{ text: "src/index.ts", label: "FilePath", score: 0.6, start: 0, end: 12 },
+			],
+			regexEntities: [],
+		};
+
+		const result = reconcileExtractions(input);
+		expect(result.accepted.length).toBe(1);
+		expect(result.accepted[0].text).toBe("src/index.ts");
+	});
 });
