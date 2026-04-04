@@ -18,6 +18,7 @@ function createMockManager(overrides?: Record<string, unknown>): ModelManager {
 		setInstalledTier: () => {},
 		verifyChecksum: async () => true,
 		getModelsDir: () => "/mock/models",
+		updateAttentionHeadMeta: () => {},
 	};
 }
 
@@ -56,6 +57,7 @@ describe("handleSiaModels", () => {
 			setInstalledTier: () => {},
 			verifyChecksum: async () => true,
 			getModelsDir: () => "/mock/models",
+			updateAttentionHeadMeta: () => {},
 		};
 
 		const result = handleSiaModels({ action: "status" }, manager);
