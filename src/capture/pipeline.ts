@@ -24,6 +24,11 @@ import { insertEntity, updateEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { insertStagedFact } from "@/graph/staging";
 import type { NamedEmbedder } from "@/capture/embedder";
+import {
+	type GlinerExtractor,
+	type GlinerSpan,
+	classifyExtractionResult,
+} from "@/capture/gliner-extractor";
 import { getConfig, type SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +45,8 @@ export interface PipelineOpts {
 	metaDb?: SiaDb;
 	/** Optional code embedder — when provided, generates jina-code embeddings for code-adjacent entities. */
 	codeEmbedder?: NamedEmbedder | null;
+	/** Optional GLiNER extractor — when provided, runs as Track C alongside AST and LLM extraction. */
+	glinerExtractor?: GlinerExtractor | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +247,48 @@ async function applySharingRules(
 }
 
 // ---------------------------------------------------------------------------
+// GLiNER span → CandidateFact conversion
+// ---------------------------------------------------------------------------
+
+/** Map GLiNER entity labels to the closest CandidateFact EntityType. */
+const GLINER_LABEL_TO_TYPE: Record<string, CandidateFact["type"]> = {
+	Decision: "Decision",
+	Convention: "Convention",
+	Bug: "Bug",
+	Solution: "Solution",
+	Pattern: "Concept",
+	FilePath: "CodeEntity",
+	FunctionName: "CodeEntity",
+	Dependency: "Dependency",
+	API: "CodeEntity",
+	Constraint: "Concept",
+};
+
+/**
+ * Convert a GLiNER span to a CandidateFact for consolidation.
+ * "accept" spans get trust_tier 2 (high-confidence NER).
+ * "confirm" spans get trust_tier 3 (needs LLM confirmation).
+ */
+function glinerSpanToCandidate(
+	span: GlinerSpan,
+	classification: "accept" | "confirm",
+	sessionId: string,
+): CandidateFact {
+	return {
+		type: GLINER_LABEL_TO_TYPE[span.label] ?? "Concept",
+		name: span.text.slice(0, 100),
+		content: span.text,
+		summary: `GLiNER extraction: ${span.label} (${(span.score * 100).toFixed(0)}% confidence)`,
+		tags: ["gliner", span.label.toLowerCase()],
+		file_paths: [],
+		trust_tier: classification === "accept" ? 2 : 3,
+		confidence: span.score,
+		extraction_method: "gliner",
+		t_valid_from: Date.now(),
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Code embedding generation
 // ---------------------------------------------------------------------------
 
@@ -343,14 +392,17 @@ export async function runPipeline(
 			// Step 6: Run chunker
 			const chunkerCandidates = await chunkPayload(payload, config, graphDb);
 
-			// Step 7: Run Track A + Track B in parallel
-			const [trackAResult, trackBResult] = await Promise.allSettled([
+			// Step 7: Run Track A + Track B + Track C (GLiNER) in parallel
+			const [trackAResult, trackBResult, trackCResult] = await Promise.allSettled([
 				Promise.resolve(extractTrackA(payload.content, payload.filePath)),
 				extractTrackB(payload.content, {
 					captureModel: config.captureModel,
 					minExtractConfidence: config.minExtractConfidence,
 					airGapped: config.airGapped,
 				}),
+				opts?.glinerExtractor
+					? opts.glinerExtractor.extract(payload.content)
+					: Promise.resolve([] as GlinerSpan[]),
 			]);
 
 			// Step 8: Merge all candidates
@@ -360,6 +412,14 @@ export async function runPipeline(
 			}
 			if (trackBResult.status === "fulfilled") {
 				allCandidates.push(...trackBResult.value);
+			}
+			// Track C: convert accepted GLiNER spans to CandidateFacts
+			if (trackCResult.status === "fulfilled") {
+				for (const span of trackCResult.value) {
+					const classification = classifyExtractionResult(span);
+					if (classification === "reject") continue;
+					allCandidates.push(glinerSpanToCandidate(span, classification, payload.sessionId));
+				}
 			}
 
 			// Step 9: Consolidation (or direct-write if circuit breaker active)
