@@ -3,6 +3,9 @@
 /** Model tier levels. */
 export type ModelTier = "T0" | "T1" | "T2" | "T3";
 
+/** Tokenizer types for models. */
+export type TokenizerType = "wordpiece" | "bpe" | "sentencepiece";
+
 /** A single model entry in the manifest. */
 export interface ModelEntry {
 	version: string;
@@ -41,6 +44,7 @@ export interface RegistryEntry {
 	tier: ModelTier;
 	embeddingDim?: number;
 	maxSeqLength?: number;
+	tokenizerType?: TokenizerType;
 }
 
 /** Tier ordering for comparisons. */

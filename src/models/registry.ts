@@ -17,6 +17,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		tier: "T0",
 		embeddingDim: 384,
 		maxSeqLength: 512,
+		tokenizerType: "wordpiece",
 	},
 	"ms-marco-MiniLM-L-6-v2": {
 		huggingface: "Xenova/ms-marco-MiniLM-L-6-v2",
@@ -27,6 +28,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		sizeBytes: 23_143_499,
 		tier: "T0",
 		maxSeqLength: 512,
+		tokenizerType: "wordpiece",
 	},
 	"jina-embeddings-v2-base-code": {
 		huggingface: "jinaai/jina-embeddings-v2-base-code",
@@ -38,6 +40,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		tier: "T1",
 		embeddingDim: 768,
 		maxSeqLength: 8192,
+		tokenizerType: "bpe",
 	},
 	"nomic-embed-text-v1.5": {
 		huggingface: "nomic-ai/nomic-embed-text-v1.5",
@@ -49,6 +52,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		tier: "T1",
 		embeddingDim: 768,
 		maxSeqLength: 8192,
+		tokenizerType: "wordpiece",
 	},
 	"sia-attention-head": {
 		huggingface: "sia-project/attention-head",
@@ -66,6 +70,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		sizeBytes: 183_403_734,
 		tier: "T2",
 		maxSeqLength: 384,
+		tokenizerType: "sentencepiece",
 	},
 	// ⚠️  DO NOT substitute mxbai-rerank-v2 here. mxbai-rerank-large-v2 is a Qwen2-0.5B
 	// generative decoder (~500M params) — it is NOT a cross-encoder and has no official
@@ -79,6 +84,7 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 		sizeBytes: 738_560_113,
 		tier: "T3",
 		maxSeqLength: 512,
+		tokenizerType: "wordpiece",
 	},
 };
 

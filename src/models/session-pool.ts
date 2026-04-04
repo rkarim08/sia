@@ -17,6 +17,7 @@ export interface RegisterOptions {
 export interface SessionPool {
 	register(modelName: string, factory: SessionFactory, opts?: RegisterOptions): void;
 	getSession(modelName: string): Promise<OnnxSession | null>;
+	evictModel(modelName: string): void;
 	closeAll(): Promise<void>;
 	getActiveCount(): number;
 }
@@ -89,6 +90,15 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 
 			entry.lastAccessed = Date.now();
 			return entry.session;
+		},
+
+		evictModel(modelName: string): void {
+			const entry = entries.get(modelName);
+			if (!entry) return;
+			if (entry.session?.release) {
+				entry.session.release();
+			}
+			entries.delete(modelName);
 		},
 
 		async closeAll(): Promise<void> {
