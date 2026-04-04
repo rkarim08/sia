@@ -13,6 +13,7 @@
 // not TypeScript-side logic. This module handles feature assembly, model invocation,
 // and fallback when no ONNX model is available.
 
+import { GRAPHORMER_MAX_DIST } from "@/retrieval/graph-distance";
 import { createDefaultTime2VecParams, time2vecEncode, TIME2VEC_DIM } from "@/retrieval/time2vec";
 import type { OnnxSession } from "@/models/types";
 
@@ -178,10 +179,17 @@ export async function attentionFusion(
 	}
 
 	// Flatten graph distances: [K, K]
+	// Fallback to GRAPHORMER_MAX_DIST ("far away") for missing entries — distance 0
+	// would incorrectly mean "same node" in the Graphormer spatial bias table.
 	const distMatrix = new Float32Array(K * K);
 	for (let i = 0; i < K; i++) {
+		if (graphDistances[i].length !== K) {
+			throw new Error(
+				`graphDistances[${i}] length (${graphDistances[i].length}) must equal candidates length (${K})`,
+			);
+		}
 		for (let j = 0; j < K; j++) {
-			distMatrix[i * K + j] = graphDistances[i]?.[j] ?? 0;
+			distMatrix[i * K + j] = graphDistances[i][j] ?? GRAPHORMER_MAX_DIST;
 		}
 	}
 

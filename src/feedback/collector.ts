@@ -34,19 +34,21 @@ export interface FeedbackCollector {
 export function createFeedbackCollector(db: SiaDb): FeedbackCollector {
 	return {
 		async record(input: RecordFeedbackInput): Promise<void> {
-			try {
-				const event = createFeedbackEvent({
-					id: uuid(),
-					queryText: input.queryText,
-					entityId: input.entityId,
-					signalType: input.signalType,
-					source: input.source,
-					timestamp: Date.now(),
-					sessionId: input.sessionId,
-					rankPosition: input.rankPosition,
-					candidatesShown: input.candidatesShown,
-				});
+			// Validation errors propagate — they indicate programmer bugs.
+			// Only DB write errors are caught (feedback is best-effort).
+			const event = createFeedbackEvent({
+				id: uuid(),
+				queryText: input.queryText,
+				entityId: input.entityId,
+				signalType: input.signalType,
+				source: input.source,
+				timestamp: Date.now(),
+				sessionId: input.sessionId,
+				rankPosition: input.rankPosition,
+				candidatesShown: input.candidatesShown,
+			});
 
+			try {
 				await db.execute(
 					`INSERT INTO feedback_events
 					 (id, query_text, entity_id, signal_strength, source, timestamp, session_id, rank_position, candidates_shown)
