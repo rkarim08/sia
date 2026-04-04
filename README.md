@@ -33,7 +33,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 | **Context cost** | Grows unbounded with project maturity | Grows with entries | Manual copy-paste to agent | ~1,200 tokens average per session (only relevant facts retrieved) |
 | **Code structure** | Not captured | Not captured | Not captured | AST-powered structural backbone via Tree-sitter (30+ languages) |
 | **Documentation ingestion** | Not captured | Not captured | Manual note creation | Auto-discovers and indexes AGENTS.md, CLAUDE.md, ADRs, README.md, and 15+ doc formats |
-| **Agent integration** | Injected at session start | MCP tool calls | None native; requires manual bridging | Native MCP server with 16 tools, automatic hook-based capture |
+| **Agent integration** | Injected at session start | MCP tool calls | None native; requires manual bridging | Native MCP server with 17 tools, automatic hook-based capture |
 | **Sandbox execution** | N/A | N/A | N/A | Isolated subprocess execution with context-aware output indexing |
 | **Session continuity** | Lost on compaction | Lost on compaction | N/A | Priority-weighted subgraph serialization survives context compaction |
 | **Knowledge authoring** | Developer writes manually | Developer writes manually | Developer writes manually (rich editor) | `sia_note` for deliberate entry + automatic dual-track capture |
@@ -66,7 +66,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 /plugin install sia@sia-plugins
 ```
 
-This registers all 21 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
+This registers all 22 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
 
 > **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
@@ -190,6 +190,77 @@ Knowledge flows into and out of the graph automatically during normal coding ses
 
 ---
 
+## Transformer Stack
+
+Sia ships a tiered model stack that runs entirely on-device. Models are downloaded lazily -- you only pay the disk cost for the tier you activate.
+
+### Model Tiers
+
+| Tier | Models | Incremental Size | Cumulative |
+|------|--------|-------------------|------------|
+| **T0** (default) | bge-small-en-v1.5 + all-MiniLM-L6-v2 | ~57 MB | ~57 MB |
+| **T1** | + jina-embeddings-v2-base-code + nomic-embed-text-v1.5 + SIA Attention Fusion Head | +300 MB | ~357 MB |
+| **T2** | + GLiNER-small (on-device NER) | +183 MB | ~540 MB |
+| **T3** | + mxbai-rerank-base-v1 (cross-encoder) | +739 MB | ~1.28 GB |
+
+Activate a tier with `sia models activate T<n>`. Check current status with the `sia_models` MCP tool or `sia models status` on the CLI.
+
+### 4-Stage Retrieval Pipeline
+
+At T3, retrieval uses a full four-stage pipeline. Lower tiers skip stages that require unavailable models.
+
+```
+Stage 1 — Parallel Retrieval
+  +-- BM25 (FTS5 keyword search)
+  +-- Vector similarity (dual embeddings via sqlite-vss)
+  +-- Graph traversal (1-hop expansion from named nodes)
+       |
+       v
+Stage 2 — Cross-Encoder Reranking  [T3]
+  mxbai-rerank-base-v1 scores every (query, candidate) pair
+  Eliminates false positives from Stage 1
+       |
+       v
+Stage 3 — Attention Fusion  [T1+]
+  SIA Attention Fusion Head merges BM25, vector, graph, and reranker
+  signals into a single relevance score
+       |
+       v
+Stage 4 — Trust-Weighted Output
+  final = fused_score * importance * confidence * trust_weight
+  Progressive throttling + response budget enforcement
+```
+
+At T0, Stages 2-3 are skipped and retrieval uses classic RRF reranking (the pre-transformer path described in the Read Path section above).
+
+### SIA Attention Fusion Head
+
+A lightweight 2-layer transformer with 4-head multi-head attention that replaces static Reciprocal Rank Fusion. The head learns per-project signal weights from developer feedback -- when you accept or reject a retrieval result, the feedback is recorded and used for periodic fine-tuning.
+
+- **Architecture:** 2 transformer encoder layers, 4 attention heads, 64-dim hidden
+- **Input features:** BM25 rank, vector cosine, graph proximity, cross-encoder score, trust tier, importance, node kind
+- **Training:** Initializes from heuristic weights; fine-tunes from accumulated feedback events
+- **Fallback:** When fewer than 50 feedback events exist, the head runs in heuristic mode (equivalent to tuned RRF)
+
+### Dual Embedding Strategy
+
+Sia uses two embedding models to handle the fundamental asymmetry between natural language and code:
+
+| Query Type | Embedding Model | Why |
+|------------|----------------|-----|
+| Natural language | bge-small-en-v1.5 (T0) + nomic-embed-text-v1.5 (T1) | Optimized for semantic similarity in prose |
+| Code / symbols | jina-embeddings-v2-base-code (T1) | Trained on code-text pairs; understands identifier semantics |
+
+Query type is auto-detected by the query classifier. At T0, all queries use bge-small. At T1+, the dual strategy activates automatically.
+
+### Local Entity Extraction (GLiNER)
+
+At T2+, Sia runs GLiNER-small for on-device Named Entity Recognition during the capture pipeline. GLiNER extracts typed entities (person, library, API, service, etc.) from conversation text and documentation without requiring an LLM call, reducing capture latency and cost.
+
+Extracted entities are matched against existing graph nodes. New entities that pass ontology validation are added as `Concept` nodes with `pertains_to` edges to the source file or content chunk.
+
+---
+
 ## What Gets Captured
 
 Sia uses a unified graph with a `kind` discriminator. Nodes fall into three categories:
@@ -229,9 +300,9 @@ Sia uses a unified graph with a `kind` discriminator. Nodes fall into three cate
 
 ---
 
-## MCP Tools (16)
+## MCP Tools (17)
 
-Sia exposes 16 tools via the Model Context Protocol, organized into four categories.
+Sia exposes 17 tools via the Model Context Protocol, organized into five categories.
 
 ### Memory Tools
 
@@ -406,6 +477,14 @@ Checks runtimes, hooks, capture mode, LLM provider health, FTS5, sqlite-vss, ONN
 #### `sia_upgrade` -- Self-Update
 
 Fetches latest version, rebuilds, runs migrations, and rebuilds VSS if the schema changed.
+
+#### `sia_models` -- Model Tier Status
+
+Returns the installed model tier, individual model entries with variant and size, attention head training phase and feedback event count, and total disk usage.
+
+```
+sia_models({ action: "status" })
+```
 
 #### `sia_sync_status` -- Sync Status
 
@@ -1003,6 +1082,20 @@ Auto-detected from `pnpm-workspace.yaml`, `package.json` workspaces, `nx.json`, 
   snapshots/<hash>/YYYY-MM-DD.snapshot  # daily graph snapshots
   logs/sia.log                          # structured JSON log
 ```
+
+---
+
+## Research & References
+
+Sia's transformer stack draws on established research in graph-aware transformers, retrieval reranking, and embedding models:
+
+- **Ying et al., "Do Transformers Really Perform Bad for Graph Representation?"** (NeurIPS 2021) -- Graphormer demonstrated that transformers can match or exceed GNNs on graph tasks when given structural encodings. Sia's attention fusion head uses a similar insight: encoding graph-structural features (proximity, edge count, community membership) as input signals to a transformer rather than relying on GNN message passing.
+
+- **Agarwal et al., "Addressing Trust Bias for Unbiased Learning-to-Rank"** (WSDM 2019) -- Inverse Propensity Scoring (IPS) corrects for position bias in click-through data. Sia adapts this for trust-tier bias: higher-trust results are shown more often and thus receive more feedback, which would skew the learned fusion weights without correction. The attention head applies IPS-style weighting during training.
+
+- **Xiao & Liu, "BGE: BAAI General Embedding"** (2023) -- bge-small-en-v1.5 provides Sia's default natural-language embedding (T0). Its strong performance on MTEB benchmarks at only 33M parameters makes it suitable for on-device deployment where disk and memory budgets are constrained.
+
+- **Cross-encoder reranking** -- Sia's Stage 2 reranker (T3) follows the bi-encoder retrieval + cross-encoder reranking paradigm established by Nogueira & Cho (2019) and refined in subsequent work on ColBERT and monoT5. The cross-encoder scores each (query, candidate) pair jointly, catching semantic relationships that independent embeddings miss.
 
 ---
 
