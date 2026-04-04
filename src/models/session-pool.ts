@@ -83,7 +83,11 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 				evictIfNeeded();
 				try {
 					entry.session = await entry.factory();
-				} catch {
+				} catch (err) {
+					console.error(
+						`[sia] session-pool: failed to create session for ${modelName}:`,
+						err instanceof Error ? err.message : String(err),
+					);
 					return null;
 				}
 			}

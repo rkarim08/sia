@@ -249,7 +249,13 @@ export async function exportTrainingData(
 			})),
 		})),
 	};
-	writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf8");
+	try {
+		writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf8");
+	} catch (err) {
+		throw new Error(
+			`Failed to export training data to ${outputPath}: ${err instanceof Error ? err.message : String(err)}`,
+		);
+	}
 }
 
 /**
@@ -331,7 +337,14 @@ export async function trainAttentionHead(
 		events: eventsResult.rows,
 		realEventGatePassed: headShouldActivate,
 	};
-	writeFileSync(dataPath, JSON.stringify(rawExport, null, 2), "utf8");
+
+	try {
+		writeFileSync(dataPath, JSON.stringify(rawExport, null, 2), "utf8");
+	} catch (err) {
+		throw new Error(
+			`Failed to write training data to ${dataPath}: ${err instanceof Error ? err.message : String(err)}`,
+		);
+	}
 
 	// Run Python training
 	await runPythonTraining(dataPath, outputPath, phase);
