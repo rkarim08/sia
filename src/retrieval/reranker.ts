@@ -4,6 +4,7 @@ import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import type { SiaSearchResult } from "@/mcp/tools/sia-search";
 import { packagePathBoost, TASK_TYPE_BOOSTS } from "@/retrieval/query-classifier";
+import type { TaskType } from "@/shared/config";
 
 /** A candidate with an entity ID and a score from a single retrieval signal. */
 export interface RankedCandidate {
@@ -14,7 +15,7 @@ export interface RankedCandidate {
 /** Options for the rerank function. */
 export interface RerankOpts {
 	/** Task type for task-type boosting (e.g. "bug-fix", "feature"). */
-	taskType?: string;
+	taskType?: TaskType;
 	/** Active package path for same-package boosting. */
 	packagePath?: string;
 	/** If true, exclude Tier 4 entities. */

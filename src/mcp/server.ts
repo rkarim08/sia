@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import type { ModelManager } from "@/models/manager";
+import type { OnnxSession } from "@/models/types";
 import type { PipelineDeps } from "@/retrieval/search";
 import { getNextStepHint } from "@/mcp/next-step-hints";
 import {
@@ -233,7 +234,7 @@ export interface McpServerDeps {
 	sessionId: string;
 	modelManager?: ModelManager | null;
 	crossEncoder?: import("@/retrieval/cross-encoder").CrossEncoderReranker | null;
-	attentionFusionSession?: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
+	attentionFusionSession?: OnnxSession | null;
 }
 
 // ---------------------------------------------------------------------------

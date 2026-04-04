@@ -2,6 +2,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
+import type { ModelTier } from "@/models/types";
+
+/** Recognized task types for the retrieval pipeline. */
+export type TaskType = "orientation" | "feature" | "bug-fix" | "regression" | "review";
 
 /**
  * Resolve the SIA home directory.
@@ -122,7 +126,7 @@ export interface SiaConfig {
 	upgradeReleaseUrl: string | null;
 	// Transformer stack
 	/** Installed model tier: T0, T1, T2, or T3. */
-	modelTier: string;
+	modelTier: ModelTier;
 	/** Maximum concurrent ONNX sessions. */
 	maxOnnxSessions: number;
 	/** Whether to collect implicit feedback for ranking. */

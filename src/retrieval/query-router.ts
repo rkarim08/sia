@@ -1,5 +1,7 @@
 // Module: query-router — content classifier for routing queries to appropriate embedder
 
+import type { TaskType } from "@/shared/config";
+
 /** Content classification for routing to appropriate embedder. */
 export type QueryContentType = "nl" | "code" | "mixed";
 
@@ -93,7 +95,7 @@ export interface EmbedderSelection {
  */
 export function selectEmbedders(
 	query: string,
-	taskType?: string,
+	taskType?: TaskType,
 ): EmbedderSelection {
 	// Bug-fix tasks always use both
 	if (taskType === "bug-fix" || taskType === "regression") {
