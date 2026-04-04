@@ -233,6 +233,7 @@ export interface McpServerDeps {
 	config: SiaConfig;
 	sessionId: string;
 	modelManager?: ModelManager | null;
+	sessionPool?: import("@/models/session-pool").SessionPool | null;
 	crossEncoder?: import("@/retrieval/cross-encoder").CrossEncoderReranker | null;
 	attentionFusionSession?: OnnxSession | null;
 }
@@ -309,9 +310,16 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
+				// Resolve attention fusion session from direct dep or session pool
+				let attnSession = deps.attentionFusionSession ?? undefined;
+				if (!attnSession && deps.sessionPool) {
+					const poolSession = await deps.sessionPool.getSession("sia-attention-head");
+					attnSession = poolSession ?? undefined;
+				}
+
 				const pipelineDeps: PipelineDeps = {
 					crossEncoder: deps.crossEncoder ?? undefined,
-					attentionFusionSession: deps.attentionFusionSession ?? undefined,
+					attentionFusionSession: attnSession,
 				};
 				return safeToolCall(
 					"sia_search",
