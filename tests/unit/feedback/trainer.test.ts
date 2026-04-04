@@ -132,7 +132,7 @@ describe("gradientDescentStep", () => {
 	it("decreases loss after one step", () => {
 		const K = 2;
 		const FEATURE_DIM = 405;
-		const HIDDEN_DIM = 64;
+		const HIDDEN_DIM = 128; // Must match create-attention-head.ts
 
 		const weights = {
 			w1: new Float32Array(FEATURE_DIM * HIDDEN_DIM).fill(0.01),

@@ -81,6 +81,12 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 
 			if (entry.session === null) {
 				evictIfNeeded();
+				// Check if pool still has room after eviction (all may be pinned)
+				const activeAfterEvict = [...entries.values()].filter((e) => e.session !== null).length;
+				if (activeAfterEvict >= config.maxSessions && !entry.pinned) {
+					console.warn(`[sia] session-pool: all ${config.maxSessions} sessions are pinned — cannot load ${modelName}`);
+					return null;
+				}
 				try {
 					entry.session = await entry.factory();
 				} catch (err) {

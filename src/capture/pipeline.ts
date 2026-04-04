@@ -312,7 +312,7 @@ async function generateCodeEmbeddings(
 	// Fetch entities that need code embeddings
 	const placeholders = entityIds.map(() => "?").join(", ");
 	const { rows } = await graphDb.execute(
-		`SELECT id, name, type, content, file_paths FROM graph_nodes WHERE id IN (${placeholders}) AND embedding IS NULL`,
+		`SELECT id, name, type, content, file_paths FROM graph_nodes WHERE id IN (${placeholders}) AND embedding_code IS NULL`,
 		entityIds,
 	);
 
@@ -323,7 +323,10 @@ async function generateCodeEmbeddings(
 
 		// Determine if entity is code-adjacent
 		const isCodeType = CODE_ADJACENT_TYPES.has(entityType);
-		const hasFilePaths = filePaths ? JSON.parse(filePaths).length > 0 : false;
+		let hasFilePaths = false;
+		if (filePaths) {
+			try { hasFilePaths = JSON.parse(filePaths).length > 0; } catch { /* malformed JSON */ }
+		}
 		const candidateHasFilePaths = candidate?.file_paths && candidate.file_paths.length > 0;
 
 		if (!isCodeType && !hasFilePaths && !candidateHasFilePaths) continue;
@@ -333,9 +336,10 @@ async function generateCodeEmbeddings(
 
 		const embedding = await codeEmbedder.embed(content);
 		if (embedding) {
-			await updateEntity(graphDb, row.id as string, {
-				embedding: new Uint8Array(embedding.buffer),
-			});
+			await graphDb.execute(
+				"UPDATE graph_nodes SET embedding_code = ? WHERE id = ?",
+				[Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength), row.id as string],
+			);
 		}
 	}
 }

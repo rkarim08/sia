@@ -64,9 +64,13 @@ export interface TrainingExample {
 /**
  * Build training examples from feedback events for the distillation phase.
  * Uses cross-encoder scores as soft labels.
+ *
+ * Note: Feature vectors are zero-initialized here — the Python training script
+ * assembles full 405d vectors from the DB export at training time using the
+ * entity embeddings and retrieval scores. This function only provides the
+ * target scores and grouping structure.
  */
 export async function buildDistillationExamples(
-	db: SiaDb,
 	events: FeedbackEvent[],
 ): Promise<TrainingExample[]> {
 	const byQuery = new Map<string, FeedbackEvent[]>();
@@ -81,7 +85,7 @@ export async function buildDistillationExamples(
 	for (const [queryText, queryEvents] of byQuery) {
 		const candidates = queryEvents.map((event) => ({
 			entityId: event.entityId,
-			features: new Float32Array(405),
+			features: new Float32Array(405), // Populated by Python training script from DB
 			targetScore: Math.max(0, Math.min(1, (event.signalStrength + 1) / 2)),
 			ipsWeight: 1.0,
 		}));
@@ -109,9 +113,9 @@ export function mseLoss(predicted: Float32Array, targets: Float32Array): number 
  */
 export function gradientDescentStep(
 	weights: {
-		w1: Float32Array; // [405, 64]
-		b1: Float32Array; // [64]
-		w2: Float32Array; // [64, 1]
+		w1: Float32Array; // [405, 128]
+		b1: Float32Array; // [128]
+		w2: Float32Array; // [128, 1]
 		b2: Float32Array; // [1]
 	},
 	features: Float32Array,  // [K, 405]
@@ -120,7 +124,7 @@ export function gradientDescentStep(
 	K: number,
 ): number {
 	const FEATURE_DIM = 405;
-	const HIDDEN_DIM = 64;
+	const HIDDEN_DIM = 128; // Must match create-attention-head.ts
 
 	// Forward pass: hidden_raw = features @ W1
 	const hiddenRaw = new Float32Array(K * HIDDEN_DIM);
@@ -354,6 +358,5 @@ export async function trainAttentionHead(
 		trainingPhase: phase,
 		feedbackEvents: totalEvents,
 		lastTrained: new Date().toISOString(),
-		realEventGatePassed: headShouldActivate,
 	});
 }
