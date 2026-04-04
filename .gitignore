@@ -21,3 +21,7 @@ sia-native/node_modules/
 src/visualization/frontend-dist/
 src/visualization/frontend/node_modules/
 .sia/visualize/
+
+# ONNX model files (downloaded to ~/.sia/models/, never committed)
+*.onnx
+models/
