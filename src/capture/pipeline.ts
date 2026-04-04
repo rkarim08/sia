@@ -23,17 +23,23 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { insertStagedFact } from "@/graph/staging";
+import type { NamedEmbedder } from "@/capture/embedder";
 import { getConfig, type SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+/** Entity types considered code-adjacent for code embedding generation. */
+const CODE_ADJACENT_TYPES = new Set(["CodeEntity", "Dependency"]);
+
 export interface PipelineOpts {
 	siaHome?: string;
 	config?: SiaConfig;
 	/** Optional meta.db handle for sharing rules enforcement. */
 	metaDb?: SiaDb;
+	/** Optional code embedder — when provided, generates jina-code embeddings for code-adjacent entities. */
+	codeEmbedder?: NamedEmbedder | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -234,6 +240,58 @@ async function applySharingRules(
 }
 
 // ---------------------------------------------------------------------------
+// Code embedding generation
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate code embeddings for code-adjacent entities using the jina-code embedder.
+ * An entity is code-adjacent if its type is in CODE_ADJACENT_TYPES or it has file_paths.
+ * Embeddings are written to the entity's `embedding` column.
+ */
+async function generateCodeEmbeddings(
+	graphDb: SiaDb,
+	codeEmbedder: NamedEmbedder,
+	entityIds: string[],
+	candidates: CandidateFact[],
+): Promise<void> {
+	// Build a lookup from candidate name → candidate for type checking
+	const candidateByName = new Map<string, CandidateFact>();
+	for (const c of candidates) {
+		candidateByName.set(c.name, c);
+	}
+
+	// Fetch entities that need code embeddings
+	const placeholders = entityIds.map(() => "?").join(", ");
+	const { rows } = await graphDb.execute(
+		`SELECT id, name, type, content, file_paths FROM graph_nodes WHERE id IN (${placeholders}) AND embedding IS NULL`,
+		entityIds,
+	);
+
+	for (const row of rows) {
+		const entityType = row.type as string;
+		const filePaths = row.file_paths as string | null;
+		const candidate = candidateByName.get(row.name as string);
+
+		// Determine if entity is code-adjacent
+		const isCodeType = CODE_ADJACENT_TYPES.has(entityType);
+		const hasFilePaths = filePaths ? JSON.parse(filePaths).length > 0 : false;
+		const candidateHasFilePaths = candidate?.file_paths && candidate.file_paths.length > 0;
+
+		if (!isCodeType && !hasFilePaths && !candidateHasFilePaths) continue;
+
+		const content = row.content as string;
+		if (!content) continue;
+
+		const embedding = await codeEmbedder.embed(content);
+		if (embedding) {
+			await updateEntity(graphDb, row.id as string, {
+				embedding: new Uint8Array(embedding.buffer),
+			});
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Main pipeline
 // ---------------------------------------------------------------------------
 
@@ -373,6 +431,15 @@ export async function runPipeline(
 
 			// Step 10: Edge inference
 			const edgesCreated = newEntityIds.length > 0 ? await inferEdges(graphDb, newEntityIds) : 0;
+
+			// Step 10.3: Code embedding generation for code-adjacent entities
+			if (opts?.codeEmbedder && newEntityIds.length > 0) {
+				try {
+					await generateCodeEmbeddings(graphDb, opts.codeEmbedder, newEntityIds, allCandidates);
+				} catch {
+					// Best effort — code embedding failure should not break pipeline
+				}
+			}
 
 			// Step 10.6: Cross-repo edge detection — writes depends_on edges to bridge.db
 			if (opts?.metaDb && allCandidates.length > 0) {
