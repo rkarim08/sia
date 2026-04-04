@@ -72,11 +72,17 @@ export async function downloadFile(
 		});
 	}
 
-	// Atomic rename
-	if (existsSync(destPath)) {
-		unlinkSync(destPath);
+	// Atomic rename — clean up temp file on failure
+	try {
+		if (existsSync(destPath)) {
+			unlinkSync(destPath);
+		}
+		renameSync(tmpPath, destPath);
+	} catch (err) {
+		// Clean up partial temp file
+		try { if (existsSync(tmpPath)) unlinkSync(tmpPath); } catch { /* best effort */ }
+		throw err;
 	}
-	renameSync(tmpPath, destPath);
 }
 
 /**

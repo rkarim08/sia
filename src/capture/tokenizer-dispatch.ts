@@ -46,9 +46,14 @@ export function loadTokenizerForModel(
 				const { createBpeTokenizer } = require("@/capture/bpe-tokenizer");
 				const tok = createBpeTokenizer(tokenizerPath);
 				return { type: "bpe", encode: (text: string) => tok.encode(text), vocab: tok.vocab ?? {} };
-			} catch {
-				// BPE tokenizer not yet implemented — fall back to wordpiece with warning
-				console.warn("[sia] BPE tokenizer not available, falling back to WordPiece");
+			} catch (err) {
+				// BPE module not yet implemented — log and fall back to wordpiece
+				const isModuleNotFound = err instanceof Error && err.message.includes("Cannot find module");
+				if (isModuleNotFound) {
+					console.warn("[sia] BPE tokenizer module not available, falling back to WordPiece");
+				} else {
+					console.error("[sia] BPE tokenizer failed to load:", err instanceof Error ? err.message : String(err));
+				}
 				return loadTokenizerForModel(tokenizerPath, "wordpiece");
 			}
 		}
@@ -57,9 +62,14 @@ export function loadTokenizerForModel(
 				const { loadSentencePieceTokenizer } = require("@/capture/sentencepiece-tokenizer");
 				const tok = loadSentencePieceTokenizer(tokenizerPath);
 				return { type: "sentencepiece", encode: (text: string) => tok.encode(text), vocab: tok.vocab ?? {} };
-			} catch {
-				// SentencePiece tokenizer not yet implemented — fall back to wordpiece with warning
-				console.warn("[sia] SentencePiece tokenizer not available, falling back to WordPiece");
+			} catch (err) {
+				// SentencePiece module not yet implemented — log and fall back to wordpiece
+				const isModuleNotFound = err instanceof Error && err.message.includes("Cannot find module");
+				if (isModuleNotFound) {
+					console.warn("[sia] SentencePiece tokenizer module not available, falling back to WordPiece");
+				} else {
+					console.error("[sia] SentencePiece tokenizer failed to load:", err instanceof Error ? err.message : String(err));
+				}
 				return loadTokenizerForModel(tokenizerPath, "wordpiece");
 			}
 		}
