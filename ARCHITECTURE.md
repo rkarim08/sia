@@ -13,6 +13,7 @@ This document describes how Sia is built: its data model, runtime modules, data 
   - [Capture Layer](#capture-layer-modules-2-14-18-19)
   - [Intelligence Layer](#intelligence-layer-modules-3-7-12-22)
   - [Retrieval Layer](#retrieval-layer-module-4)
+  - [Transformer Layer](#transformer-layer-modules-24-28)
   - [Interface Layer](#interface-layer-modules-5-16-17-23)
   - [Security Layer](#security-layer-module-6)
   - [Integration Layer](#integration-layer-modules-8-9-10-11-15-21)
@@ -27,10 +28,10 @@ This document describes how Sia is built: its data model, runtime modules, data 
 
 ## System Overview
 
-Sia is composed of 23 runtime modules plus an agent behavioral layer. Data flows through two primary paths:
+Sia is composed of 28 runtime modules plus an agent behavioral layer. Data flows through two primary paths:
 
 - **Write path:** hook event --> event node --> Track A (AST) + Track B (LLM) --> consolidation --> ontology validation --> graph
-- **Read path:** MCP query --> vector + BM25 + graph traversal --> RRF reranking --> trust weighting --> freshness annotation --> response
+- **Read path:** MCP query --> parallel retrieval (vector + BM25 + graph) --> cross-encoder reranking (T3) --> attention fusion (T1+) --> trust-weighted output --> freshness annotation --> response
 
 The MCP server is strictly read-only on the main graph, with dedicated write connections for event nodes, session flags, and session resume data.
 
@@ -42,7 +43,8 @@ The MCP server is strictly read-only on the main graph, with dedicated write con
 |  |   PostToolUse / Stop / |      |   sia_search, sia_by_file,           ||
 |  |   SessionStart /       |      |   sia_expand, sia_community,         ||
 |  |   PreCompact           |      |   sia_at_time, sia_flag, sia_note,   ||
-|  +----------+-------------+      |   sia_backlinks, sia_execute, ...    ||
+|  +----------+-------------+      |   sia_backlinks, sia_execute,        ||
+|                                  |   sia_models, ...                    ||
 |             | hook payload       +------------------+-------------------+|
 +-------------+-------------------------------------------+----------------+
               |                                           | MCP stdio
@@ -87,9 +89,16 @@ Hooks (14) --+--> Capture (2) --> Storage (1)
        Retrieval (4) --> MCP Server (5)
              ^               |
              |               v
-       Security (6)    Plugin Layer (16) --> Auto-Integration (17)
-                                        --> Skills/Agents (19, 21)
-                                        --> Visualizer (23)
+       Model Mgr (24)  Plugin Layer (16) --> Auto-Integration (17)
+             |                           --> Skills/Agents (19, 21)
+             +---> Cross-Encoder (25)    --> Visualizer (23)
+             +---> Attn Fusion (26)
+             +---> GLiNER (28)
+             |
+       Feedback (27) <--> Attn Fusion (26)
+             ^
+             |
+       Security (6)
 ```
 
 ---
@@ -127,7 +136,7 @@ Repos are identified by `sha256(resolved_absolute_path)`. Each repo gets isolate
 | Counters | `access_count`, `edge_count` (trigger-maintained) |
 | Temporal | `t_created`, `t_expired`, `t_valid_from`, `t_valid_until` |
 | Team | `visibility` (private/team/project), `created_by`, `conflict_group_id` |
-| Provenance | `extraction_method`, `embedding` (384-dim BLOB), `archived_at` |
+| Provenance | `extraction_method`, `embedding` (384-dim BLOB), `embedding_code` (768-dim BLOB, T1+), `archived_at` |
 | Flexible | `session_id`, `properties` (JSON) |
 
 **graph_edges** -- typed, weighted, bi-temporal relationships:
@@ -382,17 +391,110 @@ Two implementations: `BunSqliteDb` (local-only, sync API) and `LibSqlDb` (team s
 
 #### Module 4: Hybrid Retrieval Engine
 
-**Purpose:** Three-signal retrieval with RRF reranking, progressive throttling, and query routing.
+**Purpose:** Four-stage retrieval pipeline with parallel candidate generation, cross-encoder reranking, learned attention fusion, trust-weighted output, progressive throttling, and query routing.
 
 **Key files:** `src/retrieval/search.ts`, `src/retrieval/vector-search.ts`, `src/retrieval/bm25-search.ts`, `src/retrieval/graph-traversal.ts`, `src/retrieval/reranker.ts`, `src/retrieval/throttle.ts`, `src/retrieval/query-classifier.ts`, `src/retrieval/context-assembly.ts`
 
-**Three-stage pipeline:** (1) Candidate generation in parallel: vector (ONNX --> sqlite-vss cosine), BM25 (FTS5), graph traversal (name lookup --> 1-hop). (2) Graph-aware expansion: neighbors of candidates at score x 0.7. (3) RRF reranking: `final = rrf * importance * confidence * trust_weight * (1 + task_boost * 0.3)`.
+**Four-stage pipeline:**
+
+1. **Parallel Retrieval** -- Candidate generation from three signals in parallel: vector (ONNX embed --> sqlite-vss cosine, dual embeddings at T1+), BM25 (FTS5), graph traversal (name lookup --> 1-hop expansion, root 1.0, neighbors 0.7). At T1+, the query classifier selects bge-small (natural language) or jina-code (code queries) for the vector channel.
+2. **Cross-Encoder Reranking** (T3) -- mxbai-rerank-base-v1 scores each (query, candidate) pair jointly. Eliminates false positives that pass Stage 1 due to lexical or embedding overlap. At T0-T2, this stage is skipped and candidates pass directly to Stage 3.
+3. **Attention Fusion** (T1+) -- The SIA Attention Fusion Head (Module 26) replaces static RRF. A 2-layer, 4-head transformer merges BM25 rank, vector cosine, graph proximity, cross-encoder score (if available), trust tier, importance, and node kind into a single relevance score. At T0, classic RRF is used: `final = rrf * importance * confidence * trust_weight * (1 + task_boost * 0.3)`.
+4. **Trust-Weighted Output** -- Final scores are scaled by trust tier weight and importance decay. Response budget enforcement and context assembly produce the JSON response.
 
 **Progressive throttling:** Normal (1-3 calls), Reduced (4-8, fewer results), Blocked (9+, redirect to `sia_batch_execute`).
 
-**Query routing:** Broad queries use community summaries; specific queries use three-stage pipeline; ambiguous queries use DRIFT-style iterative deepening.
+**Query routing:** Broad queries use community summaries; specific queries use the four-stage pipeline; ambiguous queries use DRIFT-style iterative deepening.
 
-**Dependencies:** Module 1 (storage), Module 3 (communities for global mode)
+**Dependencies:** Module 1 (storage), Module 3 (communities for global mode), Module 24 (model manager for tier detection), Module 25 (cross-encoder), Module 26 (attention fusion)
+
+---
+
+### Transformer Layer (Modules 24-28)
+
+#### Module 24: Tiered Model Manager
+
+**Purpose:** Lazy download, activation, and lifecycle management for the tiered model stack (T0-T3). Provides the model manifest consumed by all downstream modules.
+
+**Key files:** `src/models/manager.ts`, `src/models/manifest.ts`, `src/models/downloader.ts`, `src/models/registry.ts`
+
+**Key exports:** `ModelManager`, `getManifest()`, `activateTier()`, `isModelAvailable()`
+
+**Data flow:** On startup, reads `~/.sia/models/manifest.json` to determine the installed tier. When a higher tier is activated (`sia models activate T<n>`), downloads missing models lazily, updates the manifest, and emits a `tier-changed` event. Downstream modules (25, 26, 28) subscribe to this event and reconfigure accordingly.
+
+**Model registry:**
+
+| Tier | Model | Role | Size |
+|------|-------|------|------|
+| T0 | bge-small-en-v1.5 | NL embedding | ~33 MB |
+| T0 | all-MiniLM-L6-v2 | Fallback NL embedding | ~24 MB |
+| T1 | jina-embeddings-v2-base-code | Code embedding | ~137 MB |
+| T1 | nomic-embed-text-v1.5 | Enhanced NL embedding | ~137 MB |
+| T1 | SIA Attention Fusion Head | Learned signal fusion | ~26 MB |
+| T2 | GLiNER-small | On-device NER | ~183 MB |
+| T3 | mxbai-rerank-base-v1 | Cross-encoder reranker | ~739 MB |
+
+**Dependencies:** None (leaf module; provides models to Modules 4, 25, 26, 27, 28)
+
+#### Module 25: Cross-Encoder Reranker
+
+**Purpose:** Score (query, candidate) pairs jointly using a cross-encoder model to eliminate false positives from Stage 1 retrieval.
+
+**Key files:** `src/retrieval/cross-encoder.ts`, `src/retrieval/reranker.ts`
+
+**Key exports:** `CrossEncoderReranker`, `rerankWithCrossEncoder()`
+
+**Data flow:** Receives candidate list from Stage 1 of Module 4. For each candidate, concatenates `[CLS] query [SEP] candidate_text [SEP]` and runs through the mxbai-rerank-base-v1 ONNX model. Returns relevance scores in `[0, 1]`. Candidates below the dynamic threshold (mean - 0.5 * stddev) are pruned.
+
+**Availability:** Active at T3 only. At T0-T2, Module 4 skips this stage.
+
+**Dependencies:** Module 24 (model availability check), Module 1 (storage for candidate text retrieval)
+
+#### Module 26: Attention Fusion Head
+
+**Purpose:** Replace static RRF with a learned 2-layer transformer that fuses retrieval signals into a single relevance score per candidate.
+
+**Key files:** `src/retrieval/attention-fusion.ts`, `src/retrieval/fusion-head.ts`, `src/retrieval/fusion-trainer.ts`
+
+**Key exports:** `AttentionFusionHead`, `fuseSignals()`, `trainFusionHead()`
+
+**Architecture:** 2 transformer encoder layers, 4 attention heads, 64-dim hidden. Input is a feature vector per candidate: BM25 rank (normalized), vector cosine similarity, graph proximity score, cross-encoder score (0 if unavailable), trust tier (one-hot), importance, node kind (one-hot). Output is a scalar relevance score per candidate.
+
+**Training:** Initializes with heuristic weights equivalent to tuned RRF. After 50+ feedback events accumulate (Module 27), periodic fine-tuning runs via `trainFusionHead()`. Training applies IPS-style correction for trust-tier position bias (Agarwal et al., 2019). Model checkpoint saved to `~/.sia/models/fusion-head.onnx`.
+
+**Heuristic fallback:** When fewer than 50 feedback events exist, the head runs in heuristic mode where attention weights are fixed to approximate `rrf * importance * confidence * trust_weight`.
+
+**Dependencies:** Module 24 (model), Module 27 (feedback for training)
+
+#### Module 27: Feedback Collection & Training
+
+**Purpose:** Collect implicit and explicit developer feedback on retrieval results, and orchestrate fine-tuning of the Attention Fusion Head.
+
+**Key files:** `src/feedback/collector.ts`, `src/feedback/store.ts`, `src/feedback/trainer-scheduler.ts`
+
+**Key exports:** `FeedbackCollector`, `recordFeedback()`, `getFeedbackStats()`, `scheduleFinetuning()`
+
+**Data flow:** Implicit feedback is captured from hooks: when the agent uses a retrieved entity (references it in tool calls, cites it in responses), that counts as a positive signal. When the agent ignores a retrieved entity or re-queries for the same topic, that counts as a negative signal. Explicit feedback comes from `sia_flag` annotations.
+
+**Training schedule:** Fine-tuning triggers when feedback events exceed the last training count by 50+ events AND at least 24 hours have passed since the last training run. Training runs on the maintenance scheduler's idle cycle (Module 22).
+
+**Schema:** `feedback_events` table with `query_id`, `node_id`, `signal` (positive/negative), `signal_source` (implicit/explicit), `t_created`.
+
+**Dependencies:** Module 1 (storage), Module 14 (hooks for implicit feedback), Module 26 (fusion head to train)
+
+#### Module 28: GLiNER Entity Extractor
+
+**Purpose:** On-device Named Entity Recognition using GLiNER-small to extract typed entities from text without LLM calls.
+
+**Key files:** `src/capture/gliner-extractor.ts`, `src/capture/entity-linker.ts`
+
+**Key exports:** `GlinerExtractor`, `extractEntities()`, `linkEntitiesToGraph()`
+
+**Data flow:** Integrated into the capture pipeline (Module 2) at Track A. When available (T2+), GLiNER runs on conversation text and documentation chunks. Extracts entities with type labels (person, library, API, service, technology, pattern). Extracted entities are matched against existing graph nodes by name similarity (Jaccard > 0.8) and semantic similarity (cosine > 0.7). Unmatched entities that pass ontology validation are added as `Concept` nodes with `pertains_to` edges.
+
+**Availability:** Active at T2+ only. At T0-T1, entity extraction relies solely on Tree-sitter AST (Track A) and LLM extraction (Track B).
+
+**Dependencies:** Module 24 (model availability), Module 2 (capture pipeline integration), Module 10 (ontology validation)
 
 ---
 
@@ -400,13 +502,13 @@ Two implementations: `BunSqliteDb` (local-only, sync API) and `LibSqlDb` (team s
 
 #### Module 5: MCP Server
 
-**Purpose:** Expose 16 tools over stdio transport. Strictly read-only on the main graph.
+**Purpose:** Expose 17 tools over stdio transport. Strictly read-only on the main graph.
 
 **Key files:** `src/mcp/server.ts`, `src/mcp/tools/` (one file per tool)
 
 **Security model:** Graph opened with `OPEN_READONLY`. Separate WAL-mode write connections for event nodes, `session_flags`, and `session_resume`. All inputs Zod-validated.
 
-**16 tools:** Memory (`sia_search`, `sia_by_file`, `sia_expand`, `sia_community`, `sia_at_time`, `sia_flag`, `sia_note`, `sia_backlinks`), Sandbox (`sia_execute`, `sia_execute_file`, `sia_batch_execute`, `sia_index`, `sia_fetch_and_index`), Diagnostic (`sia_stats`, `sia_doctor`, `sia_upgrade`).
+**17 tools:** Memory (`sia_search`, `sia_by_file`, `sia_expand`, `sia_community`, `sia_at_time`, `sia_flag`, `sia_note`, `sia_backlinks`), Sandbox (`sia_execute`, `sia_execute_file`, `sia_batch_execute`, `sia_index`, `sia_fetch_and_index`), Diagnostic (`sia_stats`, `sia_doctor`, `sia_upgrade`), Models (`sia_models`).
 
 **Dependencies:** Modules 1, 4, 6, 9, 10
 
@@ -416,7 +518,7 @@ Two implementations: `BunSqliteDb` (local-only, sync API) and `LibSqlDb` (team s
 
 **Key files:** `.claude-plugin/plugin.json`, `.mcp.json`, `hooks/hooks.json`, `skills/`, `agents/`, `scripts/`
 
-**Extension points:** MCP (`.mcp.json`, 16 tools), Hooks (`hooks/hooks.json`, real-time capture), Skills (`skills/*.md`, slash commands), Agents (`agents/*.md`, autonomous analysis), CLAUDE.md (behavioral directives). Plugin mode uses `CLAUDE_PLUGIN_DATA` for state; standalone uses `~/.sia/`.
+**Extension points:** MCP (`.mcp.json`, 17 tools), Hooks (`hooks/hooks.json`, real-time capture), Skills (`skills/*.md`, slash commands), Agents (`agents/*.md`, autonomous analysis), CLAUDE.md (behavioral directives). Plugin mode uses `CLAUDE_PLUGIN_DATA` for state; standalone uses `~/.sia/`.
 
 **Dependencies:** Module 5 (MCP), Module 14 (hooks), Module 17 (CLAUDE.md generation)
 
@@ -592,8 +694,10 @@ sia/
     capture/       # M2: pipeline, tracks A+B, consolidation, events, embedder
     ast/           # M2/18: language registry, indexer, extractors, watcher
     community/     # M3: Leiden, RAPTOR, summaries, scheduler
-    retrieval/     # M4: search, vector, BM25, graph traversal, reranker, throttle
-    mcp/           # M5: server.ts + tools/ (16 tool files)
+    retrieval/     # M4: search, vector, BM25, graph traversal, reranker, cross-encoder, fusion
+    models/        # M24: tier manager, manifest, downloader, registry
+    feedback/      # M27: collector, store, trainer scheduler
+    mcp/           # M5: server.ts + tools/ (17 tool files)
     security/      # M6: pattern detection, staging, Rule of Two, sanitize
     decay/         # M7: decay formula, archiver, consolidation sweep, scheduler
     sync/          # M8: HLC, push/pull, conflict, dedup, keychain
@@ -667,18 +771,24 @@ MCP tool call (e.g. sia_search)
     +-- Open graph.db read-only
     |
     v
-Stage 1: Candidate Generation (parallel)
-    +-- Vector: ONNX embed --> sqlite-vss cosine (two-stage: B-tree + VSS)
+Stage 1: Parallel Retrieval
+    +-- Vector: ONNX embed --> sqlite-vss cosine (dual embeddings at T1+)
     +-- BM25: FTS5 MATCH with normalized rank
     +-- Graph: name lookup --> 1-hop expansion (root 1.0, neighbors 0.7)
     |
     v
-Stage 2: Graph-Aware Expansion
-    Fetch neighbors of candidates not in set, score at candidate * 0.7
+Stage 2: Cross-Encoder Reranking  [T3 only; skipped at T0-T2]
+    mxbai-rerank-base-v1 scores each (query, candidate) pair
+    Prune candidates below dynamic threshold (mean - 0.5 * stddev)
     |
     v
-Stage 3: RRF Reranking
-    final = rrf * importance * confidence * trust_weight * (1 + task_boost * 0.3)
+Stage 3: Attention Fusion  [T1+; falls back to RRF at T0]
+    SIA Attention Fusion Head merges signals into single relevance score
+    (T0 fallback: rrf * importance * confidence * trust_weight * task_boost)
+    |
+    v
+Stage 4: Trust-Weighted Output
+    final = fused_score * trust_weight * importance_decay
     |
     v
 Response Budget --> Context Assembly --> JSON response
@@ -733,6 +843,12 @@ Phase 4: Summary Report (stats + markdown) --> save branch snapshot
 **Why a unified node table.** Single `graph_nodes` with `kind` discriminator enables uniform bi-temporal queries, consistent edge references, and a single FTS5/VSS index. `current_nodes` shadow table (trigger-maintained) eliminates temporal predicates from hot queries, reducing effective table size ~10x.
 
 **Why Salsa-inspired dirty propagation.** If a source file changes but the derived fact is unchanged (whitespace edit), stop propagation immediately. Eliminates ~30% of unnecessary re-verification.
+
+**Why tiered models (not all-or-nothing).** A full transformer stack (embeddings + cross-encoder + GLiNER + attention head) totals ~1.28 GB. Requiring this upfront would block adoption. Tiered activation lets users start with T0 (~57 MB) and get useful results immediately via classic RRF. Each tier adds capability with transparent tradeoffs. The lazy download design means disk cost is proportional to the features actually used.
+
+**Why learned attention fusion (not static RRF).** Static RRF assigns fixed weights to retrieval signals regardless of project characteristics. In practice, the optimal weighting varies: some codebases benefit more from graph proximity (tightly coupled modules), others from BM25 (well-named symbols), and others from vector similarity (conceptual queries). A learned fusion head adapts to the project through developer feedback. IPS-style bias correction (Agarwal et al., 2019) prevents the training from overfitting to trust-tier presentation order.
+
+**Why dual embedders (not a single model).** Natural language queries ("how does authentication work") and code queries ("UserService.authenticate signature") occupy different embedding spaces. A single model compromises on both. bge-small excels at semantic similarity in prose; jina-code was trained on code-text pairs and understands identifier semantics, camelCase splitting, and API patterns. The query classifier routes automatically, so the developer never needs to think about which model to use.
 
 ---
 
