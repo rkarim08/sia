@@ -1,15 +1,23 @@
-// Module: search — Three-stage pipeline orchestration
+// Module: search — Five-stage hybrid retrieval pipeline
 //
 // Stage 1: Parallel BM25 + graph traversal + vector search
 // Stage 2: 1-hop neighbor expansion for candidates
-// Stage 3: Cross-encoder reranking filter (optional, 50ms timeout)
+// Stage 3: Cross-encoder reranking filter (optional, 500ms timeout)
 // Stage 4: RRF combination + trust-weighted reranking
+// Stage 5: Attention fusion head or RRF fallback
 // Global queries bypass the pipeline and return community summaries.
+//
+// Design note: The cross-encoder score is NOT fused into the RRF combination (Stage 4).
+// RRF assumes independent unsupervised rankers. CE is supervised and correlated with
+// the signals it re-scores, violating RRF's independence assumption. Instead, CE acts
+// as a pre-filter (Stage 3) that eliminates low-quality candidates before RRF.
 
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import type { OnnxSession } from "@/models/types";
 import type { CrossEncoderReranker } from "@/retrieval/cross-encoder";
 import type { SiaSearchResult } from "@/mcp/tools/sia-search";
+import type { TaskType } from "@/shared/config";
 import { bm25Search } from "@/retrieval/bm25-search";
 import { graphTraversalSearch } from "@/retrieval/graph-traversal";
 import { classifyQuery } from "@/retrieval/query-classifier";
@@ -19,7 +27,7 @@ import { vectorSearch } from "@/retrieval/vector-search";
 /** Options accepted by hybridSearch. */
 export interface SearchOptions {
 	query: string;
-	taskType?: string;
+	taskType?: TaskType;
 	nodeTypes?: string[];
 	packagePath?: string;
 	paranoid?: boolean;
@@ -39,22 +47,27 @@ export interface SearchResult {
 /** Optional pipeline dependencies for extended stages. */
 export interface PipelineDeps {
 	crossEncoder?: CrossEncoderReranker | null;
-	attentionFusionSession?: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null;
+	attentionFusionSession?: OnnxSession | null;
 }
 
 /** Default minimum graph size before community summaries are available. */
 const DEFAULT_COMMUNITY_MIN_GRAPH_SIZE = 100;
 
+/** Module-level flag to avoid repeated attention-fusion debug logging. */
+let _attentionFusionFallbackLogged = false;
+
 /**
- * Three-stage hybrid retrieval pipeline.
+ * Five-stage hybrid retrieval pipeline.
  *
  * 1. Classify query as local or global.
  * 2. If global, return community summaries from the `communities` table.
  * 3. Stage 1: parallel BM25 + graph traversal + vector search.
  * 4. Stage 2: expand 1-hop neighbors for every candidate.
- * 5. Stage 3: RRF combine + trust-weighted rerank.
- * 6. Post-filter by nodeTypes if specified.
- * 7. Attach extraction_method if includeProvenance is set.
+ * 5. Stage 3: cross-encoder reranking filter (optional, 500ms timeout).
+ * 6. Stage 4: RRF combine + trust-weighted rerank.
+ * 7. Stage 5: attention fusion head or RRF fallback.
+ * 8. Post-filter by nodeTypes if specified.
+ * 9. Attach extraction_method if includeProvenance is set.
  *
  * The `embedder` parameter is nullable -- when null, vector search is skipped
  * and the pipeline runs on BM25 + graph traversal only.
@@ -101,7 +114,7 @@ export async function hybridSearch(
 
 	// --- Stage 3: Cross-encoder reranking (optional) ----------------------
 	// Cross-encoder FILTERS candidates (top-K → top-N) and provides a score
-	// feature for Stage 4. It is NOT fused via RRF — see design note above.
+	// feature for Stage 4. It is NOT fused via RRF — see design note at module header.
 	const allCandidateIds = new Set<string>();
 	for (const r of bm25Results) allCandidateIds.add(r.entityId);
 	for (const r of expandedGraphResults) allCandidateIds.add(r.entityId);
@@ -133,19 +146,25 @@ export async function hybridSearch(
 		// Stage 3 must not block the pipeline. Timeout configurable via crossEncoderTimeoutMs.
 		// On timeout, ceResults is empty — all candidates survive with crossEncoderScore=0.
 		const ceTimeoutMs = opts.crossEncoderTimeoutMs ?? 500;
+		let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 		const ceResults = await Promise.race([
 			deps.crossEncoder.rerank(opts.query, candidates),
 			new Promise<Array<{ entityId: string; score: number }>>((resolve) => {
-				const handle = setTimeout(() => resolve([]), ceTimeoutMs);
-				if (typeof handle === "object" && "unref" in handle) {
-					(handle as NodeJS.Timeout).unref();
+				timeoutHandle = setTimeout(() => resolve([]), ceTimeoutMs);
+				if (typeof timeoutHandle === "object" && "unref" in timeoutHandle) {
+					(timeoutHandle as NodeJS.Timeout).unref();
 				}
 			}),
 		]);
+		if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+		if (ceResults.length === 0 && candidates.length > 0) {
+			console.debug(`[sia] cross-encoder: timed out after ${ceTimeoutMs}ms with ${candidates.length} candidates — using RRF ordering`);
+		}
 		const crossEncoderScores = new Map(ceResults.map((r) => [r.entityId, r.score]));
 
 		// Filter: keep only top-N by CE score. Dropped candidates are excluded from
-		// Stage 4 entirely. CE score is passed as a feature — not an RRF signal.
+		// Stage 4 entirely. CE score is currently used for filtering only; it will be
+		// passed as a feature to the attention fusion head in the activation phase.
 		if (crossEncoderScores.size > 0) {
 			filteredCandidateIds = new Set(
 				[...crossEncoderScores.entries()]
@@ -174,29 +193,20 @@ export async function hybridSearch(
 	// --- Stage 5: Attention fusion or RRF fallback -------------------------
 	// attentionFusionSession is null until ≥50 real feedback events exist AND
 	// a trained .onnx head is on disk. Until that gate passes, RRF rerank is used.
-	let results: SiaSearchResult[];
-
-	if (deps?.attentionFusionSession) {
-		console.error("[sia] attention fusion session provided but not yet active — using RRF fallback");
-		// TODO: assemble CandidateFeatures from entity data and call attentionFusion().
-		// For now, fall through to RRF rerank — the session is accepted but not yet
-		// invoked until Phase 4 populates entity embeddings in the DB.
-		results = await rerank(db, rrfScores, {
-			taskType: opts.taskType,
-			packagePath: opts.packagePath,
-			paranoid: opts.paranoid,
-			limit,
-			includeProvenance: opts.includeProvenance,
-		});
-	} else {
-		results = await rerank(db, rrfScores, {
-			taskType: opts.taskType,
-			packagePath: opts.packagePath,
-			paranoid: opts.paranoid,
-			limit,
-			includeProvenance: opts.includeProvenance,
-		});
+	// TODO: when attention fusion is activated, assemble CandidateFeatures from
+	// entity data and call attentionFusion() instead of rerank().
+	if (deps?.attentionFusionSession && !_attentionFusionFallbackLogged) {
+		console.debug("[sia] attention fusion session provided but not yet active — using RRF fallback");
+		_attentionFusionFallbackLogged = true;
 	}
+
+	let results: SiaSearchResult[] = await rerank(db, rrfScores, {
+		taskType: opts.taskType,
+		packagePath: opts.packagePath,
+		paranoid: opts.paranoid,
+		limit,
+		includeProvenance: opts.includeProvenance,
+	});
 
 	// --- Post-filter by nodeTypes ------------------------------------------
 	if (opts.nodeTypes && opts.nodeTypes.length > 0) {
