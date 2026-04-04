@@ -329,6 +329,11 @@ export async function trainAttentionHead(
 	const REAL_EVENT_GATE = 50;
 	const headShouldActivate = realEvents >= REAL_EVENT_GATE;
 
+	// Enforce gate: do not train on synthetic-only data
+	if (!headShouldActivate) {
+		return;
+	}
+
 	const dataPath = join(trainingDataDir, "training_data.json");
 	const outputPath = modelManager.getModelPath("sia-attention-head", "model.onnx");
 

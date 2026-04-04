@@ -23,6 +23,9 @@ export async function embedEntity(
 	maxLen = 512,
 ): Promise<void> {
 	if (!embedder) return;
+	if (column !== "embedding" && column !== "embedding_code") {
+		throw new Error(`[sia] embedEntity: invalid column "${column}"`);
+	}
 
 	const text = `${entity.name} ${entity.summary ?? ""} ${entity.content ?? ""}`.slice(0, maxLen);
 	const vec = await embedder.embed(text);
