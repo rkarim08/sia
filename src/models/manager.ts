@@ -27,6 +27,8 @@ export interface ModelManager {
 	verifyChecksum(filePath: string, expectedSha256: string): Promise<boolean>;
 	/** Get the root models directory path. */
 	getModelsDir(): string;
+	/** Update the attention head metadata in the manifest. */
+	updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta> & { realEventGatePassed?: boolean }): void;
 }
 
 /**
@@ -125,6 +127,12 @@ export function createModelManager(baseDir: string): ModelManager {
 
 		getModelsDir(): string {
 			return modelsDir;
+		},
+
+		updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta> & { realEventGatePassed?: boolean }): void {
+			const { realEventGatePassed, ...headMeta } = meta;
+			Object.assign(manifest.attentionHead, headMeta);
+			persistManifest();
 		},
 	};
 }
