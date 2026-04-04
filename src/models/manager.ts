@@ -28,7 +28,7 @@ export interface ModelManager {
 	/** Get the root models directory path. */
 	getModelsDir(): string;
 	/** Update the attention head metadata in the manifest. */
-	updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta> & { realEventGatePassed?: boolean }): void;
+	updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta>): void;
 }
 
 /**
@@ -129,9 +129,8 @@ export function createModelManager(baseDir: string): ModelManager {
 			return modelsDir;
 		},
 
-		updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta> & { realEventGatePassed?: boolean }): void {
-			const { realEventGatePassed, ...headMeta } = meta;
-			Object.assign(manifest.attentionHead, headMeta);
+		updateAttentionHeadMeta(meta: Partial<import("@/models/types").AttentionHeadMeta>): void {
+			Object.assign(manifest.attentionHead, meta);
 			persistManifest();
 		},
 	};
