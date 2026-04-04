@@ -31,9 +31,20 @@ export interface FeedbackCollector {
  * alongside organic events; the trainer weighs them at 0.5× once organic
  * signals accumulate.
  */
-export function createFeedbackCollector(db: SiaDb): FeedbackCollector {
+/** Options for the feedback collector factory. */
+export interface FeedbackCollectorOpts {
+	/** When false, record() is a no-op. Defaults to true. */
+	enabled?: boolean;
+}
+
+export function createFeedbackCollector(db: SiaDb, opts?: FeedbackCollectorOpts): FeedbackCollector {
+	const enabled = opts?.enabled ?? true;
+
 	return {
 		async record(input: RecordFeedbackInput): Promise<void> {
+			// Config guard: skip recording when feedback collection is disabled.
+			if (!enabled) return;
+
 			// Validation errors propagate — they indicate programmer bugs.
 			// Only DB write errors are caught (feedback is best-effort).
 			const event = createFeedbackEvent({
