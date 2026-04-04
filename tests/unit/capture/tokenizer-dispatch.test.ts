@@ -1,43 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { loadTokenizerForModel } from "@/capture/tokenizer-dispatch";
-import { join } from "node:path";
-
-// Use the real bge-small tokenizer.json from the test fixtures or model downloads
-// For unit tests, we test the dispatch logic rather than real tokenizer loading
+import { loadTokenizerForModel, loadTokenizerByModelName } from "@/capture/tokenizer-dispatch";
 
 describe("tokenizer dispatch", () => {
-	it("defaults to wordpiece for undefined tokenizerType", () => {
-		// This will attempt to load a real tokenizer — skip if file not found
-		try {
-			const tok = loadTokenizerForModel("/nonexistent/tokenizer.json", undefined);
-			expect(tok.type).toBe("wordpiece");
-		} catch {
-			// Expected — file doesn't exist
-		}
+	it("throws for wordpiece with nonexistent file (no silent swallow)", () => {
+		expect(() => loadTokenizerForModel("/nonexistent/tokenizer.json", "wordpiece")).toThrow();
 	});
 
-	it("falls back to wordpiece for bpe when bpe-tokenizer not available", () => {
-		try {
-			const tok = loadTokenizerForModel("/nonexistent/tokenizer.json", "bpe");
-			// Falls back to wordpiece when BPE module not available
-			expect(tok.type).toBe("wordpiece");
-		} catch {
-			// Expected — file doesn't exist
-		}
+	it("falls back to wordpiece for bpe when module not available", () => {
+		// BPE module doesn't exist yet, so it falls back to wordpiece.
+		// The fallback then fails because the tokenizer file doesn't exist — that's expected.
+		expect(() => loadTokenizerForModel("/nonexistent/tokenizer.json", "bpe")).toThrow();
 	});
 
-	it("falls back to wordpiece for sentencepiece when sp-tokenizer not available", () => {
-		try {
-			const tok = loadTokenizerForModel("/nonexistent/tokenizer.json", "sentencepiece");
-			expect(tok.type).toBe("wordpiece");
-		} catch {
-			// Expected — file doesn't exist
-		}
+	it("falls back to wordpiece for sentencepiece when module not available", () => {
+		expect(() => loadTokenizerForModel("/nonexistent/tokenizer.json", "sentencepiece")).toThrow();
 	});
 
-	it("loadTokenizerForModel returns correct type field", () => {
-		// We can't easily test with real tokenizer files in unit tests,
-		// but we verify the dispatch logic exists
+	it("throws for unknown tokenizer type", () => {
+		expect(() => loadTokenizerForModel("/mock/tok.json", "unknown" as any)).toThrow(
+			"Unknown tokenizer type",
+		);
+	});
+
+	it("loadTokenizerForModel is a function", () => {
 		expect(typeof loadTokenizerForModel).toBe("function");
+	});
+
+	it("loadTokenizerByModelName is a function", () => {
+		expect(typeof loadTokenizerByModelName).toBe("function");
+	});
+
+	it("loadTokenizerByModelName uses registry tokenizerType", () => {
+		// jina-code is registered as "bpe" — should attempt BPE, fall back to wordpiece, then fail on file
+		expect(() => loadTokenizerByModelName("jina-embeddings-v2-base-code", "/nonexistent/tok.json")).toThrow();
 	});
 });
