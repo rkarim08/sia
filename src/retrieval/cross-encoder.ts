@@ -1,5 +1,6 @@
 // Module: cross-encoder — Stage 3 cross-encoder reranking via ONNX inference
 
+import type { ModelTier } from "@/models/types";
 import type { OnnxSession } from "@/models/types";
 
 /** Input candidate for cross-encoder reranking. */
@@ -26,11 +27,28 @@ export interface CrossEncoderConfig {
 	session: OnnxSession | null;
 	tokenize: PairTokenizer;
 	maxSeqLength: number;
+	/** Model name for identification and tier-based selection. */
+	modelName?: string;
 }
 
 /** Cross-encoder reranker interface. */
 export interface CrossEncoderReranker {
+	readonly modelName: string;
 	rerank(query: string, candidates: CrossEncoderCandidate[]): Promise<CrossEncoderResult[]>;
+}
+
+/** Default cross-encoder model for T0-T2. */
+export const DEFAULT_CE_MODEL = "ms-marco-MiniLM-L-6-v2";
+
+/** Cross-encoder model for T3 (higher quality reranking). */
+export const T3_CE_MODEL = "mxbai-rerank-base-v1";
+
+/**
+ * Return the appropriate cross-encoder model name for a given tier.
+ * T0-T2: MiniLM (small, fast). T3: mxbai-rerank (larger, higher quality).
+ */
+export function getCrossEncoderModelForTier(tier: ModelTier): string {
+	return tier === "T3" ? T3_CE_MODEL : DEFAULT_CE_MODEL;
 }
 
 /** Sigmoid activation: maps logit to [0, 1]. */
@@ -56,10 +74,12 @@ function padOrTruncate(arr: BigInt64Array, length: number): BigInt64Array {
  * If session is null, returns all candidates with score 0 (graceful degradation).
  */
 export function createCrossEncoderReranker(config: CrossEncoderConfig): CrossEncoderReranker {
-	const { session, tokenize, maxSeqLength } = config;
+	const { session, tokenize, maxSeqLength, modelName: configModelName } = config;
 	let nullSessionLogged = false;
 
 	return {
+		modelName: configModelName ?? DEFAULT_CE_MODEL,
+
 		async rerank(
 			query: string,
 			candidates: CrossEncoderCandidate[],
