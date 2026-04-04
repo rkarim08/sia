@@ -33,9 +33,9 @@ const BRUTE_FORCE_LIMIT = 1000;
  * Both vectors are assumed to be of equal length. Returns 0 if either
  * has zero magnitude (degenerate case).
  */
-function cosineSim(a: Float32Array, b: Float32Array): number {
+export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
 	if (a.length !== b.length) {
-		throw new Error(`cosineSim: dimension mismatch — a.length=${a.length}, b.length=${b.length}`);
+		throw new Error(`cosineSimilarity: dimension mismatch — a.length=${a.length}, b.length=${b.length}`);
 	}
 	let dot = 0;
 	let normA = 0;
@@ -206,7 +206,7 @@ async function bruteForceCosineSearch(
 			continue;
 		}
 
-		const score = cosineSim(queryEmbedding, storedEmbedding);
+		const score = cosineSimilarity(queryEmbedding, storedEmbedding);
 		if (score < SIMILARITY_THRESHOLD) continue;
 
 		results.push({ entityId: row.id as string, score });

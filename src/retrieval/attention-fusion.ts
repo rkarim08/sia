@@ -27,6 +27,8 @@ export interface CandidateFeatures {
 	trustTierWeight: number;
 	entityEmbedding: Float32Array; // Must be exactly 384d from bge-small
 	daysSinceCapture: number; // Must be >= 0
+	/** 1.0 if entity shares the active package path, 0 otherwise. */
+	samePackage?: number;
 	/** Optional second vector score from jina-code (T1+). */
 	codeVectorScore?: number;
 }
@@ -96,7 +98,7 @@ export function assembleFeatureVector(candidate: CandidateFeatures): Float32Arra
 	return vec;
 }
 
-const FALLBACK_WEIGHTS = { bm25: 0.3, vector: 0.25, graph: 0.2, crossEncoder: 0.25 } as const;
+const FALLBACK_WEIGHTS = { bm25: 0.3, vector: 0.25, graph: 0.2, crossEncoder: 0.25, samePackageBoost: 0.1 } as const;
 let _attentionFusionNullLogged = false;
 
 /**
@@ -117,9 +119,10 @@ export function weightedScoreFallback(candidates: CandidateFeatures[]): FusionRe
 			FALLBACK_WEIGHTS.vector * c.vectorScore +
 			FALLBACK_WEIGHTS.graph * c.graphScore +
 			FALLBACK_WEIGHTS.crossEncoder * c.crossEncoderScore;
+		const packageBoost = (c.samePackage ?? 0) * FALLBACK_WEIGHTS.samePackageBoost;
 		return {
 			entityId: c.entityId,
-			score: score * c.trustTierWeight,
+			score: score * c.trustTierWeight + packageBoost,
 		};
 	});
 
