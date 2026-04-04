@@ -9,8 +9,12 @@
 //
 // At T0 (no attention head ONNX model), falls back to RRF.
 // At T1+, runs the ONNX attention fusion model.
+// Note: The architecture above describes the ONNX model loaded at inference time,
+// not TypeScript-side logic. This module handles feature assembly, model invocation,
+// and fallback when no ONNX model is available.
 
 import { createDefaultTime2VecParams, time2vecEncode, TIME2VEC_DIM } from "@/retrieval/time2vec";
+import type { OnnxSession } from "@/models/types";
 
 /** Per-candidate features assembled before fusion. */
 export interface CandidateFeatures {
@@ -91,24 +95,27 @@ export function assembleFeatureVector(candidate: CandidateFeatures): Float32Arra
 	return vec;
 }
 
+const FALLBACK_WEIGHTS = { bm25: 0.3, vector: 0.25, graph: 0.2, crossEncoder: 0.25 } as const;
+let _attentionFusionNullLogged = false;
+
 /**
- * RRF fallback fusion (used at T0 when no attention head is available).
+ * Weighted score fallback fusion (used at T0 when no attention head is available).
  *
  * Computes a weighted combination of the 4 retrieval scores:
  *   score = 0.3*bm25 + 0.25*vector + 0.2*graph + 0.25*crossEncoder
  *   final = score * trustWeight
  *
- * Weights derived from Vespa research: BM25-weighted RRF dominates zero-shot.
+ * Weights hand-tuned for zero-shot retrieval before the attention head is trained.
  */
-export function rrfFallback(candidates: CandidateFeatures[]): FusionResult[] {
+export function weightedScoreFallback(candidates: CandidateFeatures[]): FusionResult[] {
 	if (candidates.length === 0) return [];
 
 	const results: FusionResult[] = candidates.map((c) => {
 		const score =
-			0.3 * c.bm25Score +
-			0.25 * c.vectorScore +
-			0.2 * c.graphScore +
-			0.25 * c.crossEncoderScore;
+			FALLBACK_WEIGHTS.bm25 * c.bm25Score +
+			FALLBACK_WEIGHTS.vector * c.vectorScore +
+			FALLBACK_WEIGHTS.graph * c.graphScore +
+			FALLBACK_WEIGHTS.crossEncoder * c.crossEncoderScore;
 		return {
 			entityId: c.entityId,
 			score: score * c.trustTierWeight,
@@ -125,7 +132,7 @@ export function rrfFallback(candidates: CandidateFeatures[]): FusionResult[] {
  * Takes assembled feature vectors for all candidates + optional code context,
  * runs the 2-layer 4-head transformer, returns relevance scores.
  *
- * If the ONNX session is null, falls back to rrfFallback.
+ * If the ONNX session is null, falls back to weightedScoreFallback.
  *
  * @param candidates - Feature vectors for each candidate entity
  * @param graphDistances - Pairwise graph hop distances between candidates (for Graphormer bias)
@@ -136,18 +143,33 @@ export async function attentionFusion(
 	candidates: CandidateFeatures[],
 	graphDistances: number[][],
 	codeContextEmbedding: Float32Array | null,
-	session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null,
+	session: OnnxSession | null,
 ): Promise<FusionResult[]> {
 	if (candidates.length === 0) return [];
 
-	// Fallback to RRF when no model is available
+	if (graphDistances.length !== candidates.length) {
+		throw new Error(
+			`graphDistances length (${graphDistances.length}) must equal candidates length (${candidates.length})`,
+		);
+	}
+
+	// Fallback to weighted score when no model is available
 	if (!session) {
-		return rrfFallback(candidates);
+		if (!_attentionFusionNullLogged) {
+			console.error("[sia] attention-fusion: session is null — using weighted score fallback (T0 degradation)");
+			_attentionFusionNullLogged = true;
+		}
+		return weightedScoreFallback(candidates);
 	}
 
 	// Assemble feature matrix: [K, FEATURE_DIM]
 	const K = candidates.length;
-	const featureDim = candidates[0].codeVectorScore !== undefined ? FEATURE_DIM_T1 : FEATURE_DIM;
+	const hasCode = candidates[0].codeVectorScore !== undefined;
+	const inconsistent = candidates.some((c) => (c.codeVectorScore !== undefined) !== hasCode);
+	if (inconsistent) {
+		console.warn("[sia] attention-fusion: heterogeneous codeVectorScore presence across candidates — using first candidate's mode");
+	}
+	const featureDim = hasCode ? FEATURE_DIM_T1 : FEATURE_DIM;
 
 	const features = new Float32Array(K * featureDim);
 	for (let i = 0; i < K; i++) {
@@ -185,7 +207,7 @@ export async function attentionFusion(
 
 		if (!scores?.data) {
 			console.error("[sia] attention-fusion: ONNX output missing 'scores' tensor — model schema mismatch?");
-			return rrfFallback(candidates);
+			return weightedScoreFallback(candidates);
 		}
 
 		const results: FusionResult[] = [];
@@ -203,6 +225,6 @@ export async function attentionFusion(
 			`[sia] attention-fusion: ONNX inference failed (K=${K}, featureDim=${featureDim}):`,
 			err instanceof Error ? err.message : String(err),
 		);
-		return rrfFallback(candidates);
+		return weightedScoreFallback(candidates);
 	}
 }
