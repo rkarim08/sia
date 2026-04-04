@@ -28,7 +28,7 @@ export interface ReconciliationResult {
 export function reconcileExtractions(input: ReconciliationInput): ReconciliationResult {
 	const allSpans = [...input.glinerSpans, ...input.regexEntities];
 
-	// Deduplicate: key by text+label+start, keep highest confidence
+	// Deduplicate: key by text+label, keep highest confidence
 	const dedupMap = new Map<string, GlinerSpan>();
 	for (const span of allSpans) {
 		const key = `${span.text}::${span.label}`;

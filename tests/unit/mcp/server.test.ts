@@ -100,6 +100,7 @@ describe("createMcpServer", () => {
 		)._registeredTools;
 
 		const readOnlyTools = [
+			"sia_models",
 			"sia_search",
 			"sia_by_file",
 			"sia_expand",
