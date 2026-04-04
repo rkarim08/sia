@@ -135,8 +135,11 @@ export async function downloadModel(
 			try {
 				const hash = await computeFileSha256(destPath);
 				if (hash === file.sha256) continue;
-			} catch {
-				// File exists but can't be read — re-download
+			} catch (err) {
+				console.warn(
+					`[sia] downloader: could not verify existing file ${destPath}, re-downloading:`,
+					err instanceof Error ? err.message : String(err),
+				);
 			}
 		}
 

@@ -46,8 +46,10 @@ export async function embedEntitiesBatch(
 	batchSize = 16,
 ): Promise<number> {
 	let embedded = 0;
+	let totalAttempted = 0;
 	for (let i = 0; i < entities.length; i += batchSize) {
 		const batch = entities.slice(i, i + batchSize);
+		totalAttempted += batch.length;
 		const texts = batch.map((e) =>
 			`${e.name} ${e.summary ?? ""} ${e.content ?? ""}`.slice(0, maxLen),
 		);
@@ -61,6 +63,9 @@ export async function embedEntitiesBatch(
 				embedded++;
 			}
 		}
+	}
+	if (totalAttempted > 0 && embedded === 0) {
+		console.warn(`[sia] embedEntitiesBatch: 0/${totalAttempted} entities embedded — embedder may be non-functional`);
 	}
 	return embedded;
 }
