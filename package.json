@@ -90,6 +90,7 @@
 		"@types/turndown": "^5.0.6",
 		"@types/uuid": "^11.0.0",
 		"better-sqlite3": "^12.8.0",
+		"onnx-proto": "^8.0.1",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.0"
 	},
