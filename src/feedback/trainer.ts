@@ -30,6 +30,26 @@ export function determineTrainingPhase(eventCount: number): TrainingPhase {
 	return "rrf";
 }
 
+const TRAINING_CHECK_INTERVAL = 50;
+
+/**
+ * Determine whether training should be triggered based on event count and phase transitions.
+ *
+ * Returns false in the "rrf" phase (no training needed).
+ * Returns true on phase transition (e.g., rrf → distillation).
+ * Returns true if enough new events have accumulated since last training.
+ */
+export function shouldTrain(
+	currentEventCount: number,
+	lastTrainedPhase: TrainingPhase | "none",
+	lastTrainedEventCount: number,
+): boolean {
+	const currentPhase = determineTrainingPhase(currentEventCount);
+	if (currentPhase === "rrf") return false;
+	if (currentPhase !== lastTrainedPhase) return true;
+	return (currentEventCount - lastTrainedEventCount) >= TRAINING_CHECK_INTERVAL;
+}
+
 /** Training batch: a query paired with candidate entity scores. */
 export interface TrainingExample {
 	queryText: string;

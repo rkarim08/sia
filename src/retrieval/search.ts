@@ -43,6 +43,12 @@ export interface SearchResult {
 	results: SiaSearchResult[];
 	mode: "local" | "global";
 	globalUnavailable: boolean;
+	/** Whether vector search was used in this query (embedder was available). */
+	vectorSearchUsed?: boolean;
+	/** Model tier active during this search (from config). */
+	modelTier?: string;
+	/** Total candidate entities before reranking. */
+	totalCandidates?: number;
 }
 
 /** Optional pipeline dependencies for extended stages. */
@@ -95,6 +101,8 @@ export async function hybridSearch(
 			results: communities,
 			mode: "global",
 			globalUnavailable: false,
+			vectorSearchUsed: false,
+			totalCandidates: 0,
 		};
 	}
 
@@ -235,6 +243,8 @@ export async function hybridSearch(
 		results,
 		mode: "local",
 		globalUnavailable: classification.globalUnavailable,
+		vectorSearchUsed: useNlEmbedder || useCodeEmbedder ? true : false,
+		totalCandidates: allCandidateIds.size,
 	};
 }
 
