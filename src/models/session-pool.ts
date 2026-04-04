@@ -1,0 +1,107 @@
+/** A generic ONNX-like session interface. */
+export interface OnnxSession {
+	run(feeds: Record<string, unknown>): Promise<Record<string, unknown>>;
+	release?(): void;
+}
+
+/** Factory function to create an ONNX session. */
+export type SessionFactory = () => Promise<OnnxSession>;
+
+/** Options for registering a model in the pool. */
+export interface RegisterOptions {
+	/** If true, this session is never evicted. Used for T0 models. */
+	pinned?: boolean;
+}
+
+/** Session pool interface. */
+export interface SessionPool {
+	register(modelName: string, factory: SessionFactory, opts?: RegisterOptions): void;
+	getSession(modelName: string): Promise<OnnxSession | null>;
+	closeAll(): Promise<void>;
+	getActiveCount(): number;
+}
+
+interface PoolEntry {
+	factory: SessionFactory;
+	session: OnnxSession | null;
+	pinned: boolean;
+	lastAccessed: number;
+}
+
+/**
+ * Create an ONNX session pool with lazy loading and LRU eviction.
+ *
+ * - Models are registered with a factory function that creates the session on demand.
+ * - Sessions are created lazily on first getSession() call.
+ * - When the pool exceeds maxSessions, the least-recently-used non-pinned session is evicted.
+ * - Pinned sessions (T0 models) are never evicted.
+ */
+export function createSessionPool(config: { maxSessions: number }): SessionPool {
+	const entries = new Map<string, PoolEntry>();
+
+	function evictIfNeeded(): void {
+		const activeCount = [...entries.values()].filter((e) => e.session !== null).length;
+		if (activeCount < config.maxSessions) return;
+
+		// Find LRU non-pinned entry
+		let lruName: string | null = null;
+		let lruTime = Infinity;
+
+		for (const [name, entry] of entries) {
+			if (entry.pinned || entry.session === null) continue;
+			if (entry.lastAccessed < lruTime) {
+				lruTime = entry.lastAccessed;
+				lruName = name;
+			}
+		}
+
+		if (lruName) {
+			const entry = entries.get(lruName)!;
+			if (entry.session?.release) {
+				entry.session.release();
+			}
+			entry.session = null;
+		}
+	}
+
+	return {
+		register(modelName: string, factory: SessionFactory, opts?: RegisterOptions): void {
+			entries.set(modelName, {
+				factory,
+				session: null,
+				pinned: opts?.pinned ?? false,
+				lastAccessed: 0,
+			});
+		},
+
+		async getSession(modelName: string): Promise<OnnxSession | null> {
+			const entry = entries.get(modelName);
+			if (!entry) return null;
+
+			if (entry.session === null) {
+				evictIfNeeded();
+				try {
+					entry.session = await entry.factory();
+				} catch {
+					return null;
+				}
+			}
+
+			entry.lastAccessed = Date.now();
+			return entry.session;
+		},
+
+		async closeAll(): Promise<void> {
+			for (const entry of entries.values()) {
+				if (entry.session?.release) {
+					entry.session.release();
+				}
+				entry.session = null;
+			}
+		},
+
+		getActiveCount(): number {
+			return [...entries.values()].filter((e) => e.session !== null).length;
+		},
+	};
+}
