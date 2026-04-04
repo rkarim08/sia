@@ -60,6 +60,10 @@ export interface MultiModelEmbedderConfig {
 	tokenizerPath: string;
 	embeddingDim: number;
 	maxSeqLength: number;
+	/** Optional prefix prepended to input text before embedding (e.g. "search_query: " for nomic). */
+	textPrefix?: string;
+	/** Optional Matryoshka truncation dimension — output is truncated and re-normalized to this size. */
+	matryoshkaDim?: number;
 }
 
 /** Extended Embedder with model metadata. */
@@ -73,7 +77,7 @@ export interface NamedEmbedder extends Embedder {
  * Same lazy ONNX loading as createEmbedder, but parameterized for multi-model use.
  */
 export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): NamedEmbedder {
-	const { modelName, modelPath, tokenizerPath, embeddingDim, maxSeqLength } = config;
+	const { modelName, modelPath, tokenizerPath, embeddingDim, maxSeqLength, textPrefix, matryoshkaDim } = config;
 
 	let session: OnnxSession | null = null;
 	let tokenizer: Tokenizer | null = null;
@@ -123,7 +127,10 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 			const ready = await ensureSession();
 			if (!ready || !session || !tokenizer || !ort) return null;
 
-			const { inputIds, attentionMask } = tokenize(tokenizer, text, maxSeqLength);
+			// Prepend text prefix if configured (e.g. "search_query: " for nomic)
+			const inputText = textPrefix ? `${textPrefix}${text}` : text;
+
+			const { inputIds, attentionMask } = tokenize(tokenizer, inputText, maxSeqLength);
 			const tokenTypeIds = new BigInt64Array(maxSeqLength);
 
 			const shape = [1, maxSeqLength] as const;
@@ -143,12 +150,19 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 				return null;
 			}
 
-			return meanPoolAndNormalize(
+			const pooled = meanPoolAndNormalize(
 				lastHiddenState.data,
 				attentionMask,
 				lastHiddenState.dims[1] ?? maxSeqLength,
 				embeddingDim,
 			);
+
+			// Matryoshka truncation: slice to target dim and re-normalize
+			if (matryoshkaDim && matryoshkaDim < embeddingDim) {
+				return truncateAndNormalize(pooled, matryoshkaDim);
+			}
+
+			return pooled;
 		},
 
 		async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
@@ -224,4 +238,30 @@ function meanPoolAndNormalize(
 	}
 
 	return pooled;
+}
+
+/**
+ * Matryoshka truncation: slice a full-dimension embedding to `targetDim`
+ * and re-normalize to unit length.
+ */
+function truncateAndNormalize(embedding: Float32Array, targetDim: number): Float32Array {
+	const truncated = new Float32Array(targetDim);
+	for (let d = 0; d < targetDim; d++) {
+		truncated[d] = embedding[d];
+	}
+
+	// L2 re-normalize
+	let norm = 0;
+	for (let d = 0; d < targetDim; d++) {
+		norm += truncated[d] * truncated[d];
+	}
+	norm = Math.sqrt(norm);
+
+	if (norm > 0) {
+		for (let d = 0; d < targetDim; d++) {
+			truncated[d] /= norm;
+		}
+	}
+
+	return truncated;
 }
