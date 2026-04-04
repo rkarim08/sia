@@ -74,6 +74,24 @@ describe("ONNX session pool", () => {
 		expect(sessions.pinned.release).not.toHaveBeenCalled();
 	});
 
+	it("evictModel releases session and removes registration", async () => {
+		const pool = createSessionPool({ maxSessions: 4 });
+		const mockSession = { run: vi.fn(), release: vi.fn() };
+		pool.register("test-model", async () => mockSession as any);
+
+		await pool.getSession("test-model");
+		pool.evictModel("test-model");
+
+		expect(mockSession.release).toHaveBeenCalled();
+		const session = await pool.getSession("test-model");
+		expect(session).toBeNull();
+	});
+
+	it("evictModel is a no-op for unregistered models", () => {
+		const pool = createSessionPool({ maxSessions: 4 });
+		expect(() => pool.evictModel("nonexistent")).not.toThrow();
+	});
+
 	it("closeAll releases all sessions", async () => {
 		const pool = createSessionPool({ maxSessions: 4 });
 		const session = { run: vi.fn(), release: vi.fn() };
