@@ -12,7 +12,7 @@
 // the signals it re-scores, violating RRF's independence assumption. Instead, CE acts
 // as a pre-filter (Stage 3) that eliminates low-quality candidates before RRF.
 
-import type { Embedder } from "@/capture/embedder";
+import type { Embedder, NamedEmbedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import type { OnnxSession } from "@/models/types";
 import type { CrossEncoderReranker } from "@/retrieval/cross-encoder";
@@ -21,6 +21,7 @@ import type { TaskType } from "@/shared/config";
 import { bm25Search } from "@/retrieval/bm25-search";
 import { graphTraversalSearch } from "@/retrieval/graph-traversal";
 import { classifyQuery } from "@/retrieval/query-classifier";
+import { selectEmbedders } from "@/retrieval/query-router";
 import { type RankedCandidate, rerank, rrfCombine } from "@/retrieval/reranker";
 import { vectorSearch } from "@/retrieval/vector-search";
 
@@ -48,6 +49,7 @@ export interface SearchResult {
 export interface PipelineDeps {
 	crossEncoder?: CrossEncoderReranker | null;
 	attentionFusionSession?: OnnxSession | null;
+	codeEmbedder?: NamedEmbedder | null;
 }
 
 /** Default minimum graph size before community summaries are available. */
@@ -103,10 +105,16 @@ export async function hybridSearch(
 		packagePath: opts.packagePath,
 	};
 
-	const [bm25Results, graphResults, vecResults] = await Promise.all([
+	// Determine which embedders to use based on query content
+	const embedderSelection = selectEmbedders(opts.query, opts.taskType);
+	const useNlEmbedder = embedder && embedderSelection.useNlEmbedder;
+	const useCodeEmbedder = deps?.codeEmbedder && embedderSelection.useCodeEmbedder;
+
+	const [bm25Results, graphResults, vecResults, codeVecResults] = await Promise.all([
 		bm25Search(db, opts.query, searchOpts),
 		graphTraversalSearch(db, opts.query, searchOpts),
-		embedder ? vectorSearch(db, opts.query, embedder, searchOpts) : Promise.resolve([]),
+		useNlEmbedder ? vectorSearch(db, opts.query, embedder, searchOpts) : Promise.resolve([]),
+		useCodeEmbedder ? vectorSearch(db, opts.query, deps!.codeEmbedder!, searchOpts) : Promise.resolve([]),
 	]);
 
 	// --- Stage 2: expand 1-hop neighbors ----------------------------------
@@ -119,6 +127,7 @@ export async function hybridSearch(
 	for (const r of bm25Results) allCandidateIds.add(r.entityId);
 	for (const r of expandedGraphResults) allCandidateIds.add(r.entityId);
 	for (const r of vecResults) allCandidateIds.add(r.entityId);
+	for (const r of codeVecResults) allCandidateIds.add(r.entityId);
 
 	// Candidates that survive Stage 3 filtering; defaults to full set when no CE model.
 	let filteredCandidateIds: Set<string> = allCandidateIds;
@@ -175,7 +184,7 @@ export async function hybridSearch(
 		}
 	}
 
-	// --- Stage 4: RRF combine (BM25 + graph + vector only) -----------------
+	// --- Stage 4: RRF combine (BM25 + graph + vector + code-vector) --------
 	// Only candidates that survived Stage 3 CE filtering are included.
 	// CE score is NOT an RRF input — it is a feature for the attention fusion head.
 	const bm25Candidates: RankedCandidate[] = bm25Results
@@ -187,8 +196,11 @@ export async function hybridSearch(
 	const vecCandidates: RankedCandidate[] = vecResults
 		.filter((r) => filteredCandidateIds.has(r.entityId))
 		.map((r) => ({ entityId: r.entityId, score: r.score }));
+	const codeVecCandidates: RankedCandidate[] = codeVecResults
+		.filter((r) => filteredCandidateIds.has(r.entityId))
+		.map((r) => ({ entityId: r.entityId, score: r.score }));
 
-	const rrfScores = rrfCombine(bm25Candidates, graphCandidates, vecCandidates);
+	const rrfScores = rrfCombine(bm25Candidates, graphCandidates, vecCandidates, codeVecCandidates);
 
 	// --- Stage 5: Attention fusion or RRF fallback -------------------------
 	// attentionFusionSession is null until ≥50 real feedback events exist AND
