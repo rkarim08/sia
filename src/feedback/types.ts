@@ -22,6 +22,8 @@ export const SIGNAL_STRENGTHS = {
 	visualizer_click: 1.0,
 	visualizer_expand: 0.8,
 	visualizer_dwell_5s: 0.6,
+	visualizer_code_inspect: 0.9,
+	visualizer_search_click: 0.8,
 	visualizer_skip: -0.2,
 
 	// Claude agent signals (Tier 2)
