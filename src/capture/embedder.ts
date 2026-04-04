@@ -3,6 +3,7 @@
 import { existsSync } from "node:fs";
 import type { Tokenizer } from "@/capture/tokenizer";
 import { loadTokenizer, tokenize } from "@/capture/tokenizer";
+import type { OnnxSession } from "@/models/types";
 
 /** Embedding vector dimension for all-MiniLM-L6-v2. */
 const EMBEDDING_DIM = 384;
@@ -26,7 +27,12 @@ export interface Embedder {
 async function loadOnnxRuntime(): Promise<typeof import("onnxruntime-node") | null> {
 	try {
 		return await import("onnxruntime-node");
-	} catch {
+	} catch (err) {
+		if (err instanceof Error && (err.message.includes("Cannot find module") || err.message.includes("MODULE_NOT_FOUND"))) {
+			console.debug("[sia] embedder: onnxruntime-node not installed — embedding disabled");
+		} else {
+			console.error("[sia] embedder: unexpected error loading onnxruntime-node:", err instanceof Error ? err.message : String(err));
+		}
 		return null;
 	}
 }
@@ -38,100 +44,13 @@ async function loadOnnxRuntime(): Promise<typeof import("onnxruntime-node") | nu
  * If the model file does not exist or ONNX runtime is unavailable, embed() returns null.
  */
 export function createEmbedder(modelPath: string, tokenizerPath: string): Embedder {
-	let session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null =
-		null;
-	let tokenizer: Tokenizer | null = null;
-	let initialized = false;
-	let ort: typeof import("onnxruntime-node") | null = null;
-
-	async function ensureSession(): Promise<boolean> {
-		if (initialized) return session !== null;
-		initialized = true;
-
-		if (!existsSync(modelPath)) {
-			return false;
-		}
-
-		if (!existsSync(tokenizerPath)) {
-			return false;
-		}
-
-		try {
-			tokenizer = loadTokenizer(tokenizerPath);
-		} catch (err) {
-			console.error(`[sia] embedder: failed to load tokenizer from ${tokenizerPath}:`, err instanceof Error ? err.message : String(err));
-			return false;
-		}
-
-		try {
-			ort = await loadOnnxRuntime();
-			if (!ort) return false;
-
-			session = (await ort.InferenceSession.create(modelPath, {
-				executionProviders: ["cpu"],
-			})) as unknown as typeof session;
-			return true;
-		} catch (err) {
-			console.error(`[sia] embedder: failed to create ONNX session from ${modelPath}:`, err instanceof Error ? err.message : String(err));
-			session = null;
-			return false;
-		}
-	}
-
-	return {
-		async embed(text: string): Promise<Float32Array | null> {
-			const ready = await ensureSession();
-			if (!ready || !session || !tokenizer || !ort) return null;
-
-			const { inputIds, attentionMask } = tokenize(tokenizer, text, MAX_SEQ_LENGTH);
-
-			// Build token_type_ids (all zeros for single-sentence tasks)
-			const tokenTypeIds = new BigInt64Array(MAX_SEQ_LENGTH);
-
-			// Create ONNX tensors — shape [1, MAX_SEQ_LENGTH]
-			const shape = [1, MAX_SEQ_LENGTH] as const;
-			const feeds = {
-				input_ids: new ort.Tensor("int64", inputIds, shape),
-				attention_mask: new ort.Tensor("int64", attentionMask, shape),
-				token_type_ids: new ort.Tensor("int64", tokenTypeIds, shape),
-			};
-
-			const results = await session.run(feeds);
-
-			// last_hidden_state has shape [1, seq_len, 384]
-			const lastHiddenState = results.last_hidden_state as {
-				data: Float32Array;
-				dims: readonly number[];
-			};
-			if (!lastHiddenState?.data) return null;
-
-			const hiddenData = lastHiddenState.data;
-			const seqLen = lastHiddenState.dims[1] ?? MAX_SEQ_LENGTH;
-
-			// Mean pooling: average only non-padding token vectors
-			return meanPoolAndNormalize(hiddenData, attentionMask, seqLen, EMBEDDING_DIM);
-		},
-
-		async embedBatch(texts: string[]): Promise<(Float32Array | null)[]> {
-			const results: (Float32Array | null)[] = [];
-			for (let i = 0; i < texts.length; i += 16) {
-				const batch = texts.slice(i, i + 16);
-				const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
-				results.push(...batchResults);
-			}
-			return results;
-		},
-
-		close(): void {
-			if (session && "release" in session) {
-				(session as { release(): void }).release();
-			}
-			session = null;
-			tokenizer = null;
-			ort = null;
-			initialized = false;
-		},
-	};
+	return createMultiModelEmbedder({
+		modelName: "all-MiniLM-L6-v2",
+		modelPath,
+		tokenizerPath,
+		embeddingDim: EMBEDDING_DIM,
+		maxSeqLength: MAX_SEQ_LENGTH,
+	});
 }
 
 /** Configuration for a named model embedder. */
@@ -156,8 +75,7 @@ export interface NamedEmbedder extends Embedder {
 export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): NamedEmbedder {
 	const { modelName, modelPath, tokenizerPath, embeddingDim, maxSeqLength } = config;
 
-	let session: { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>> } | null =
-		null;
+	let session: OnnxSession | null = null;
 	let tokenizer: Tokenizer | null = null;
 	let initialized = false;
 	let ort: typeof import("onnxruntime-node") | null = null;
@@ -166,8 +84,14 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 		if (initialized) return session !== null;
 		initialized = true;
 
-		if (!existsSync(modelPath)) return false;
-		if (!existsSync(tokenizerPath)) return false;
+		if (!existsSync(modelPath)) {
+			console.error(`[sia] embedder(${modelName}): model file not found at ${modelPath} — run \`sia download-model\` to install`);
+			return false;
+		}
+		if (!existsSync(tokenizerPath)) {
+			console.error(`[sia] embedder(${modelName}): tokenizer file not found at ${tokenizerPath} — run \`sia download-model\` to install`);
+			return false;
+		}
 
 		try {
 			tokenizer = loadTokenizer(tokenizerPath);
@@ -214,7 +138,10 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 				data: Float32Array;
 				dims: readonly number[];
 			};
-			if (!lastHiddenState?.data) return null;
+			if (!lastHiddenState?.data) {
+				console.error(`[sia] embedder(${modelName}): ONNX output missing 'last_hidden_state' tensor — model file may be corrupt`);
+				return null;
+			}
 
 			return meanPoolAndNormalize(
 				lastHiddenState.data,
@@ -228,7 +155,16 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 			const results: (Float32Array | null)[] = [];
 			for (let i = 0; i < texts.length; i += 16) {
 				const batch = texts.slice(i, i + 16);
-				const batchResults = await Promise.all(batch.map((t) => this.embed(t)));
+				const batchResults = await Promise.all(
+					batch.map(async (t) => {
+						try {
+							return await this.embed(t);
+						} catch (err) {
+							console.error("[sia] embedder: embedBatch individual embed failed:", err instanceof Error ? err.message : String(err));
+							return null;
+						}
+					}),
+				);
 				results.push(...batchResults);
 			}
 			return results;
