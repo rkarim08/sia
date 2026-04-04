@@ -496,8 +496,11 @@ export async function runPipeline(
 			if (opts?.codeEmbedder && newEntityIds.length > 0) {
 				try {
 					await generateCodeEmbeddings(graphDb, opts.codeEmbedder, newEntityIds, allCandidates);
-				} catch {
-					// Best effort — code embedding failure should not break pipeline
+				} catch (err) {
+					console.error(
+						"[sia] pipeline: code embedding generation failed:",
+						err instanceof Error ? err.message : String(err),
+					);
 				}
 			}
 
