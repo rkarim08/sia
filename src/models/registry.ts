@@ -53,8 +53,8 @@ export const MODEL_REGISTRY: Record<string, RegistryEntry> = {
 	"sia-attention-head": {
 		huggingface: "sia-project/attention-head",
 		file: "model.onnx",
-		sha256: "PLACEHOLDER_ATTN_SHA256",
-		sizeBytes: 368_640,
+		sha256: "5f8e17f5fff2cd42471b60bae85e9464d335d0bb49b1e1cd076960a558bfe942",
+		sizeBytes: 208_828,
 		tier: "T1",
 	},
 	"gliner-small-v2.1": {
