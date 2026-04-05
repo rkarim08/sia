@@ -4,7 +4,7 @@
 // Phase 2 (implicit):     5000–9999 events — use implicit feedback from 3 sources
 // Phase 3 (online):       10000+ events — full online learning with IPS debiasing
 
-import { writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import type { SiaDb } from "@/graph/db-interface";
 import type { FeedbackEvent } from "@/feedback/types";
@@ -100,12 +100,14 @@ export async function buildDistillationExamples(
  * Compute mean squared error loss between predicted and target scores.
  */
 export function mseLoss(predicted: Float32Array, targets: Float32Array): number {
+	const n = Math.min(predicted.length, targets.length);
+	if (n === 0) return 0;
 	let sum = 0;
-	for (let i = 0; i < predicted.length; i++) {
+	for (let i = 0; i < n; i++) {
 		const diff = predicted[i] - targets[i];
 		sum += diff * diff;
 	}
-	return sum / predicted.length;
+	return sum / n;
 }
 
 /**
@@ -332,6 +334,11 @@ export async function trainAttentionHead(
 	// Enforce gate: do not train on synthetic-only data
 	if (!headShouldActivate) {
 		return;
+	}
+
+	// Ensure training data directory exists
+	if (!existsSync(trainingDataDir)) {
+		mkdirSync(trainingDataDir, { recursive: true });
 	}
 
 	const dataPath = join(trainingDataDir, "training_data.json");
