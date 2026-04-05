@@ -1,8 +1,5 @@
-/** A generic ONNX-like session interface. */
-export interface OnnxSession {
-	run(feeds: Record<string, unknown>): Promise<Record<string, unknown>>;
-	release?(): void;
-}
+import type { OnnxSession } from "@/models/types";
+export type { OnnxSession };
 
 /** Factory function to create an ONNX session. */
 export type SessionFactory = () => Promise<OnnxSession>;
@@ -25,6 +22,7 @@ export interface SessionPool {
 interface PoolEntry {
 	factory: SessionFactory;
 	session: OnnxSession | null;
+	loading: Promise<OnnxSession | null> | null;
 	pinned: boolean;
 	lastAccessed: number;
 }
@@ -70,6 +68,7 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 			entries.set(modelName, {
 				factory,
 				session: null,
+				loading: null,
 				pinned: opts?.pinned ?? false,
 				lastAccessed: 0,
 			});
@@ -80,22 +79,32 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 			if (!entry) return null;
 
 			if (entry.session === null) {
+				// Deduplicate concurrent getSession calls for the same model
+				if (entry.loading) {
+					return entry.loading;
+				}
 				evictIfNeeded();
-				// Check if pool still has room after eviction (all may be pinned)
 				const activeAfterEvict = [...entries.values()].filter((e) => e.session !== null).length;
 				if (activeAfterEvict >= config.maxSessions && !entry.pinned) {
 					console.warn(`[sia] session-pool: all ${config.maxSessions} sessions are pinned — cannot load ${modelName}`);
 					return null;
 				}
-				try {
-					entry.session = await entry.factory();
-				} catch (err) {
-					console.error(
-						`[sia] session-pool: failed to create session for ${modelName}:`,
-						err instanceof Error ? err.message : String(err),
-					);
-					return null;
-				}
+				entry.loading = (async () => {
+					try {
+						entry.session = await entry.factory();
+						return entry.session;
+					} catch (err) {
+						console.error(
+							`[sia] session-pool: failed to create session for ${modelName}:`,
+							err instanceof Error ? err.message : String(err),
+						);
+						return null;
+					} finally {
+						entry.loading = null;
+					}
+				})();
+				const result = await entry.loading;
+				if (!result) return null;
 			}
 
 			entry.lastAccessed = Date.now();
