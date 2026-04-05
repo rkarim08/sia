@@ -33,7 +33,7 @@ describe("model downloader", () => {
 		await expect(computeFileSha256("/nonexistent/file")).rejects.toThrow();
 	});
 
-	it("downloadFile downloads a small file and verifies checksum", async () => {
+	it("downloadFile downloads a small file and verifies checksum", { timeout: 30_000 }, async () => {
 		tmpDir = makeTmp();
 		const destPath = join(tmpDir, "downloaded.txt");
 
