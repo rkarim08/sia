@@ -14,6 +14,8 @@ import { getConfig } from "@/shared/config";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
 import type { HookEvent } from "@/hooks/types";
+import { runSessionStart as runNousSessionStart } from "@/nous/self-monitor";
+import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
 
 /**
  * Ensures the SIA MCP server is configured in the project or user settings.
@@ -116,6 +118,29 @@ async function main() {
 			const isResume = event.source === "resume";
 			const context = await buildSessionContext(db, cwd, isResume);
 			let formatted = formatSessionContext(context);
+
+			// Nous: run self-monitor and inject drift warning if needed.
+			// Must not break SessionStart — any failure is logged and ignored.
+			try {
+				const config = getConfig();
+				const nousConfig = config.nous ?? DEFAULT_NOUS_CONFIG;
+				if (
+					nousConfig.enabled &&
+					event.session_id &&
+					event.session_id !== "unknown"
+				) {
+					const nousResult = await runNousSessionStart(
+						db,
+						{ session_id: event.session_id, cwd },
+						nousConfig,
+					);
+					if (nousResult.driftWarning) {
+						formatted += `\n${nousResult.driftWarning}\n`;
+					}
+				}
+			} catch (err) {
+				process.stderr.write(`[Nous] SessionStart error: ${err}\n`);
+			}
 
 			// Load previous session subgraph if resuming
 			if (isResume && event.session_id && event.session_id !== "unknown") {

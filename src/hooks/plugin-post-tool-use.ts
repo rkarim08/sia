@@ -8,6 +8,9 @@ import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
 import { createPostToolUseHandler } from "@/hooks/handlers/post-tool-use";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
+import { runDiscomfortSignal } from "@/nous/discomfort-signal";
+import { runSurpriseRouter } from "@/nous/surprise-router";
+import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
 import { getConfig } from "@/shared/config";
 
 async function main() {
@@ -27,6 +30,23 @@ async function main() {
 			const handler = createPostToolUseHandler(db, config, repoHash);
 			const result = await handler(event);
 			process.stdout.write(JSON.stringify(result));
+
+			// Nous cognitive monitoring — runs after the main PostToolUse work.
+			// Any error here is logged and swallowed so the hook remains safe.
+			try {
+				const nousConfig = config.nous ?? DEFAULT_NOUS_CONFIG;
+				if (nousConfig.enabled && event.session_id) {
+					const responseText =
+						typeof event.tool_response === "string"
+							? event.tool_response
+							: JSON.stringify(event.tool_response ?? "");
+
+					runDiscomfortSignal(db, event.session_id, responseText, nousConfig);
+					runSurpriseRouter(db, event.session_id, event.tool_response, nousConfig);
+				}
+			} catch (err) {
+				process.stderr.write(`[Nous] PostToolUse error: ${err}\n`);
+			}
 		} finally {
 			await db.close();
 		}
