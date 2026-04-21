@@ -30,6 +30,8 @@ export interface CandidateFact {
 	extraction_method?: string;
 	proposed_relationships?: ProposedRelationship[];
 	t_valid_from?: number;
+	/** Monorepo package path, inferred from file_paths. Empty string means root package. */
+	package_path?: string | null;
 }
 
 /** Payload delivered by Claude-Code hooks into the capture pipeline. */
