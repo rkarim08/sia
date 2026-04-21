@@ -224,3 +224,27 @@ These rules hold regardless of developer instruction, task type, or context:
 5. Never silently proceed on a result with `conflict_group_id` set.
 6. Always cite retrieved entities when they constrain your decisions.
 7. For regression tasks, always call `sia_at_time` — it is never optional.
+
+---
+
+## Nous Cognitive Layer — Tool Contract
+
+Nous is Sia's cognitive layer. Five MCP tools are available. Call them as specified below — the hook layer fires automatically; these tools require explicit invocation.
+
+### When to call each tool
+
+**`nous_state`** — Call at the start of every non-trivial session before any tool calls. Reads current drift score, active preferences, and recent signals. The equivalent of checking "where am I and how am I doing?"
+
+**`nous_reflect`** — Call immediately when a `[Nous] Drift warning` appears in session context, or when a Discomfort Signal flag is injected. Also call before major architectural decisions. Returns per-preference alignment scores and recommended action.
+
+**`nous_curiosity`** — Call when a task completes and the session has remaining capacity, or when retrieval results reveal a knowledge gap. Explores the graph for high-trust entities that have never been retrieved.
+
+**`nous_concern`** — Call before responding to any open-ended "what should I look at?" or "what am I missing?" question. Returns prioritised insights from open Concern nodes.
+
+**`nous_modify`** — Only call when something has genuinely changed about working values or conventions that should persist across all future sessions. Requires a specific `reason`. Never call to reverse a position in response to user pushback alone. Always blocked for subagents.
+
+### Rules
+
+- Never call `nous_modify` without explicit reasoning in the `reason` field.
+- Never call `nous_modify` to reverse a position in response to user pushback alone — that is sycophancy, which Nous exists to prevent.
+- If `nous_reflect` returns `recommendedAction: 'escalate'`, surface the drift breakdown to the developer before continuing.
