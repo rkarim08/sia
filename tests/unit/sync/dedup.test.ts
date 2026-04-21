@@ -41,6 +41,8 @@ function makeEntity(overrides: Partial<Entity>): Entity {
 		archived_at: null,
 		session_id: null,
 		kind: null,
+		captured_by_session_id: null,
+		captured_by_session_type: null,
 		...overrides,
 	};
 }

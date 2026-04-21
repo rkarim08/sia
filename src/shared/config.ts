@@ -44,6 +44,33 @@ export const DEFAULT_SYNC_CONFIG: SyncConfig = {
 	syncInterval: 30,
 };
 
+/**
+ * Configuration for the Nous cognitive layer.
+ *
+ * Declared here rather than imported from `@/nous/types` to avoid a cycle:
+ * `src/nous/*` imports from `@/shared/config`, so config.ts must not depend on nous.
+ * `DEFAULT_NOUS_CONFIG` is kept in sync with the copy in `src/nous/types.ts`.
+ */
+export interface NousConfig {
+	enabled: boolean;
+	/** Discomfort signal threshold. Score above this writes a Signal node. Default 0.60. */
+	discomfortThreshold: number;
+	/** Drift score above this injects a warning at SessionStart. Default 0.75. */
+	driftWarningThreshold: number;
+	/** Drift score above this blocks nous_modify for the session. Default 0.90. */
+	selfModifyBlockThreshold: number;
+	/** Number of history rows used to compute baseline drift. Default 20. */
+	historyWindowSize: number;
+}
+
+export const DEFAULT_NOUS_CONFIG: NousConfig = {
+	enabled: true,
+	discomfortThreshold: 0.6,
+	driftWarningThreshold: 0.75,
+	selfModifyBlockThreshold: 0.9,
+	historyWindowSize: 20,
+};
+
 /** Decay half-life configuration keyed by entity type. */
 export interface DecayHalfLife {
 	default: number;
@@ -118,6 +145,9 @@ export interface SiaConfig {
 	claudeMdUpdatedAt: string | null;
 
 	sync: SyncConfig;
+
+	/** Optional Nous cognitive layer configuration. Consumers should fall back to DEFAULT_NOUS_CONFIG. */
+	nous?: NousConfig;
 
 	// Sandbox execution
 	sandboxTimeoutMs: number;
