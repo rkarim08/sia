@@ -99,6 +99,11 @@ export interface SiaConfig {
 
 	airGapped: boolean;
 
+	/** Skip embedding generation entirely (for CI/testing). */
+	skipEmbeddings?: boolean;
+	/** Custom models directory path override. */
+	modelsDir?: string;
+
 	/** Maintenance scheduler: time threshold before startup catchup triggers (ms). Default 24h. */
 	maintenanceInterval: number;
 	/** Maintenance scheduler: idle gap before opportunistic maintenance starts (ms). Default 60s. */
@@ -264,29 +269,42 @@ function validateDecayHalfLife(decayHalfLife: Record<string, unknown>): void {
 export function getConfig(siaHome: string = SIA_HOME): SiaConfig {
 	const configPath = join(siaHome, "config.json");
 
+	let config: SiaConfig;
 	if (!existsSync(configPath)) {
-		return { ...DEFAULT_CONFIG, sync: { ...DEFAULT_SYNC_CONFIG } };
+		config = { ...DEFAULT_CONFIG, sync: { ...DEFAULT_SYNC_CONFIG } };
+	} else {
+		const raw = readFileSync(configPath, "utf-8");
+		let parsed: Record<string, unknown>;
+		try {
+			parsed = JSON.parse(raw) as Record<string, unknown>;
+		} catch (err) {
+			throw new Error(
+				`Failed to parse Sia config at ${configPath}: ${err instanceof Error ? err.message : String(err)}. Delete or fix the file to use defaults.`,
+			);
+		}
+
+		if (
+			parsed.decayHalfLife &&
+			typeof parsed.decayHalfLife === "object" &&
+			!Array.isArray(parsed.decayHalfLife)
+		) {
+			validateDecayHalfLife(parsed.decayHalfLife as Record<string, unknown>);
+		}
+
+		config = deepMerge({ ...DEFAULT_CONFIG, sync: { ...DEFAULT_SYNC_CONFIG } }, parsed);
 	}
 
-	const raw = readFileSync(configPath, "utf-8");
-	let parsed: Record<string, unknown>;
-	try {
-		parsed = JSON.parse(raw) as Record<string, unknown>;
-	} catch (err) {
-		throw new Error(
-			`Failed to parse Sia config at ${configPath}: ${err instanceof Error ? err.message : String(err)}. Delete or fix the file to use defaults.`,
-		);
+	// Environment variable overrides
+	if (process.env.SIA_AIR_GAPPED === "true") config.airGapped = true;
+	const envTier = process.env.SIA_MODEL_TIER;
+	if (envTier && ["T0", "T1", "T2", "T3"].includes(envTier)) {
+		config.modelTier = envTier as ModelTier;
 	}
+	if (process.env.SIA_SKIP_EMBEDDINGS === "true") config.skipEmbeddings = true;
+	const envModelsDir = process.env.SIA_MODELS_DIR;
+	if (envModelsDir) config.modelsDir = envModelsDir;
 
-	if (
-		parsed.decayHalfLife &&
-		typeof parsed.decayHalfLife === "object" &&
-		!Array.isArray(parsed.decayHalfLife)
-	) {
-		validateDecayHalfLife(parsed.decayHalfLife as Record<string, unknown>);
-	}
-
-	return deepMerge({ ...DEFAULT_CONFIG, sync: { ...DEFAULT_SYNC_CONFIG } }, parsed);
+	return config;
 }
 
 /**
