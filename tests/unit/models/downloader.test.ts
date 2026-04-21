@@ -33,6 +33,12 @@ describe("model downloader", () => {
 		await expect(computeFileSha256("/nonexistent/file")).rejects.toThrow();
 	});
 
+	it("throws descriptive error when airGapped is true", async () => {
+		await expect(
+			downloadFile("https://example.com/model.onnx", "/tmp/m.onnx", undefined, { airGapped: true })
+		).rejects.toThrow(/air-gapped/);
+	});
+
 	it("downloadFile downloads a small file and verifies checksum", { timeout: 30_000 }, async () => {
 		tmpDir = makeTmp();
 		const destPath = join(tmpDir, "downloaded.txt");

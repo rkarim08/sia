@@ -26,7 +26,16 @@ export async function downloadFile(
 	url: string,
 	destPath: string,
 	onProgress?: (downloaded: number, total: number | null) => void,
+	opts?: { airGapped?: boolean },
 ): Promise<void> {
+	if (opts?.airGapped) {
+		throw new Error(
+			`Cannot download model in air-gapped mode. ` +
+			`Pre-install models manually at: ${destPath}\n` +
+			`Download from: ${url}`,
+		);
+	}
+
 	const dir = dirname(destPath);
 	if (!existsSync(dir)) {
 		mkdirSync(dir, { recursive: true });
