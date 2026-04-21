@@ -69,6 +69,7 @@ export async function consolidate(
 					name: candidate.name,
 					content: candidate.content,
 					summary: candidate.summary,
+					package_path: candidate.package_path ?? null,
 					tags: JSON.stringify(candidate.tags),
 					file_paths: JSON.stringify(candidate.file_paths),
 					trust_tier: candidate.trust_tier,
@@ -91,6 +92,7 @@ export async function consolidate(
 					await updateEntity(tx, match.id, {
 						content: candidate.content,
 						summary: candidate.summary,
+						package_path: candidate.package_path ?? match.package_path ?? null,
 						tags: JSON.stringify(candidate.tags),
 						file_paths: JSON.stringify(candidate.file_paths),
 						confidence: candidate.confidence,
@@ -108,6 +110,7 @@ export async function consolidate(
 						name: candidate.name,
 						content: candidate.content,
 						summary: candidate.summary,
+						package_path: candidate.package_path ?? null,
 						tags: JSON.stringify(candidate.tags),
 						file_paths: JSON.stringify(candidate.file_paths),
 						trust_tier: candidate.trust_tier,

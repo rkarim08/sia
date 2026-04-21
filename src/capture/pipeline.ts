@@ -4,6 +4,8 @@
 // Includes circuit breaker for consolidation failures and global timeout.
 
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { chunkPayload } from "@/capture/chunker";
 import { consolidate } from "@/capture/consolidate";
 import { inferEdges } from "@/capture/edge-inferrer";
@@ -37,6 +39,28 @@ import { getConfig, type SiaConfig } from "@/shared/config";
 
 /** Entity types considered code-adjacent for code embedding generation. */
 const CODE_ADJACENT_TYPES = new Set(["CodeEntity", "Dependency"]);
+
+/**
+ * Infer the monorepo package path for a file by walking up to the nearest package.json.
+ * Returns "" for root package or when no package.json is found above the file.
+ *
+ * Used during capture (Task 14.5) and for backfill in reindex (Task 14.12) to populate
+ * the `package_path` column on `graph_nodes`, which community detection and retrieval
+ * re-ranking use for monorepo scoping.
+ */
+export function inferPackagePath(filePath: string, repoRoot: string): string {
+	const absFile = filePath.startsWith("/") ? filePath : join(repoRoot, filePath);
+	let dir = dirname(absFile);
+	while (dir.length >= repoRoot.length) {
+		if (existsSync(join(dir, "package.json"))) {
+			return relative(repoRoot, dir); // "" when dir === repoRoot
+		}
+		const parent = dirname(dir);
+		if (parent === dir) break;
+		dir = parent;
+	}
+	return "";
+}
 
 export interface PipelineOpts {
 	siaHome?: string;
@@ -435,6 +459,18 @@ export async function runPipeline(
 				}
 			}
 
+			// Step 8.5: Populate package_path for candidates that have file_paths but no package_path.
+			// Inferred from the first file_path by walking up to the nearest package.json.
+			for (const candidate of allCandidates) {
+				if (
+					(candidate.package_path ?? null) === null &&
+					candidate.file_paths &&
+					candidate.file_paths.length > 0
+				) {
+					candidate.package_path = inferPackagePath(candidate.file_paths[0], payload.cwd);
+				}
+			}
+
 			// Step 9: Consolidation (or direct-write if circuit breaker active)
 			let consolidation: ConsolidationResult = { added: 0, updated: 0, invalidated: 0, noops: 0 };
 			const newEntityIds: string[] = [];
@@ -447,6 +483,7 @@ export async function runPipeline(
 						name: candidate.name,
 						content: candidate.content,
 						summary: candidate.summary,
+						package_path: candidate.package_path ?? null,
 						tags: JSON.stringify(candidate.tags),
 						file_paths: JSON.stringify(candidate.file_paths),
 						trust_tier: candidate.trust_tier,
