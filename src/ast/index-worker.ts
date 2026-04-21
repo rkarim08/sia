@@ -7,6 +7,7 @@
 // This module exports parseFileWithRetry for direct testing.
 // When run as a worker thread, it listens on parentPort (Node) or self.onmessage (Bun) for messages.
 
+import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { dispatchExtractionAsync } from "@/ast/extractors/tier-dispatch";
 import { getLanguageForFile } from "@/ast/languages";
@@ -23,6 +24,8 @@ export interface WorkerMessage {
 export interface WorkerResult {
 	relPath: string;
 	mtimeMs: number;
+	/** SHA-256 truncated to 16 hex chars — lets cache skip unchanged content. */
+	contentHash?: string;
 	packagePath: string | null;
 	facts: CandidateFact[];
 	error?: string;
@@ -44,6 +47,7 @@ export async function parseFileWithRetry(absPath: string, relPath: string): Prom
 		try {
 			const stat = statSync(absPath);
 			const content = readFileSync(absPath, "utf-8");
+			const contentHash = createHash("sha256").update(content).digest("hex").slice(0, 16);
 			const facts = await dispatchExtractionAsync(
 				content,
 				relPath,
@@ -56,6 +60,7 @@ export async function parseFileWithRetry(absPath: string, relPath: string): Prom
 			return {
 				relPath,
 				mtimeMs: stat.mtimeMs,
+				contentHash,
 				packagePath,
 				// Convert to plain objects for structured clone across threads
 				facts: facts.map((f) => ({ ...f })),

@@ -258,7 +258,10 @@ async function processResult(
 	}
 
 	if (!ctx.dryRun) {
-		ctx.cache[result.relPath] = { mtimeMs: result.mtimeMs };
+		ctx.cache[result.relPath] = {
+			mtimeMs: result.mtimeMs,
+			...(result.contentHash ? { contentHash: result.contentHash } : {}),
+		};
 	}
 
 	filesProcessed++;
