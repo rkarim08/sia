@@ -13,6 +13,7 @@ import {
 	type NousSessionState,
 	type SessionType,
 } from "./types";
+import { seedPreferences } from "./preference-seeder";
 import {
 	appendHistory,
 	cleanStaleSessions,
@@ -39,6 +40,9 @@ export async function runSessionStart(
 	const now = Math.floor(Date.now() / 1000);
 
 	cleanStaleSessions(db);
+
+	// First-run Preference seed — idempotent, no-op after first insert.
+	seedPreferences(db);
 
 	const sessionType = detectSessionType(db, input.session_id);
 	const preferenceNodeIds = loadPreferenceNodeIds(db);
