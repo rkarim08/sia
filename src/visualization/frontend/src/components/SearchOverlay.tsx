@@ -3,6 +3,7 @@ import { searchNodes } from '../lib/api';
 import type { SearchResult } from '../lib/api';
 import { NODE_COLORS } from '../lib/constants';
 import type { SiaNodeType } from '../lib/constants';
+import { useFeedbackContext } from '../App';
 
 interface Props {
   onSelect: (nodeId: string) => void;
@@ -17,6 +18,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedback = useFeedbackContext();
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -78,12 +80,15 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
       setSelectedIndex(i => Math.max(i - 1, 0));
     } else if (e.key === 'Enter' && results.length > 0) {
       e.preventDefault();
-      onSelect(results[selectedIndex].id);
+      const picked = results[selectedIndex];
+      feedback?.recordSearchClick(picked.id, query);
+      onSelect(picked.id);
       onClose();
     }
   };
 
   const handleResultClick = (nodeId: string) => {
+    feedback?.recordSearchClick(nodeId, query);
     onSelect(nodeId);
     onClose();
   };

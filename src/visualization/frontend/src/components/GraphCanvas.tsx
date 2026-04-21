@@ -26,6 +26,7 @@ import { BG_PRIMARY, DEFAULT_VISIBLE_TYPES, NODE_COLORS, COMMUNITY_COLORS } from
 import type { SiaNodeType } from '../lib/constants';
 import ContextMenu from './ContextMenu';
 import type { ContextMenuItem } from './ContextMenu';
+import { useFeedbackContext } from '../App';
 
 interface Props {
   data: GraphResponse | null;
@@ -61,6 +62,7 @@ const BOOKMARKS_KEY = 'sia.viewBookmarks';
 const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
   ({ data, onNodeClick, onNodeDoubleClick, onStageClick, selectedNodeId, hiddenTypes, activeFolder, blastRadiusMode, colorByFolder, pathSource, pathTarget, onClearPath, showHulls, layoutMode, onLayoutModeChange, maxTrustTier, onMaxTrustTierChange, focusDepth }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const feedback = useFeedbackContext();
 
     // Responsive state
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -147,6 +149,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
     const handleNodeClick = (nodeId: string, attrs: SigmaNodeAttributes) => {
       setContextMenu(null);
+      feedback?.recordClick(nodeId);
       onNodeClick({
         id: nodeId,
         label: attrs.label,
@@ -162,6 +165,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
     const handleNodeDoubleClick = (nodeId: string, attrs: SigmaNodeAttributes) => {
       if (!onNodeDoubleClick) return;
+      feedback?.recordExpand(nodeId);
       onNodeDoubleClick({
         id: nodeId,
         label: attrs.label,

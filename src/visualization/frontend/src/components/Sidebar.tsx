@@ -4,6 +4,7 @@ import { searchNodes } from '../lib/api';
 import type { SearchResult } from '../lib/api';
 import { NODE_COLORS, BG_SIDEBAR, FILTERABLE_TYPES } from '../lib/constants';
 import type { SiaNodeType } from '../lib/constants';
+import { useFeedbackContext } from '../App';
 
 interface Props {
   combos: GraphCombo[];
@@ -58,6 +59,7 @@ export default function Sidebar({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const feedback = useFeedbackContext();
 
   const sectionHeader: React.CSSProperties = {
     fontSize: isLarge ? 13 : 10,
@@ -139,7 +141,10 @@ export default function Sidebar({
             {searchResults.map(r => (
               <div
                 key={r.id}
-                onClick={() => onSearchSelect(r.id)}
+                onClick={() => {
+                  feedback?.recordSearchClick(r.id, searchQuery);
+                  onSearchSelect(r.id);
+                }}
                 style={{
                   padding: '5px 6px',
                   cursor: 'pointer',
@@ -150,8 +155,14 @@ export default function Sidebar({
                   gap: 7,
                   color: '#c8d0e0',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  feedback?.startDwell(r.id);
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  feedback?.endDwell();
+                }}
               >
                 <span style={{
                   width: 7,
@@ -436,6 +447,7 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
 }) {
   const isLarge = typeof window !== 'undefined' && window.innerWidth >= 2000;
   const [expanded, setExpanded] = useState(depth < 1);
+  const feedback = useFeedbackContext();
   const children = combos.filter(c => c.parentId === combo.id);
   const fileChildren = nodes.filter(n => n.parentId === combo.id);
   const hasChildren = children.length > 0 || fileChildren.length > 0;
@@ -529,6 +541,7 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
             <div
               key={fileNode.id}
               onClick={() => {
+                feedback?.recordClick(fileNode.id);
                 onSearchSelect(fileNode.id);
                 onFileClick?.(fileNode);
               }}
@@ -544,8 +557,14 @@ function FolderItem({ combo, combos, nodes, depth, activeFolder, onFolderClick, 
                 color: '#a0aec0',
                 borderLeft: '2px solid transparent',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                feedback?.startDwell(fileNode.id);
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                feedback?.endDwell();
+              }}
             >
               <span style={{
                 width: 7,
