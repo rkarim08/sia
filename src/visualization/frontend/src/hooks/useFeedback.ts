@@ -92,11 +92,32 @@ export function useFeedback(options: UseFeedbackOptions = {}) {
 		[enabled],
 	);
 
-	/** Get all pending events and clear the buffer. */
-	const flush = useCallback((): VisualizerFeedbackEvent[] => {
+	/**
+	 * POST all pending events to /api/feedback and clear the buffer.
+	 * Returns the number of events the backend accepted.
+	 *
+	 * On HTTP failure, events are re-queued at the head of the buffer so they
+	 * are not lost and will be retried on the next flush.
+	 */
+	const flush = useCallback(async (): Promise<number> => {
 		const events = [...eventsRef.current];
 		eventsRef.current = [];
-		return events;
+		if (events.length === 0) return 0;
+		try {
+			const response = await fetch("/api/feedback", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(events),
+			});
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			const data = (await response.json()) as { received?: number };
+			return data.received ?? 0;
+		} catch (err) {
+			// Re-queue events on failure so they aren't lost.
+			eventsRef.current.unshift(...events);
+			console.error("[sia] useFeedback: flush failed, re-queued events:", err);
+			return 0;
+		}
 	}, []);
 
 	/** Get current pending count. Use this instead of destructuring pendingCount. */

@@ -6,7 +6,10 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { extname, join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import type { SiaDb } from "@/graph/db-interface";
+import type { FeedbackCollector } from "@/feedback/collector";
+import type { SignalType } from "@/feedback/types";
 import { expandFolder, extractInitialGraph, getFileEntities, searchNodes } from "@/visualization/file-graph-extract";
 import { renderG6Html } from "@/visualization/g6-renderer";
 import { extToLanguage } from "@/visualization/types";
@@ -90,11 +93,54 @@ function parseUrl(req: IncomingMessage): URL {
 	return new URL(req.url ?? "/", `http://localhost`);
 }
 
+/** Visualizer event type names as emitted by the useFeedback hook. */
+type VisualizerEventType = "click" | "expand" | "dwell" | "code_inspect" | "search_click" | "skip";
+
+/** A single visualizer feedback event received via POST /api/feedback. */
+interface VisualizerFeedbackEventPayload {
+	type: VisualizerEventType;
+	entityId: string;
+	queryText?: string;
+	timestamp: number;
+	dwellMs?: number;
+}
+
+/** Map a visualizer event type to a SignalType understood by the feedback collector. */
+function mapEventTypeToSignal(eventType: VisualizerEventType): SignalType {
+	switch (eventType) {
+		case "click":
+			return "visualizer_click";
+		case "expand":
+			return "visualizer_expand";
+		case "dwell":
+			return "visualizer_dwell_5s";
+		case "code_inspect":
+			// code_inspect has the same weight as click per design.
+			return "visualizer_click";
+		case "search_click":
+			return "visualizer_click";
+		case "skip":
+			return "visualizer_skip";
+	}
+}
+
+/** Read the full request body as a UTF-8 string. */
+function readRequestBody(req: IncomingMessage): Promise<string> {
+	return new Promise((resolveBody, rejectBody) => {
+		const chunks: Buffer[] = [];
+		req.on("data", (chunk: Buffer) => chunks.push(chunk));
+		req.on("end", () => resolveBody(Buffer.concat(chunks).toString("utf-8")));
+		req.on("error", rejectBody);
+	});
+}
+
 async function handleRequest(
 	req: IncomingMessage,
 	res: ServerResponse,
 	db: SiaDb,
 	projectRoot: string,
+	feedbackCollector: FeedbackCollector | undefined,
+	sessionId: string,
 ): Promise<void> {
 	const url = parseUrl(req);
 	const { pathname } = url;
@@ -207,7 +253,70 @@ async function handleRequest(
 		return;
 	}
 
+	// POST /api/feedback — accept a batch of visualizer events
+	if (req.method === "POST" && pathname === "/api/feedback") {
+		let events: VisualizerFeedbackEventPayload[];
+		try {
+			const body = await readRequestBody(req);
+			const parsed = JSON.parse(body);
+			if (!Array.isArray(parsed)) {
+				sendError(res, "Expected JSON array of feedback events", 400);
+				return;
+			}
+			events = parsed as VisualizerFeedbackEventPayload[];
+		} catch (err) {
+			sendError(res, `Invalid JSON body: ${String(err)}`, 400);
+			return;
+		}
+
+		// If no collector is configured, accept the payload but record nothing.
+		// This keeps the frontend happy when feedback is disabled server-side.
+		if (!feedbackCollector) {
+			sendJson(res, { received: 0 });
+			return;
+		}
+
+		let received = 0;
+		for (const event of events) {
+			if (!event || typeof event !== "object" || !event.type || !event.entityId) {
+				// Skip malformed events rather than failing the whole batch.
+				continue;
+			}
+			try {
+				const signalType = mapEventTypeToSignal(event.type);
+				await feedbackCollector.record({
+					queryText: event.queryText ?? "",
+					entityId: event.entityId,
+					signalType,
+					source: "visualizer",
+					sessionId,
+					rankPosition: 0,
+					candidatesShown: 0,
+				});
+				received++;
+			} catch (err) {
+				// Per-event failure shouldn't break the batch.
+				console.error(
+					"[sia] viz-api-server: failed to record feedback event:",
+					err instanceof Error ? err.message : String(err),
+				);
+			}
+		}
+
+		sendJson(res, { received });
+		return;
+	}
+
 	sendError(res, "Not found", 404);
+}
+
+/** Optional dependencies for createVizApiServer. */
+export interface VizServerOpts {
+	/**
+	 * Optional feedback collector used by POST /api/feedback. When omitted,
+	 * the endpoint accepts requests but records nothing (returns `{received: 0}`).
+	 */
+	feedbackCollector?: FeedbackCollector;
 }
 
 /**
@@ -217,15 +326,21 @@ async function handleRequest(
  * @param db          - Open SiaDb instance to query.
  * @param projectRoot - Absolute path to the project root (for /api/file reads).
  * @param port        - Port to listen on. Pass 0 for a random available port.
+ * @param opts        - Optional deps (e.g. feedbackCollector for /api/feedback).
  */
 export function createVizApiServer(
 	db: SiaDb,
 	projectRoot: string,
 	port: number,
+	opts: VizServerOpts = {},
 ): Promise<VizServer> {
+	// One session id per server process — shared across all visualizer events
+	// until the process exits. Good enough for attribution within a single session.
+	const sessionId = `visualizer-${randomUUID()}`;
+
 	return new Promise((resolveServer, reject) => {
 		const server = createServer((req, res) => {
-			handleRequest(req, res, db, projectRoot).catch((err) => {
+			handleRequest(req, res, db, projectRoot, opts.feedbackCollector, sessionId).catch((err) => {
 				if (!res.headersSent) sendError(res, String(err), 500);
 			});
 		});
