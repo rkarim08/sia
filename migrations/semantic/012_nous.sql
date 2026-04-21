@@ -26,3 +26,8 @@ CREATE INDEX IF NOT EXISTS idx_nous_history_type
 
 ALTER TABLE graph_nodes ADD COLUMN captured_by_session_id   TEXT;
 ALTER TABLE graph_nodes ADD COLUMN captured_by_session_type TEXT;
+
+-- Keep current_nodes shadow in sync so SELECT * INSERTs from the shadow_insert
+-- trigger match the new column count.
+ALTER TABLE current_nodes ADD COLUMN captured_by_session_id   TEXT;
+ALTER TABLE current_nodes ADD COLUMN captured_by_session_type TEXT;
