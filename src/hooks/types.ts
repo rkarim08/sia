@@ -36,6 +36,8 @@ export interface HookResponse {
 	nodes_created?: number;
 	edges_created?: number;
 	error?: string;
+	/** Set by PostToolUse(Bash) after a git-mutating command triggers incremental reindex. */
+	reindex_message?: string;
 	[key: string]: unknown;
 }
 
