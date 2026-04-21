@@ -35,6 +35,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
+import { handleNousState } from "@/mcp/tools/nous-state";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
@@ -189,6 +190,11 @@ export const SiaSnapshotPruneInput = z.object({
 	branch_names: z.array(z.string()),
 });
 
+// Nous cognitive layer inputs
+export const NousStateInput = z.object({
+	session_id: z.string().optional().describe("Session ID — omit to use current session"),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -218,6 +224,7 @@ export const TOOL_NAMES = [
 	"sia_snapshot_list",
 	"sia_snapshot_restore",
 	"sia_snapshot_prune",
+	"nous_state",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -990,6 +997,35 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						const pruned = await pruneBranchSnapshots(deps.graphDb, args.branch_names);
 						return { pruned, branch_names: args.branch_names };
 					},
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- nous_state --------------------------------------------------------
+	server.registerTool(
+		"nous_state",
+		{
+			description:
+				"Returns current Nous cognitive state: drift score, active preferences, recent signals, surprise count. Call at session start before any substantive work.",
+			inputSchema: NousStateInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"nous_state",
+					() => handleNousState(deps.graphDb, args.session_id ?? deps.sessionId),
 					maxChars,
 				);
 			}
