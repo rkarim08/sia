@@ -19,6 +19,7 @@ vi.mock("@/cli/commands/reindex", () => ({
 		dryRun: false,
 		packagesDetected: 0,
 		contractsDetected: 0,
+		packagePathBackfilled: 0,
 	}),
 }));
 
