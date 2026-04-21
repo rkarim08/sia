@@ -37,6 +37,7 @@ import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
 import { handleNousConcern } from "@/mcp/tools/nous-concern";
 import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
+import { handleNousModify } from "@/mcp/tools/nous-modify";
 import { handleNousReflect } from "@/mcp/tools/nous-reflect";
 import { handleNousState } from "@/mcp/tools/nous-state";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
@@ -220,6 +221,17 @@ export const NousConcernInput = z.object({
 	person: z.string().optional().describe("Optional person filter"),
 });
 
+export const NousModifyInput = z.object({
+	action: z.enum(["create", "update", "deprecate"]),
+	preference: z.string().describe("Full preference statement"),
+	reason: z.string().describe("Required: why this preference is being created/changed"),
+	existing_node_id: z
+		.string()
+		.optional()
+		.describe("ID of existing Preference node for update/deprecate"),
+	session_id: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -253,6 +265,7 @@ export const TOOL_NAMES = [
 	"nous_reflect",
 	"nous_curiosity",
 	"nous_concern",
+	"nous_modify",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -1148,6 +1161,41 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					"nous_concern",
 					() =>
 						handleNousConcern(deps.graphDb, { context: args.context, person: args.person }),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- nous_modify -------------------------------------------------------
+	server.registerTool(
+		"nous_modify",
+		{
+			description:
+				"Creates, updates, or deprecates Preference nodes. GATED: blocked for subagents, blocked if drift > 0.90, Tier 1 preferences require explicit developer confirmation (returned as confirmationRequired: true, no mutation performed). Always provide a reason. Never call to reverse a position due to user pushback alone.",
+			inputSchema: NousModifyInput.shape,
+			annotations: { readOnlyHint: false, destructiveHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"nous_modify",
+					() =>
+						handleNousModify(deps.graphDb, args.session_id ?? deps.sessionId, {
+							action: args.action,
+							preference: args.preference,
+							reason: args.reason,
+							existingNodeId: args.existing_node_id,
+						}),
 					maxChars,
 				);
 			}
