@@ -141,6 +141,33 @@ describe("FeedbackCollector", () => {
 		expect(count).toBe(25);
 	});
 
+	it("records agent feedback with source 'agent'", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("agent-feedback", tmpDir);
+		const collector = createFeedbackCollector(db);
+
+		await collector.record({
+			queryText: "authentication middleware",
+			entityId: "ent-001",
+			signalType: "agent_expand",
+			source: "agent",
+			sessionId: "session-abc",
+			rankPosition: 2,
+			candidatesShown: 10,
+		});
+
+		const events = await collector.getEvents(10);
+		expect(events).toHaveLength(1);
+		expect(events[0].source).toBe("agent");
+		// agent_expand maps to 0.5
+		expect(events[0].signalStrength).toBe(0.5);
+		expect(events[0].queryText).toBe("authentication middleware");
+		expect(events[0].entityId).toBe("ent-001");
+		expect(events[0].sessionId).toBe("session-abc");
+		expect(events[0].rankPosition).toBe(2);
+		expect(events[0].candidatesShown).toBe(10);
+	});
+
 	it("respects synthetic source type", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("feedback-synthetic", tmpDir);

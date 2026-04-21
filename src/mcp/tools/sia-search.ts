@@ -5,12 +5,19 @@
 
 import type { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
+import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaSearchInput } from "@/mcp/server";
 import type { PipelineDeps } from "@/retrieval/search";
 import { hybridSearch } from "@/retrieval/search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
+
+/** Optional dependencies for recording agent feedback signals. */
+export interface FeedbackDeps {
+	feedbackCollector?: FeedbackCollector | null;
+	sessionId?: string;
+}
 
 /** Shape returned for each entity hit in sia_search results. */
 export interface SiaSearchResult {
@@ -64,6 +71,7 @@ export async function handleSiaSearch(
 	workspaceDeps?: WorkspaceDeps,
 	config?: { crossEncoderTimeoutMs?: number },
 	pipelineDeps?: PipelineDeps,
+	feedbackDeps?: FeedbackDeps,
 ): Promise<SiaSearchResult[]> {
 	// Workspace-scoped search
 	if (input.workspace && workspaceDeps) {
@@ -80,10 +88,12 @@ export async function handleSiaSearch(
 			node_types: input.node_types,
 			package_path: input.package_path,
 		});
-		return (await annotateFreshness(
+		const annotated = (await annotateFreshness(
 			result.entities as unknown as Record<string, unknown>[],
 			db,
 		)) as unknown as SiaSearchResult[];
+		await recordSearchFeedback(feedbackDeps, input.query, annotated);
+		return annotated;
 	}
 
 	// Compute effective limit
@@ -102,8 +112,41 @@ export async function handleSiaSearch(
 		crossEncoderTimeoutMs: config?.crossEncoderTimeoutMs,
 	}, pipelineDeps);
 
-	return (await annotateFreshness(
+	const annotated = (await annotateFreshness(
 		searchResult.results as unknown as Record<string, unknown>[],
 		db,
 	)) as unknown as SiaSearchResult[];
+	await recordSearchFeedback(feedbackDeps, input.query, annotated);
+	return annotated;
+}
+
+/**
+ * Record per-result agent feedback with the agent_accepted signal (0.3).
+ * Best-effort: any per-event failure is logged but never propagated.
+ */
+async function recordSearchFeedback(
+	feedbackDeps: FeedbackDeps | undefined,
+	queryText: string,
+	results: SiaSearchResult[],
+): Promise<void> {
+	if (!feedbackDeps?.feedbackCollector || results.length === 0) return;
+	const sessionId = feedbackDeps.sessionId ?? "unknown";
+	for (let i = 0; i < results.length; i++) {
+		try {
+			await feedbackDeps.feedbackCollector.record({
+				queryText,
+				entityId: results[i].id,
+				signalType: "agent_accepted",
+				source: "agent",
+				sessionId,
+				rankPosition: i,
+				candidatesShown: results.length,
+			});
+		} catch (err) {
+			console.error(
+				`[sia] sia_search: failed to record feedback for ${results[i].id}:`,
+				err,
+			);
+		}
+	}
 }

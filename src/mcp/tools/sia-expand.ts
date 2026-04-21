@@ -2,11 +2,18 @@
 
 import type { z } from "zod";
 import { getOrCreateLevel1Summary } from "@/community/raptor";
+import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
 import type { EdgeRow } from "@/graph/edges";
 import type { Entity } from "@/graph/entities";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaExpandInput } from "@/mcp/server";
+
+/** Optional dependencies for recording agent feedback signals. */
+export interface FeedbackDeps {
+	feedbackCollector?: FeedbackCollector | null;
+	sessionId?: string;
+}
 
 /** Result shape for sia_expand. */
 export interface SiaExpandResult {
@@ -37,6 +44,7 @@ const MAX_EDGES = 200;
 export async function handleSiaExpand(
 	db: SiaDb,
 	input: z.infer<typeof SiaExpandInput>,
+	feedbackDeps?: FeedbackDeps,
 ): Promise<SiaExpandResult | SiaExpandError> {
 	const depth = input.depth ?? 1;
 	const edgeTypes = input.edge_types;
@@ -148,6 +156,23 @@ export async function handleSiaExpand(
 		db,
 	);
 	const [annotatedRoot, ...annotatedNeighbors] = annotated;
+
+	// Record agent feedback (agent_expand signal = 0.5). Best-effort only.
+	if (feedbackDeps?.feedbackCollector) {
+		try {
+			await feedbackDeps.feedbackCollector.record({
+				queryText: `expand:${input.entity_id}`,
+				entityId: input.entity_id,
+				signalType: "agent_expand",
+				source: "agent",
+				sessionId: feedbackDeps.sessionId ?? "unknown",
+				rankPosition: 0,
+				candidatesShown: 1,
+			});
+		} catch (err) {
+			console.error("[sia] sia_expand: failed to record feedback:", err);
+		}
+	}
 
 	return {
 		entity: annotatedRoot as unknown as Entity,
