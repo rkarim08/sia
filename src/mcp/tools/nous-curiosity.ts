@@ -4,6 +4,7 @@
 // retrieved, and writes top-N results as Concern nodes (status:open). Call on
 // session slack or when a knowledge gap is detected.
 
+import type { SQLQueryBindings } from "bun:sqlite";
 import { v4 as uuid } from "uuid";
 import type { SiaDb } from "@/graph/db-interface";
 
@@ -49,7 +50,7 @@ export async function handleNousCuriosity(
 			AND archived_at IS NULL
 			AND (kind IS NULL OR kind NOT IN ('Episode', 'Signal', 'Concern', 'Preference'))
 	`;
-	const params: unknown[] = [MIN_TRUST_TIER, MAX_ACCESS_COUNT];
+	const params: SQLQueryBindings[] = [MIN_TRUST_TIER, MAX_ACCESS_COUNT];
 
 	if (input.topic) {
 		query += " AND (name LIKE ? OR summary LIKE ?)";
