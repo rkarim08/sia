@@ -583,6 +583,12 @@ export async function indexRepository(
 	if (head) {
 		const repoDataDir = join(config.repoDir, repoHash);
 		writeStoredHead(repoDataDir, head);
+
+		// Backward compat: also write .sia-graph/last-indexed-commit
+		const siaGraphDir = join(root, ".sia-graph");
+		if (existsSync(siaGraphDir)) {
+			writeFileSync(join(siaGraphDir, "last-indexed-commit"), head, "utf-8");
+		}
 	}
 
 	return {
