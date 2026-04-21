@@ -37,7 +37,8 @@
 			"@/llm/*": ["./src/llm/*"],
 			"@/sandbox/*": ["./src/sandbox/*"],
 			"@/models/*": ["./src/models/*"],
-			"@/feedback/*": ["./src/feedback/*"]
+			"@/feedback/*": ["./src/feedback/*"],
+			"@/nous/*": ["./src/nous/*"]
 		}
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"],

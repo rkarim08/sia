@@ -32,6 +32,7 @@ export default defineConfig({
 			"@/sandbox": resolve(__dirname, "src/sandbox"),
 			"@/models": resolve(__dirname, "src/models"),
 			"@/feedback": resolve(__dirname, "src/feedback"),
+			"@/nous": resolve(__dirname, "src/nous"),
 		},
 	},
 });
