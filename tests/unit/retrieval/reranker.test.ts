@@ -275,4 +275,74 @@ describe("reranker", () => {
 
 		expect(results).toEqual([]);
 	});
+
+	// ---------------------------------------------------------------
+	// 7. Rerank updates access_count and last_accessed on returned entities
+	// ---------------------------------------------------------------
+	it("updates access_count and last_accessed on returned entities", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("reranker-touch", tmpDir);
+
+		const e1 = await insertEntity(db, {
+			type: "Concept",
+			name: "TouchEntity1",
+			content: "First entity to touch.",
+			summary: "Entity 1",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
+			created_by: "dev-1",
+		});
+
+		const e2 = await insertEntity(db, {
+			type: "Concept",
+			name: "TouchEntity2",
+			content: "Second entity to touch.",
+			summary: "Entity 2",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
+			created_by: "dev-1",
+		});
+
+		const e3 = await insertEntity(db, {
+			type: "Concept",
+			name: "TouchEntity3",
+			content: "Third entity to touch.",
+			summary: "Entity 3",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
+			created_by: "dev-1",
+		});
+
+		// Establish a baseline: initial access_count should be 0 for fresh inserts
+		const list: RankedCandidate[] = [
+			{ entityId: e1.id, score: 0.9 },
+			{ entityId: e2.id, score: 0.8 },
+			{ entityId: e3.id, score: 0.7 },
+		];
+
+		const rrfScores = rrfCombine(list);
+		const results = await rerank(db, rrfScores);
+
+		expect(results.length).toBe(3);
+		const returnedIds = new Set(results.map((r) => r.id));
+		expect(returnedIds.has(e1.id)).toBe(true);
+		expect(returnedIds.has(e2.id)).toBe(true);
+		expect(returnedIds.has(e3.id)).toBe(true);
+
+		// Verify access_count >= 1 and last_accessed > 0 for all returned entities
+		const placeholders = [...returnedIds].map(() => "?").join(", ");
+		const dbResult = await db.execute(
+			`SELECT id, access_count, last_accessed FROM graph_nodes WHERE id IN (${placeholders})`,
+			[...returnedIds],
+		);
+
+		expect(dbResult.rows.length).toBe(3);
+		for (const row of dbResult.rows) {
+			expect(Number(row.access_count)).toBeGreaterThanOrEqual(1);
+			expect(Number(row.last_accessed)).toBeGreaterThan(0);
+		}
+	});
 });
