@@ -190,7 +190,10 @@ function isNoiseEntity(name: string, summary: string): boolean {
 }
 
 /**
- * Default extraction: top N most-connected meaningful nodes with edges between them.
+ * Default extraction: top N meaningful nodes by importance, plus edges between them.
+ * Uses LEFT JOIN so disconnected nodes still appear — important early in graph
+ * construction when many entities have no edges yet. Importance is the primary
+ * signal; edge_count breaks ties so dense clusters bubble up when importances match.
  * Filters out low-value entities (imports, generic calls, test boilerplate).
  * When maxNodes is undefined, load ALL active nodes (no cap).
  */
@@ -219,17 +222,19 @@ async function extractDefault(db: SiaDb, maxNodes?: number): Promise<SubgraphDat
 		return { nodes, edges, communities };
 	}
 
-	// Pick most-connected meaningful nodes
+	// Pick top meaningful nodes by importance. LEFT JOIN keeps disconnected nodes;
+	// edge_count DESC tiebreaks so densely-connected nodes win within the same
+	// importance bucket.
 	const { rows: connectedRows } = await db.execute(
 		`SELECT n.id, n.type, n.name, n.summary, n.importance, n.trust_tier,
 		        COUNT(e.id) AS edge_count
 		 FROM graph_nodes n
-		 JOIN graph_edges e ON (e.from_id = n.id OR e.to_id = n.id)
+		 LEFT JOIN graph_edges e ON (e.from_id = n.id OR e.to_id = n.id)
 		   AND e.t_valid_until IS NULL
 		 WHERE n.t_valid_until IS NULL AND n.archived_at IS NULL
 		   ${summaryFilter}
 		 GROUP BY n.id
-		 ORDER BY edge_count DESC
+		 ORDER BY n.importance DESC, edge_count DESC
 		 LIMIT ?`,
 		[maxNodes * 2],
 	);

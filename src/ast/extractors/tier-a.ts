@@ -85,7 +85,7 @@ const rustPatterns: LanguagePatterns = {
 		/(?:pub\s+)?trait\s+(\w+)/gm,
 		/impl(?:<[^>]+>)?\s+(\w+)/gm,
 	],
-	imports: [/use\s+[\w:]+::(\w+)/gm],
+	imports: [/use\s+[\w:]+::(\w+)/gm, /^\s*mod\s+(\w+)\s*;/gm],
 	calls: [/(?<![.\w])(\w+)\s*\(/gm, /\.(\w+)\s*\(/gm, /(\w+)!/gm],
 };
 
@@ -273,9 +273,11 @@ const CALL_NOISE = new Set([
  * Extract structural code entities from file content using language-specific
  * regex patterns. Supports all 15 Tier A languages.
  *
- * Only functions, classes, interfaces, types, and enums become first-class
- * entities. Imports and calls are captured as proposed_relationships (edges)
- * attached to the file's function/class entities — not as standalone nodes.
+ * Imports and calls become first-class entities (tagged "import" / "call")
+ * with their own proposed_relationships — mirroring the tree-sitter path so
+ * both extraction paths produce the same shape. Downstream visualizer noise
+ * filters (subgraph-extract's NOISE_SUMMARY_PREFIXES) strip them from
+ * default views; they remain available for the graph and edge-inferrer.
  */
 export function extractTierA(content: string, filePath: string): CandidateFact[] {
 	if (!content || !filePath) return [];
@@ -293,10 +295,9 @@ export function extractTierA(content: string, filePath: string): CandidateFact[]
 	const seen = new Set<string>();
 	const declPositions = new Set<number>();
 
-	// Imports and calls don't create standalone entities — they accumulate as
-	// proposed_relationships and get attached to the file's function/class entities.
-	const importRelationships: Array<{ target_name: string; type: string; weight: number }> = [];
-	const callRelationships: Array<{ target_name: string; type: string; weight: number }> = [];
+	// Imports and calls both become first-class entities (see the
+	// `import` and `call` branches below), matching the tree-sitter
+	// extractor's shape. No post-hoc relationship merging is needed.
 
 	for (const { key, category } of CATEGORIES) {
 		const regexes = patterns[key];
@@ -336,23 +337,54 @@ export function extractTierA(content: string, filePath: string): CandidateFact[]
 					declPositions.add(nameStart);
 				}
 
-				// Imports: don't create entities, just collect edge relationships
+				// Imports: create a standalone entity tagged "import" with a
+				// proposed_relationship pointing at the imported module (when we
+				// can parse it out of the same line). Mirrors the tree-sitter
+				// extractor so both paths produce the same facts.
 				if (category === "import") {
 					const lineEnd = content.indexOf("\n", m.index);
 					const line = content.slice(m.index, lineEnd === -1 ? undefined : lineEnd);
 					const fromMatch = /from\s+["']([^"']+)["']/.exec(line);
 					const reqMatch = /require\s*\(\s*["']([^"']+)["']\s*\)/.exec(line);
 					const sourceMod = fromMatch?.[1] ?? reqMatch?.[1];
-					if (sourceMod) {
-						importRelationships.push({ target_name: sourceMod, type: "imports", weight: 0.9 });
-					}
+					const importContext = surroundingLines(content, m.index);
+					facts.push({
+						type: "CodeEntity",
+						name,
+						content: importContext,
+						summary: `import ${name} in ${base}`,
+						tags: [language, "import"],
+						file_paths: [filePath],
+						trust_tier: 2,
+						confidence: 0.92,
+						extraction_method: "regex-ast",
+						proposed_relationships: sourceMod
+							? [{ target_name: sourceMod, type: "imports", weight: 0.9 }]
+							: [],
+					});
 					m = regex.exec(content);
 					continue;
 				}
 
-				// Calls: don't create entities, just collect edge relationships
+				// Calls: create a standalone entity tagged "call" with a
+				// proposed_relationship pointing at the called name. Mirrors
+				// the tree-sitter extractor so both paths produce the same facts.
 				if (category === "call") {
-					callRelationships.push({ target_name: name, type: "calls", weight: 0.7 });
+					const callContext = surroundingLines(content, m.index);
+					facts.push({
+						type: "CodeEntity",
+						name,
+						content: callContext,
+						summary: `call ${name} in ${base}`,
+						tags: [language, "call"],
+						file_paths: [filePath],
+						trust_tier: 2,
+						confidence: 0.92,
+						extraction_method: "regex-ast",
+						proposed_relationships: [
+							{ target_name: name, type: "calls", weight: 0.7 },
+						],
+					});
 					m = regex.exec(content);
 					continue;
 				}
@@ -376,17 +408,8 @@ export function extractTierA(content: string, filePath: string): CandidateFact[]
 		}
 	}
 
-	// Attach import/call relationships to all function/class entities in this file.
-	// This creates edges between functions and their dependencies without noise nodes.
-	const allRelationships = [...importRelationships, ...callRelationships];
-	if (allRelationships.length > 0) {
-		for (const fact of facts) {
-			fact.proposed_relationships = [
-				...(fact.proposed_relationships ?? []),
-				...allRelationships,
-			];
-		}
-	}
+	// No post-hoc relationship merge: imports and calls each carry their
+	// own proposed_relationships (see the `import` and `call` branches above).
 
 	return facts;
 }
