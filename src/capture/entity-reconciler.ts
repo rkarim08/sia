@@ -58,3 +58,36 @@ export function reconcileExtractions(input: ReconciliationInput): Reconciliation
 
 	return { accepted, needsConfirmation, rejected };
 }
+
+/** Format a prompt for Haiku LLM to confirm ambiguous entity extractions. */
+export function formatConfirmationPrompt(candidates: GlinerSpan[]): string {
+	const lines = [
+		"The following entities were extracted with moderate confidence. For each, reply ACCEPT or REJECT:",
+		"",
+	];
+	for (const span of candidates) {
+		lines.push(`- "${span.text}" as ${span.label} (confidence: ${span.score.toFixed(2)})`);
+	}
+	lines.push("");
+	lines.push("Reply with one line per entity: ACCEPT or REJECT followed by a brief reason.");
+	return lines.join("\n");
+}
+
+/** Parse Haiku LLM confirmation response into accepted/rejected spans. */
+export function parseConfirmationResponse(
+	candidates: GlinerSpan[],
+	response: string,
+): { confirmed: GlinerSpan[]; rejected: GlinerSpan[] } {
+	const lines = response.split("\n").filter((l) => l.trim());
+	const confirmed: GlinerSpan[] = [];
+	const rejected: GlinerSpan[] = [];
+	for (let i = 0; i < candidates.length; i++) {
+		const line = lines[i];
+		if (line && line.toUpperCase().startsWith("ACCEPT")) {
+			confirmed.push(candidates[i]);
+		} else {
+			rejected.push(candidates[i]);
+		}
+	}
+	return { confirmed, rejected };
+}

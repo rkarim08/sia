@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+	formatConfirmationPrompt,
+	parseConfirmationResponse,
 	reconcileExtractions,
 	type ReconciliationInput,
 } from "@/capture/entity-reconciler";
@@ -93,5 +95,31 @@ describe("entity reconciler", () => {
 		const result = reconcileExtractions(input);
 		expect(result.accepted.length).toBe(1);
 		expect(result.accepted[0].text).toBe("src/index.ts");
+	});
+
+	it("formatConfirmationPrompt produces a structured prompt with entity details", () => {
+		const prompt = formatConfirmationPrompt([
+			{ text: "auth module", label: "Decision", score: 0.72, start: 10, end: 21 },
+			{ text: "retry logic", label: "Pattern", score: 0.68, start: 50, end: 61 },
+		]);
+		expect(prompt).toContain("auth module");
+		expect(prompt).toContain("Decision");
+		expect(prompt).toContain("retry logic");
+		expect(prompt).toContain("Pattern");
+		expect(prompt).toContain("ACCEPT");
+	});
+
+	it("parseConfirmationResponse splits confirmed from rejected", () => {
+		const candidates = [
+			{ text: "A", label: "Decision" as const, score: 0.5, start: 0, end: 1 },
+			{ text: "B", label: "Pattern" as const, score: 0.5, start: 2, end: 3 },
+		];
+		const { confirmed, rejected } = parseConfirmationResponse(
+			candidates,
+			"ACCEPT — looks valid\nREJECT — ambiguous",
+		);
+		expect(confirmed).toHaveLength(1);
+		expect(confirmed[0].text).toBe("A");
+		expect(rejected).toHaveLength(1);
 	});
 });
