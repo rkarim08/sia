@@ -8,6 +8,9 @@ import { resolveRepoHash } from "@/capture/hook";
 import { openGraphDb } from "@/graph/semantic-db";
 import { createStopHandler } from "@/hooks/handlers/stop";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
+import { writeEpisode } from "@/nous/episode-writer";
+import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
+import { getConfig } from "@/shared/config";
 
 async function main() {
 	try {
@@ -48,6 +51,17 @@ async function main() {
 				process.stderr.write("sia: saved session subgraph for resume\n");
 			} catch (err) {
 				process.stderr.write(`sia: session save failed (non-fatal): ${err}\n`);
+			}
+
+			// Nous: write Episode node for primary sessions
+			try {
+				const config = getConfig();
+				const nousConfig = config.nous ?? DEFAULT_NOUS_CONFIG;
+				if (nousConfig.enabled && event.session_id) {
+					await writeEpisode(db, event.session_id, nousConfig);
+				}
+			} catch (err) {
+				process.stderr.write(`[Nous] Stop error: ${err}\n`);
 			}
 		} finally {
 			await db.close();
