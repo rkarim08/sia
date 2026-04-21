@@ -35,6 +35,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
+import { handleNousConcern } from "@/mcp/tools/nous-concern";
 import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
 import { handleNousReflect } from "@/mcp/tools/nous-reflect";
 import { handleNousState } from "@/mcp/tools/nous-state";
@@ -214,6 +215,11 @@ export const NousCuriosityInput = z.object({
 	session_id: z.string().optional(),
 });
 
+export const NousConcernInput = z.object({
+	context: z.string().optional().describe("Optional context filter"),
+	person: z.string().optional().describe("Optional person filter"),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -246,6 +252,7 @@ export const TOOL_NAMES = [
 	"nous_state",
 	"nous_reflect",
 	"nous_curiosity",
+	"nous_concern",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -1111,6 +1118,36 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 							topic: args.topic,
 							depth: args.depth,
 						}),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- nous_concern ------------------------------------------------------
+	server.registerTool(
+		"nous_concern",
+		{
+			description:
+				"Reads open Concern nodes and surfaces them as developer-relevant insights. Filters by active Preference nodes. Call before responding to open-ended \"what should I look at?\" questions.",
+			inputSchema: NousConcernInput.shape,
+			annotations: { readOnlyHint: false },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"nous_concern",
+					() =>
+						handleNousConcern(deps.graphDb, { context: args.context, person: args.person }),
 					maxChars,
 				);
 			}
