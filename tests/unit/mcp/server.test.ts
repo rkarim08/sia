@@ -47,17 +47,17 @@ describe("createMcpServer", () => {
 		expect(server).toBeDefined();
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
-		expect(Object.keys(registered)).toHaveLength(24);
+		expect(Object.keys(registered)).toHaveLength(29);
 	});
 
-	it("registers all 24 tools", () => {
+	it("registers all 29 tools", () => {
 		const server = createMcpServer(mockDeps);
 		// The internal _registeredTools is a plain object keyed by tool name.
 		const registered = (server as unknown as { _registeredTools: Record<string, unknown> })
 			._registeredTools;
 		expect(registered).toBeDefined();
 		const registeredNames = Object.keys(registered);
-		expect(registeredNames).toHaveLength(24);
+		expect(registeredNames).toHaveLength(29);
 		for (const name of TOOL_NAMES) {
 			expect(name in registered).toBe(true);
 		}
@@ -89,6 +89,11 @@ describe("createMcpServer", () => {
 			"sia_snapshot_list",
 			"sia_snapshot_restore",
 			"sia_snapshot_prune",
+			"nous_state",
+			"nous_reflect",
+			"nous_curiosity",
+			"nous_concern",
+			"nous_modify",
 		]);
 	});
 	it("all tools have annotations with readOnlyHint", () => {
