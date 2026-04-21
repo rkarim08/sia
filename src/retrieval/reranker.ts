@@ -130,6 +130,17 @@ export async function rerank(
 	const limit = opts?.limit ?? 15;
 	const top = scored.slice(0, limit);
 
+	// Touch returned entities to update access_count and last_accessed
+	const touchIds = top.map(({ entity }) => entity.id);
+	if (touchIds.length > 0) {
+		const placeholders = touchIds.map(() => "?").join(", ");
+		const now = Date.now();
+		await db.execute(
+			`UPDATE graph_nodes SET access_count = access_count + 1, last_accessed = ? WHERE id IN (${placeholders})`,
+			[now, ...touchIds],
+		);
+	}
+
 	// Map to SiaSearchResult
 	return top.map(({ entity, finalScore: _finalScore }) => {
 		const base: SiaSearchResult = {
