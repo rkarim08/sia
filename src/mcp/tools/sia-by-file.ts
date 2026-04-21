@@ -1,12 +1,19 @@
 // Module: sia-by-file — Retrieve knowledge graph entities associated with a file path
 
 import type { z } from "zod";
+import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
 import type { SiaByFileInput } from "@/mcp/server";
 import type { WorkspaceDeps } from "@/mcp/tools/sia-search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
+
+/** Optional dependencies for recording agent feedback signals. */
+export interface FeedbackDeps {
+	feedbackCollector?: FeedbackCollector | null;
+	sessionId?: string;
+}
 
 /** Result shape — same as SiaSearchResult (array of entities). */
 export interface SiaByFileResult {
@@ -24,6 +31,7 @@ export async function handleSiaByFile(
 	db: SiaDb,
 	input: z.infer<typeof SiaByFileInput>,
 	workspaceDeps?: WorkspaceDeps,
+	feedbackDeps?: FeedbackDeps,
 ): Promise<SiaByFileResult> {
 	const limit = input.limit ?? 10;
 	const filePath = input.file_path;
@@ -44,7 +52,9 @@ export async function handleSiaByFile(
 			result.entities as unknown as Record<string, unknown>[],
 			db,
 		);
-		return { entities: annotated as unknown as Entity[] };
+		const entities = annotated as unknown as Entity[];
+		await recordByFileFeedback(feedbackDeps, filePath, entities);
+		return { entities };
 	}
 
 	// --- Exact match ---
@@ -63,7 +73,9 @@ export async function handleSiaByFile(
 			exactResult.rows as unknown as Record<string, unknown>[],
 			db,
 		);
-		return { entities: annotated as unknown as Entity[] };
+		const entities = annotated as unknown as Entity[];
+		await recordByFileFeedback(feedbackDeps, filePath, entities);
+		return { entities };
 	}
 
 	// --- Filename stem fallback ---
@@ -85,5 +97,38 @@ export async function handleSiaByFile(
 		stemResult.rows as unknown as Record<string, unknown>[],
 		db,
 	);
-	return { entities: annotated as unknown as Entity[] };
+	const entities = annotated as unknown as Entity[];
+	await recordByFileFeedback(feedbackDeps, filePath, entities);
+	return { entities };
+}
+
+/**
+ * Record per-entity agent feedback with the agent_cite signal (0.7).
+ * Best-effort: any per-event failure is logged but never propagated.
+ */
+async function recordByFileFeedback(
+	feedbackDeps: FeedbackDeps | undefined,
+	filePath: string,
+	entities: Entity[],
+): Promise<void> {
+	if (!feedbackDeps?.feedbackCollector || entities.length === 0) return;
+	const sessionId = feedbackDeps.sessionId ?? "unknown";
+	for (let i = 0; i < entities.length; i++) {
+		try {
+			await feedbackDeps.feedbackCollector.record({
+				queryText: `file:${filePath}`,
+				entityId: entities[i].id,
+				signalType: "agent_cite",
+				source: "agent",
+				sessionId,
+				rankPosition: i,
+				candidatesShown: entities.length,
+			});
+		} catch (err) {
+			console.error(
+				`[sia] sia_by_file: failed to record feedback for ${entities[i].id}:`,
+				err,
+			);
+		}
+	}
 }

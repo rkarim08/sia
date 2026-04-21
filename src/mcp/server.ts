@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
+import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
 import type { ModelManager } from "@/models/manager";
 import type { OnnxSession } from "@/models/types";
@@ -236,6 +237,7 @@ export interface McpServerDeps {
 	sessionPool?: import("@/models/session-pool").SessionPool | null;
 	crossEncoder?: import("@/retrieval/cross-encoder").CrossEncoderReranker | null;
 	attentionFusionSession?: OnnxSession | null;
+	feedbackCollector?: FeedbackCollector | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +332,10 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 						undefined,
 						{ crossEncoderTimeoutMs: deps.config.crossEncoderTimeoutMs },
 						pipelineDeps,
+						{
+							feedbackCollector: deps.feedbackCollector ?? null,
+							sessionId: deps.sessionId,
+						},
 					),
 					maxChars,
 				);
@@ -356,7 +362,14 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_by_file", () => handleSiaByFile(deps.graphDb, args), maxChars);
+				return safeToolCall(
+					"sia_by_file",
+					() => handleSiaByFile(deps.graphDb, args, undefined, {
+						feedbackCollector: deps.feedbackCollector ?? null,
+						sessionId: deps.sessionId,
+					}),
+					maxChars,
+				);
 			}
 			return {
 				content: [
@@ -380,7 +393,14 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		},
 		async (args) => {
 			if (deps) {
-				return safeToolCall("sia_expand", () => handleSiaExpand(deps.graphDb, args), maxChars);
+				return safeToolCall(
+					"sia_expand",
+					() => handleSiaExpand(deps.graphDb, args, {
+						feedbackCollector: deps.feedbackCollector ?? null,
+						sessionId: deps.sessionId,
+					}),
+					maxChars,
+				);
 			}
 			return {
 				content: [
@@ -459,10 +479,15 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return safeToolCall(
 					"sia_flag",
 					() =>
-						handleSiaFlag(deps.graphDb, args, {
-							enableFlagging: deps.config.enableFlagging,
-							sessionId: deps.sessionId,
-						}),
+						handleSiaFlag(
+							deps.graphDb,
+							args,
+							{
+								enableFlagging: deps.config.enableFlagging,
+								sessionId: deps.sessionId,
+							},
+							deps.embedder ?? null,
+						),
 					maxChars,
 				);
 			}
