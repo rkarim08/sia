@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import GraphCanvas from './components/GraphCanvas';
 import type { GraphCanvasHandle } from './components/GraphCanvas';
 import CodeInspector from './components/CodeInspector';
@@ -10,6 +10,17 @@ import type { GraphResponse, GraphNode } from './lib/api';
 import { BG_PRIMARY, loadNodeColors, saveNodeColors, setNodeColors } from './lib/constants';
 import type { SiaNodeType } from './lib/constants';
 import type { LayoutMode } from './types';
+import { useFeedback } from './hooks/useFeedback';
+
+/**
+ * Feedback hook instance exposed via React context so child components
+ * (Sidebar, GraphCanvas, SearchOverlay, etc.) can record interaction
+ * events without prop-drilling. May be null in tests or when the provider
+ * is not mounted — consumers should optional-chain (`feedback?.recordClick(...)`).
+ */
+export type FeedbackHook = ReturnType<typeof useFeedback>;
+export const FeedbackContext = createContext<FeedbackHook | null>(null);
+export const useFeedbackContext = (): FeedbackHook | null => useContext(FeedbackContext);
 
 export default function App() {
   const [graphData, setGraphData] = useState<GraphResponse | null>(null);
@@ -21,6 +32,29 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Implicit feedback collection — single hook instance shared via FeedbackContext.
+  const feedback = useFeedback({ enabled: true, dwellThreshold: 5000 });
+
+  // Flush pending feedback on unload, on cleanup, and every 30s if there's anything
+  // buffered. The hook re-queues events on network failure, so a dropped flush
+  // just retries next tick.
+  useEffect(() => {
+    const handleUnload = () => {
+      void feedback.flush();
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    const interval = setInterval(() => {
+      if (feedback.getPendingCount() > 0) {
+        void feedback.flush();
+      }
+    }, 30_000);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      clearInterval(interval);
+      void feedback.flush();
+    };
+  }, [feedback]);
 
   // Responsive breakpoint
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
@@ -186,6 +220,7 @@ export default function App() {
   const edgeCount = graphData?.edges.length ?? 0;
 
   return (
+    <FeedbackContext.Provider value={feedback}>
     <div style={{
       display: 'flex',
       flexDirection: 'column',
@@ -479,5 +514,6 @@ export default function App() {
       )}
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
     </div>
+    </FeedbackContext.Provider>
   );
 }
