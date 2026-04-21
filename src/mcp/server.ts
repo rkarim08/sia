@@ -35,6 +35,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
+import { handleNousReflect } from "@/mcp/tools/nous-reflect";
 import { handleNousState } from "@/mcp/tools/nous-state";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
@@ -195,6 +196,14 @@ export const NousStateInput = z.object({
 	session_id: z.string().optional().describe("Session ID — omit to use current session"),
 });
 
+export const NousReflectInput = z.object({
+	context: z
+		.string()
+		.optional()
+		.describe("Optional context string to narrow Preference retrieval"),
+	session_id: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -225,6 +234,7 @@ export const TOOL_NAMES = [
 	"sia_snapshot_restore",
 	"sia_snapshot_prune",
 	"nous_state",
+	"nous_reflect",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -1026,6 +1036,38 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				return safeToolCall(
 					"nous_state",
 					() => handleNousState(deps.graphDb, args.session_id ?? deps.sessionId),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- nous_reflect ------------------------------------------------------
+	server.registerTool(
+		"nous_reflect",
+		{
+			description:
+				"Full SELF-MONITOR pass: computes drift score, compares against active Preference nodes, returns per-signal breakdown and recommended action. Call after a Discomfort Signal flag or before a major decision.",
+			inputSchema: NousReflectInput.shape,
+			annotations: { readOnlyHint: true },
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"nous_reflect",
+					() =>
+						handleNousReflect(deps.graphDb, args.session_id ?? deps.sessionId, {
+							context: args.context,
+						}),
 					maxChars,
 				);
 			}
