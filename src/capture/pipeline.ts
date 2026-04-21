@@ -419,10 +419,19 @@ export async function runPipeline(
 			}
 			// Track C: convert accepted GLiNER spans to CandidateFacts
 			if (trackCResult.status === "fulfilled") {
+				let needsConfirmationCount = 0;
 				for (const span of trackCResult.value) {
 					const classification = classifyExtractionResult(span);
 					if (classification === "reject") continue;
+					if (classification === "confirm") needsConfirmationCount++;
 					allCandidates.push(glinerSpanToCandidate(span, classification, payload.sessionId));
+				}
+				if (needsConfirmationCount > 0) {
+					console.error(
+						`[sia] entity-reconciler: ${needsConfirmationCount} needsConfirmation spans stored as Tier 3 — Haiku wiring pending`,
+					);
+					// TODO: route to Haiku via formatConfirmationPrompt/parseConfirmationResponse
+					// when LLM client is threaded into pipeline (activation plan Task 15.11)
 				}
 			}
 
