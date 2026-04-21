@@ -35,6 +35,7 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
+import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
 import { handleNousReflect } from "@/mcp/tools/nous-reflect";
 import { handleNousState } from "@/mcp/tools/nous-state";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
@@ -204,6 +205,15 @@ export const NousReflectInput = z.object({
 	session_id: z.string().optional(),
 });
 
+export const NousCuriosityInput = z.object({
+	topic: z.string().optional().describe("Optional topic to constrain exploration"),
+	depth: z
+		.union([z.literal(1), z.literal(2), z.literal(3)])
+		.optional()
+		.describe("Exploration depth (1–3, default 1)"),
+	session_id: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Tool names — single source of truth
 // ---------------------------------------------------------------------------
@@ -235,6 +245,7 @@ export const TOOL_NAMES = [
 	"sia_snapshot_prune",
 	"nous_state",
 	"nous_reflect",
+	"nous_curiosity",
 ] as const;
 
 export type SiaToolName = (typeof TOOL_NAMES)[number];
@@ -1067,6 +1078,38 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 					() =>
 						handleNousReflect(deps.graphDb, args.session_id ?? deps.sessionId, {
 							context: args.context,
+						}),
+					maxChars,
+				);
+			}
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ error: "Sia server not initialized: missing dependencies" }),
+					},
+				],
+				isError: true,
+			};
+		},
+	);
+
+	// --- nous_curiosity ----------------------------------------------------
+	server.registerTool(
+		"nous_curiosity",
+		{
+			description:
+				"Explores the Sia graph for high-trust entities with low access_count — knowledge that exists but has never been retrieved. Writes results as Concern nodes. Call when a task completes early or a knowledge gap is detected.",
+			inputSchema: NousCuriosityInput.shape,
+		},
+		async (args) => {
+			if (deps) {
+				return safeToolCall(
+					"nous_curiosity",
+					() =>
+						handleNousCuriosity(deps.graphDb, args.session_id ?? deps.sessionId, {
+							topic: args.topic,
+							depth: args.depth,
 						}),
 					maxChars,
 				);
