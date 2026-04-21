@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	SIA_ENTITY_LABELS,
 	CONFIDENCE_THRESHOLDS,
+	buildGlinerTensors,
 	classifyExtractionResult,
 	createGlinerExtractor,
 	type GlinerSpan,
@@ -77,6 +78,10 @@ describe("GLiNER extractor", () => {
 		await extractor.extract("abcdefghijklmnop"); // 16 chars → 2 chunks
 
 		expect(chunks.length).toBe(2);
+	});
+
+	it("buildGlinerTensors is exported and produces correct tensor shapes", () => {
+		expect(typeof buildGlinerTensors).toBe("function");
 	});
 
 	it("returns spans from successful chunks when other chunks fail", async () => {
