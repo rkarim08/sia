@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 import { handleSiaFlag, sanitizeReason } from "@/mcp/tools/sia-flag";
@@ -120,6 +121,77 @@ describe("sia_flag tool", () => {
 	// ---------------------------------------------------------------
 	// Preserves colons, backticks, slashes
 	// ---------------------------------------------------------------
+
+	// ---------------------------------------------------------------
+	// Mirrors the flag into graph_nodes and embeds it
+	// ---------------------------------------------------------------
+
+	it("embeds the flag entity when an embedder is provided", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("flag-embed", tmpDir);
+
+		const mockEmbedding = new Float32Array(384).fill(0.1);
+		const mockEmbedder: Embedder = {
+			embed: vi.fn().mockResolvedValue(mockEmbedding),
+			embedBatch: vi.fn().mockResolvedValue([]),
+			close: vi.fn(),
+		};
+
+		const result = await handleSiaFlag(
+			db,
+			{ reason: "Flag with embedding check" },
+			{ enableFlagging: true, sessionId: "sess-embed" },
+			mockEmbedder,
+		);
+
+		expect(result.flagged).toBe(true);
+		expect(result.id).toBeDefined();
+
+		// The embedder should have been invoked once with the flag text.
+		expect(mockEmbedder.embed).toHaveBeenCalledTimes(1);
+
+		// A mirror SessionFlag node should exist in graph_nodes with a non-null embedding.
+		const nodeRows = await db.execute(
+			"SELECT id, type, kind, name, content, embedding FROM graph_nodes WHERE id = ?",
+			[result.id],
+		);
+		expect(nodeRows.rows).toHaveLength(1);
+		const node = nodeRows.rows[0] as Record<string, unknown>;
+		expect(node.type).toBe("SessionFlag");
+		expect(node.kind).toBe("SessionFlag");
+		expect(node.content).toBe("Flag with embedding check");
+		expect(node.embedding).not.toBeNull();
+		expect(node.embedding).toBeDefined();
+
+		// Ensure the stored blob carries real data (not a zero-byte buffer).
+		const blob = node.embedding as Uint8Array;
+		expect(blob.byteLength).toBe(mockEmbedding.byteLength);
+	});
+
+	// ---------------------------------------------------------------
+	// Embedder absent: flag still succeeds, entity stored without embedding
+	// ---------------------------------------------------------------
+
+	it("skips embedding when no embedder is provided", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("flag-no-embed", tmpDir);
+
+		const result = await handleSiaFlag(
+			db,
+			{ reason: "No embedder available" },
+			{ enableFlagging: true, sessionId: "sess-no-embed" },
+		);
+
+		expect(result.flagged).toBe(true);
+		expect(result.id).toBeDefined();
+
+		const nodeRows = await db.execute(
+			"SELECT embedding FROM graph_nodes WHERE id = ?",
+			[result.id],
+		);
+		expect(nodeRows.rows).toHaveLength(1);
+		expect((nodeRows.rows[0] as Record<string, unknown>).embedding).toBeNull();
+	});
 
 	it("preserves colons, backticks, slashes", () => {
 		const input = "Error in `foo`: path/to/file @ line#42 (see note), it's a bug - really.";
