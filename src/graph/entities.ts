@@ -41,6 +41,8 @@ export interface Entity {
 	archived_at: number | null;
 	session_id: string | null;
 	kind: string | null;
+	captured_by_session_id: string | null;
+	captured_by_session_type: string | null;
 }
 
 /** Fields the caller must or may provide when inserting an entity. */
@@ -73,6 +75,8 @@ export interface InsertEntityInput {
 	embedding?: Uint8Array | null;
 	session_id?: string | null;
 	kind?: string | null;
+	captured_by_session_id?: string | null;
+	captured_by_session_type?: string | null;
 }
 
 /** Fields that can be partially updated on an existing entity. */
@@ -128,6 +132,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 		archived_at: null,
 		session_id: input.session_id ?? null,
 		kind: input.kind ?? input.type,
+		captured_by_session_id: input.captured_by_session_id ?? null,
+		captured_by_session_type: input.captured_by_session_type ?? null,
 	};
 
 	await db.execute(
@@ -144,7 +150,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			conflict_group_id,
 			source_episode, extraction_method, extraction_model,
 			embedding, archived_at,
-			session_id, kind
+			session_id, kind,
+			captured_by_session_id, captured_by_session_type
 		) VALUES (
 			?, ?, ?, ?, ?,
 			?, ?, ?,
@@ -157,6 +164,7 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			?, ?, ?,
 			?,
 			?, ?, ?,
+			?, ?,
 			?, ?,
 			?, ?
 		)`,
@@ -196,6 +204,8 @@ export async function insertEntity(db: SiaDb, input: InsertEntityInput): Promise
 			entity.archived_at,
 			entity.session_id,
 			entity.kind,
+			entity.captured_by_session_id,
+			entity.captured_by_session_type,
 		],
 	);
 
