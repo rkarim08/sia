@@ -6,6 +6,33 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-04-21
+
+### Changed
+- Plugin documentation counts corrected to match reality: 29 MCP tools
+  (24 sia_* + 5 nous_*), 48 skills, 73 commands, 9 hook entries across 7
+  event types. Previously the README mixed "17 tools" and "22 MCP tools"
+  on different lines, and "46 skills" was stale by 2.
+- Consolidated the keyword arrays in `.claude-plugin/plugin.json` and
+  `.claude-plugin/marketplace.json` to the same authoritative list.
+  Dropped the redundant `plugin` tag; added `claude` and `agent-memory`
+  for discovery.
+
+### Added
+- `## Troubleshooting` section in README covering bun install, MCP
+  handshake failures, native tree-sitter build, SQLite/FTS5, doctor
+  warnings, empty graphs, and Nous drift warnings.
+- `scripts/count-plugin-components.sh` — prints authoritative component
+  counts. Used by the plugin validator (lands in Phase 5) to detect
+  documentation drift automatically.
+- `SECURITY.md` describing the threat model for `sia_execute*`, the
+  ensure-runtime bun install behaviour, and the postinstall `.git` strip.
+- `CONTRIBUTING.md` with branch-naming convention, the `bun run test` vs
+  `bun test` distinction, lint/typecheck commands, and commit-message
+  conventions (no Claude attribution, no Co-Authored-By).
+- `.claude-plugin/icon.svg` + `icon` field in plugin.json for marketplace
+  rendering.
+
 ## [1.1.4] - 2026-04-21
 
 ### Fixed

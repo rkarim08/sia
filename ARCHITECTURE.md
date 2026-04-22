@@ -502,13 +502,13 @@ Two implementations: `BunSqliteDb` (local-only, sync API) and `LibSqlDb` (team s
 
 #### Module 5: MCP Server
 
-**Purpose:** Expose 17 tools over stdio transport. Strictly read-only on the main graph.
+**Purpose:** Expose 29 tools over stdio transport. Strictly read-only on the main graph.
 
 **Key files:** `src/mcp/server.ts`, `src/mcp/tools/` (one file per tool)
 
 **Security model:** Graph opened with `OPEN_READONLY`. Separate WAL-mode write connections for event nodes, `session_flags`, and `session_resume`. All inputs Zod-validated.
 
-**17 tools:** Memory (`sia_search`, `sia_by_file`, `sia_expand`, `sia_community`, `sia_at_time`, `sia_flag`, `sia_note`, `sia_backlinks`), Sandbox (`sia_execute`, `sia_execute_file`, `sia_batch_execute`, `sia_index`, `sia_fetch_and_index`), Diagnostic (`sia_stats`, `sia_doctor`, `sia_upgrade`), Models (`sia_models`).
+**29 tools:** 24 `sia_*` + 5 `nous_*`. Memory (`sia_search`, `sia_by_file`, `sia_expand`, `sia_community`, `sia_at_time`, `sia_flag`, `sia_note`, `sia_backlinks`), Sandbox (`sia_execute`, `sia_execute_file`, `sia_batch_execute`, `sia_index`, `sia_fetch_and_index`), Diagnostic (`sia_stats`, `sia_doctor`, `sia_upgrade`, `sia_sync_status`), Models (`sia_models`), AST (`sia_ast_query`), Branch Snapshots (`sia_snapshot_list`, `sia_snapshot_restore`, `sia_snapshot_prune`), Nous (`nous_state`, `nous_reflect`, `nous_curiosity`, `nous_concern`, `nous_modify`).
 
 **Dependencies:** Modules 1, 4, 6, 9, 10
 
@@ -518,7 +518,7 @@ Two implementations: `BunSqliteDb` (local-only, sync API) and `LibSqlDb` (team s
 
 **Key files:** `.claude-plugin/plugin.json`, `.mcp.json`, `hooks/hooks.json`, `skills/`, `agents/`, `scripts/`
 
-**Extension points:** MCP (`.mcp.json`, 17 tools), Hooks (`hooks/hooks.json`, real-time capture), Skills (`skills/*.md`, slash commands), Agents (`agents/*.md`, autonomous analysis), CLAUDE.md (behavioral directives). Plugin mode uses `CLAUDE_PLUGIN_DATA` for state; standalone uses `~/.sia/`.
+**Extension points:** MCP (`.mcp.json`, 29 tools), Hooks (`hooks/hooks.json`, real-time capture), Skills (`skills/*.md`, slash commands), Agents (`agents/*.md`, autonomous analysis), CLAUDE.md (behavioral directives). Plugin mode uses `CLAUDE_PLUGIN_DATA` for state; standalone uses `~/.sia/`.
 
 **Dependencies:** Module 5 (MCP), Module 14 (hooks), Module 17 (CLAUDE.md generation)
 

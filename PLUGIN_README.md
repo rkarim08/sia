@@ -73,7 +73,7 @@ claude --plugin-dir /path/to/sia
 | `sia_upgrade` | Self-update SIA to the latest version |
 | `sia_sync_status` | Check team sync configuration and connection status |
 
-### Skills (46 slash commands)
+### Skills (48 slash commands)
 
 #### Core
 

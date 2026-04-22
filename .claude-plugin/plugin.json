@@ -1,23 +1,25 @@
 {
 	"name": "sia",
-	"version": "1.1.4",
+	"version": "1.1.5",
 	"description": "Persistent graph memory for AI coding agents — bi-temporal knowledge graph with cross-session recall",
 	"author": {
 		"name": "Ramez Karim"
 	},
 	"license": "Apache-2.0",
 	"category": "development",
+	"icon": "./icon.svg",
 	"repository": "https://github.com/rkarim08/sia",
 	"homepage": "https://github.com/rkarim08/sia#readme",
 	"bugs": "https://github.com/rkarim08/sia/issues",
 	"keywords": [
 		"claude-code",
-		"plugin",
+		"claude",
 		"memory",
 		"knowledge-graph",
 		"mcp",
 		"ai-coding",
 		"persistent-memory",
-		"bi-temporal"
+		"bi-temporal",
+		"agent-memory"
 	]
 }
