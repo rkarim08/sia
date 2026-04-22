@@ -1,6 +1,6 @@
 ---
 name: sia-prune
-description: Removes archived entities from the SIA knowledge graph to reduce database size. Use when the graph grows large, after freshness reports show many stale entities, or for periodic maintenance.
+description: Use when graph database size or search latency is growing uncomfortable, or after `/sia-freshness` flags many rotten entities. Hard-deletes archived (not invalidated) entities to reclaim space; always runs with `--dry-run` first.
 ---
 
 # SIA Prune

@@ -44,6 +44,17 @@
 						"timeout": 10000
 					}
 				]
+			},
+			{
+				"_comment": "PostToolUse(Bash) subscriber — emits a systemMessage recommending @sia-knowledge-capture dispatch when a successful (non-amend) `git commit` is detected. Hooks cannot dispatch agents directly; this nudges the human/agent to do so. See src/hooks/handlers/commit-capture-dispatch.ts.",
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/commit-capture-dispatch.sh",
+						"timeout": 3000
+					}
+				]
 			}
 		],
 		"Stop": [

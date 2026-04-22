@@ -1,6 +1,6 @@
 ---
 name: sia-history
-description: Explores how the knowledge graph evolved over time with temporal filtering. Use when reviewing recent decisions, tracking knowledge evolution, or investigating when something was captured.
+description: Use when tracing how a decision, convention, or entity evolved over time — temporal walk of the graph with since/until/type/file filters. Pair with `/sia-compare` when you want the diff between two points rather than the narrative.
 ---
 
 # SIA History

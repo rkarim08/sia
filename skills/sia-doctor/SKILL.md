@@ -1,6 +1,6 @@
 ---
 name: sia-doctor
-description: Runs SIA system health diagnostics — checks databases, providers, tree-sitter, embeddings, and connectivity. Use when SIA tools return errors, knowledge seems missing, or the user reports SIA issues.
+description: Use when Sia tools return errors, after a failed install, or as the first step when something feels wrong with the memory system. Runs full diagnostics on databases, providers, tree-sitter, embeddings, and hook registration before you escalate.
 ---
 
 # SIA Doctor

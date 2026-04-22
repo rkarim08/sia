@@ -1,6 +1,6 @@
 ---
 name: sia-compare
-description: Compares knowledge graph state between two time points — shows what was added, invalidated, and archived. Use when investigating what changed in the graph, reviewing temporal diffs, or debugging knowledge evolution.
+description: Use when auditing what changed in the graph between two points in time — shows added, invalidated, and archived entities. Pair with `/sia-history` when you need narrative context around the diff.
 ---
 
 # SIA Compare
