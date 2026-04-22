@@ -2,6 +2,7 @@
 
 import type { SiaDb } from "@/graph/db-interface";
 import { listBranchSnapshots } from "@/graph/snapshots";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 
 // ---------------------------------------------------------------------------
 // SiaSnapshotListRow — one row per branch snapshot
@@ -22,6 +23,7 @@ export interface SiaSnapshotListRow {
 export interface SiaSnapshotListResult {
 	snapshots: SiaSnapshotListRow[];
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -40,15 +42,21 @@ export interface SiaSnapshotListResult {
 export async function handleSiaSnapshotList(db: SiaDb): Promise<SiaSnapshotListResult> {
 	try {
 		const snapshots = await listBranchSnapshots(db);
-		return {
-			snapshots: snapshots.map((s) => ({
-				branch_name: s.branch_name,
-				commit_hash: s.commit_hash,
-				node_count: s.node_count,
-				edge_count: s.edge_count,
-				updated_at: s.updated_at,
-			})),
-		};
+		const rows = snapshots.map((s) => ({
+			branch_name: s.branch_name,
+			commit_hash: s.commit_hash,
+			node_count: s.node_count,
+			edge_count: s.edge_count,
+			updated_at: s.updated_at,
+		}));
+		// `listBranchSnapshots` returns newest-first, so the first row is the newest.
+		const nextSteps = buildNextSteps("sia_snapshot_list", {
+			resultCount: rows.length,
+			newestBranchName: rows[0]?.branch_name,
+		});
+		const response: SiaSnapshotListResult = { snapshots: rows };
+		if (nextSteps.length > 0) response.next_steps = nextSteps;
+		return response;
 	} catch (err) {
 		return {
 			snapshots: [],

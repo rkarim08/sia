@@ -110,4 +110,23 @@ describe("handleSiaIndex", () => {
 		expect(result.references).toBe(0);
 		expect(result.chunkIds).toHaveLength(0);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated when chunks indexed
+	// ---------------------------------------------------------------
+
+	it("populates next_steps when chunks indexed", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("index-next-steps", tmpDir);
+
+		const result = await handleSiaIndex(
+			db,
+			{ content: "# Heading\nSome content to index here.", source: "test.md" },
+			mockEmbedder,
+			"sess-next",
+		);
+		expect(result.indexed).toBeGreaterThan(0);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_search");
+	});
 });

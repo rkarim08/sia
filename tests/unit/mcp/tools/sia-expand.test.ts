@@ -342,4 +342,24 @@ describe("sia_expand tool", () => {
 		expect(result.neighbors).toHaveLength(1);
 		expect(result.neighbors[0]?.id).toBe(idB);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated on successful expand
+	// ---------------------------------------------------------------
+
+	it("populates next_steps on successful expand", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("expand-next-steps", tmpDir);
+
+		const root = randomUUID();
+		const neighbor = randomUUID();
+		await insertTestEntity(db, { id: root, name: "Root" });
+		await insertTestEntity(db, { id: neighbor, name: "Neighbour" });
+		await insertTestEdge(db, { fromId: root, toId: neighbor, type: "relates_to" });
+
+		const result = await handleSiaExpand(db, { entity_id: root });
+		expect(isError(result)).toBe(false);
+		if (isError(result)) return;
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+	});
 });

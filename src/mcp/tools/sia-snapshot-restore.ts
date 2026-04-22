@@ -3,6 +3,7 @@
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
 import { restoreBranchSnapshot } from "@/graph/snapshots";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaSnapshotRestoreInput } from "@/mcp/server";
 import { validateBranchName } from "@/mcp/tools/sia-snapshot-shared";
 
@@ -13,6 +14,7 @@ import { validateBranchName } from "@/mcp/tools/sia-snapshot-shared";
 export interface SiaSnapshotRestoreResult {
 	restored: boolean;
 	branch_name: string;
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -33,5 +35,8 @@ export async function handleSiaSnapshotRestore(
 ): Promise<SiaSnapshotRestoreResult> {
 	const branchName = validateBranchName(input.branch_name);
 	const restored = await restoreBranchSnapshot(db, branchName);
-	return { restored, branch_name: branchName };
+	const nextSteps = buildNextSteps("sia_snapshot_restore", {});
+	const response: SiaSnapshotRestoreResult = { restored, branch_name: branchName };
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

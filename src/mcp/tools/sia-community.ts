@@ -6,6 +6,7 @@
 
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaCommunityInput } from "@/mcp/server";
 
 /** Shape returned for each community in sia_community results. */
@@ -22,6 +23,7 @@ export interface CommunitySummary {
 export interface SiaCommunityResult {
 	communities: CommunitySummary[];
 	global_unavailable?: boolean;
+	next_steps?: NextStep[];
 }
 
 /** Maximum number of community results returned. */
@@ -109,5 +111,9 @@ export async function handleSiaCommunity(
 		}
 	}
 
-	return { communities };
+	const nextSteps = buildNextSteps("sia_community", {
+		resultCount: communities.length,
+		topEntityId: communities[0]?.id,
+	});
+	return nextSteps.length > 0 ? { communities, next_steps: nextSteps } : { communities };
 }

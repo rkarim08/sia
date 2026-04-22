@@ -244,4 +244,37 @@ describe("sia_by_file tool", () => {
 		expect(result.entities).toHaveLength(1);
 		expect(result.entities[0]?.id).toBe(activeId);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated on hits
+	// ---------------------------------------------------------------
+
+	it("populates next_steps when entities found", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("by-file-next-steps", tmpDir);
+
+		await insertTestEntity(db, {
+			id: randomUUID(),
+			name: "Next Steps Entity",
+			filePaths: ["src/next.ts"],
+		});
+
+		const result = await handleSiaByFile(db, { file_path: "src/next.ts" });
+		expect(result.next_steps).toBeDefined();
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_search");
+	});
+
+	// ---------------------------------------------------------------
+	// next_steps still populated on zero-hit queries (broader search hint)
+	// ---------------------------------------------------------------
+
+	it("populates next_steps (broader search hint) on empty result", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("by-file-next-steps-empty", tmpDir);
+
+		const result = await handleSiaByFile(db, { file_path: "src/absent.ts" });
+		expect(result.entities).toHaveLength(0);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+	});
 });

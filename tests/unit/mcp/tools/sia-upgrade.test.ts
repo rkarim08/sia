@@ -97,4 +97,30 @@ describe("sia_upgrade tool", () => {
 		expect(result.error).toBeDefined();
 		expect(result.error).toContain("Cannot determine current version");
 	});
+
+	// -----------------------------------------------------------------------
+	// next_steps: sia_doctor on both success (dry_run) and failure
+	// -----------------------------------------------------------------------
+
+	it("populates next_steps with sia_doctor on dry_run (success)", async () => {
+		const gitDir = makeTmp();
+		tmpDirs.push(gitDir);
+		mkdirSync(join(gitDir, ".git"), { recursive: true });
+
+		const db = {} as SiaDb;
+		const result = await handleSiaUpgrade(db, { dry_run: true }, { siaRoot: gitDir });
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
+	});
+
+	it("populates next_steps with sia_doctor on failure branch", async () => {
+		const tmpDir = makeTmp();
+		tmpDirs.push(tmpDir);
+
+		const db = {} as SiaDb;
+		const result = await handleSiaUpgrade(db, { dry_run: false }, { siaRoot: tmpDir });
+		expect(result.error).toBeDefined();
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
+	});
 });

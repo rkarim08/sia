@@ -3,6 +3,7 @@
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
 import { pruneBranchSnapshots } from "@/graph/snapshots";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaSnapshotPruneInput } from "@/mcp/server";
 import { validateBranchNames } from "@/mcp/tools/sia-snapshot-shared";
 
@@ -13,6 +14,7 @@ import { validateBranchNames } from "@/mcp/tools/sia-snapshot-shared";
 export interface SiaSnapshotPruneResult {
 	pruned: number;
 	branch_names: string[];
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -33,5 +35,8 @@ export async function handleSiaSnapshotPrune(
 ): Promise<SiaSnapshotPruneResult> {
 	const branchNames = validateBranchNames(input.branch_names);
 	const pruned = await pruneBranchSnapshots(db, branchNames);
-	return { pruned, branch_names: branchNames };
+	const nextSteps = buildNextSteps("sia_snapshot_prune", {});
+	const response: SiaSnapshotPruneResult = { pruned, branch_names: branchNames };
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

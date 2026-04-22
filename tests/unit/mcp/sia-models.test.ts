@@ -25,15 +25,15 @@ function createMockManager(overrides?: Record<string, unknown>): ModelManager {
 describe("handleSiaModels", () => {
 	it("returns initialization message when modelManager is null", () => {
 		const result = handleSiaModels({ action: "status" }, null);
-		expect(result).toContain("not available");
+		expect(result.text).toContain("not available");
 	});
 
 	it("returns formatted output with tier and attention head phase", () => {
 		const manager = mockModelManager();
 		const result = handleSiaModels({ action: "status" }, manager);
-		expect(result).toContain("Installed tier: T0");
-		expect(result).toContain("Attention head: none");
-		expect(result).toContain("(none installed)");
+		expect(result.text).toContain("Installed tier: T0");
+		expect(result.text).toContain("Attention head: none");
+		expect(result.text).toContain("(none installed)");
 	});
 
 	it("lists installed models with tier, variant, and size", () => {
@@ -61,9 +61,16 @@ describe("handleSiaModels", () => {
 		};
 
 		const result = handleSiaModels({ action: "status" }, manager);
-		expect(result).toContain("Installed tier: T1");
-		expect(result).toContain("bge-small-en-v1.5");
-		expect(result).toContain("int8");
-		expect(result).toContain("48 MB"); // 50M / 1048576 ≈ 48
+		expect(result.text).toContain("Installed tier: T1");
+		expect(result.text).toContain("bge-small-en-v1.5");
+		expect(result.text).toContain("int8");
+		expect(result.text).toContain("48 MB"); // 50M / 1048576 ≈ 48
+	});
+
+	it("populates next_steps with sia_doctor hint", () => {
+		const manager = mockModelManager();
+		const result = handleSiaModels({ action: "status" }, manager);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
 	});
 });

@@ -49,7 +49,8 @@ describe("sia_snapshot_restore tool", () => {
 
 		const result = await handleSiaSnapshotRestore(db, { branch_name: "feature/restore" });
 
-		expect(result).toEqual({ restored: true, branch_name: "feature/restore" });
+		expect(result.restored).toBe(true);
+		expect(result.branch_name).toBe("feature/restore");
 	});
 
 	// ---------------------------------------------------------------
@@ -62,7 +63,8 @@ describe("sia_snapshot_restore tool", () => {
 
 		const result = await handleSiaSnapshotRestore(db, { branch_name: "never-snapshotted" });
 
-		expect(result).toEqual({ restored: false, branch_name: "never-snapshotted" });
+		expect(result.restored).toBe(false);
+		expect(result.branch_name).toBe("never-snapshotted");
 	});
 
 	// ---------------------------------------------------------------
@@ -79,5 +81,18 @@ describe("sia_snapshot_restore tool", () => {
 		await expect(handleSiaSnapshotRestore(db, { branch_name: "   " })).rejects.toThrow(
 			/Invalid snapshot name/,
 		);
+	});
+
+	// ---------------------------------------------------------------
+	// next_steps: always suggests sia_doctor (verify after restore)
+	// ---------------------------------------------------------------
+
+	it("populates next_steps with sia_doctor to verify", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		const result = await handleSiaSnapshotRestore(db, { branch_name: "any" });
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
 	});
 });

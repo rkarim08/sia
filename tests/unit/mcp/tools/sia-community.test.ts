@@ -260,4 +260,20 @@ describe("handleSiaCommunity", () => {
 		const result = await handleSiaCommunity(db, {});
 		expect(result.communities).toHaveLength(3);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated when communities found
+	// ---------------------------------------------------------------
+
+	it("populates next_steps when communities found", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("comm-next-steps", tmpDir);
+
+		await insertCommunity(db, { level: 0, summary: "Auth cluster", member_count: 5 });
+
+		const result = await handleSiaCommunity(db, {});
+		expect(result.communities.length).toBeGreaterThan(0);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_backlinks");
+	});
 });

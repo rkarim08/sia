@@ -208,4 +208,22 @@ describe("sia_flag tool", () => {
 		expect(result).toContain(".");
 		expect(result).toBe(input);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated on successful flag
+	// ---------------------------------------------------------------
+
+	it("populates next_steps on successful flag", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("flag-next-steps", tmpDir);
+
+		const result = await handleSiaFlag(
+			db,
+			{ reason: "needs review" },
+			{ enableFlagging: true, sessionId: "sess-next-steps" },
+		);
+
+		expect(result.flagged).toBe(true);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+	});
 });

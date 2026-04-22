@@ -3,6 +3,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 
 const execFileAsync = promisify(execFile);
 
@@ -26,6 +27,7 @@ export interface ChangedFile {
 export interface DetectChangesResult {
 	files_changed: ChangedFile[];
 	total_entities_affected: number;
+	next_steps?: NextStep[];
 }
 
 /** Type alias for the git diff runner; injectable for testing. */
@@ -143,8 +145,13 @@ export async function handleSiaDetectChanges(
 		});
 	}
 
-	return {
+	const nextSteps = buildNextSteps("sia_detect_changes", {
+		changedFiles: filesChanged.map((f) => f.path),
+	});
+	const response: DetectChangesResult = {
 		files_changed: filesChanged,
 		total_entities_affected: totalEntities,
 	};
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

@@ -241,4 +241,32 @@ describe("sia_backlinks tool", () => {
 		expect(result.total_count).toBe(0);
 		expect(Object.keys(result.backlinks)).toHaveLength(0);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated when backlinks found
+	// ---------------------------------------------------------------
+
+	it("populates next_steps when backlinks found", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("backlinks-next-steps", tmpDir);
+
+		const target = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Target",
+			content: "",
+			summary: "",
+		});
+		const caller = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Caller",
+			content: "",
+			summary: "",
+		});
+		await insertEdge(db, { from_id: caller.id, to_id: target.id, type: "pertains_to" });
+
+		const result = await handleSiaBacklinks(db, { node_id: target.id });
+		expect(result.total_count).toBeGreaterThan(0);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_expand");
+	});
 });

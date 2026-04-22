@@ -2,6 +2,7 @@
 
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaDoctorInput } from "@/mcp/server";
 import { RUNTIME_MAP } from "@/sandbox/executor";
 import {
@@ -20,6 +21,7 @@ export interface SiaDoctorResult {
 	checks: DiagnosticCheck[];
 	healthy: boolean;
 	warnings: string[];
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -69,5 +71,8 @@ export async function handleSiaDoctor(
 	const healthy = checks.every((c) => c.status === "ok");
 	const warnings = checks.filter((c) => c.status !== "ok").map((c) => c.message);
 
-	return { checks, healthy, warnings };
+	const nextSteps = buildNextSteps("sia_doctor", { hasFailure: !healthy });
+	const response: SiaDoctorResult = { checks, healthy, warnings };
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

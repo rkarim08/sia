@@ -5,6 +5,7 @@ import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaByFileInput } from "@/mcp/server";
 import type { WorkspaceDeps } from "@/mcp/tools/sia-search";
 import { workspaceSearch } from "@/retrieval/workspace-search";
@@ -18,6 +19,7 @@ export interface FeedbackDeps {
 /** Result shape — same as SiaSearchResult (array of entities). */
 export interface SiaByFileResult {
 	entities: Entity[];
+	next_steps?: NextStep[];
 }
 
 /**
@@ -54,7 +56,7 @@ export async function handleSiaByFile(
 		);
 		const entities = annotated as unknown as Entity[];
 		await recordByFileFeedback(feedbackDeps, filePath, entities);
-		return { entities };
+		return withNextSteps(entities);
 	}
 
 	// --- Exact match ---
@@ -75,7 +77,7 @@ export async function handleSiaByFile(
 		);
 		const entities = annotated as unknown as Entity[];
 		await recordByFileFeedback(feedbackDeps, filePath, entities);
-		return { entities };
+		return withNextSteps(entities);
 	}
 
 	// --- Filename stem fallback ---
@@ -99,7 +101,16 @@ export async function handleSiaByFile(
 	);
 	const entities = annotated as unknown as Entity[];
 	await recordByFileFeedback(feedbackDeps, filePath, entities);
-	return { entities };
+	return withNextSteps(entities);
+}
+
+/** Build a {@link SiaByFileResult} with `next_steps` populated. */
+function withNextSteps(entities: Entity[]): SiaByFileResult {
+	const nextSteps = buildNextSteps("sia_by_file", {
+		resultCount: entities.length,
+		topEntityId: entities[0]?.id,
+	});
+	return nextSteps.length > 0 ? { entities, next_steps: nextSteps } : { entities };
 }
 
 /**

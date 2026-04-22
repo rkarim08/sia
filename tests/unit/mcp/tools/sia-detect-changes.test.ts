@@ -136,4 +136,31 @@ describe("sia_detect_changes tool", () => {
 		expect(result.files_changed.length).toBe(0);
 		expect(result.total_entities_affected).toBe(0);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated when files changed
+	// ---------------------------------------------------------------
+
+	it("populates next_steps when files changed", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("dc-next-steps", tmpDir);
+
+		const result = await handleSiaDetectChanges(
+			db,
+			{ scope: "HEAD~1..HEAD" },
+			async () => "M\tsrc/foo.ts\n",
+		);
+		expect(result.files_changed.length).toBeGreaterThan(0);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_impact");
+	});
+
+	it("omits next_steps when no files changed", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("dc-no-changes", tmpDir);
+
+		const result = await handleSiaDetectChanges(db, { scope: "HEAD~1..HEAD" }, async () => "");
+		expect(result.files_changed.length).toBe(0);
+		expect(result.next_steps).toBeUndefined();
+	});
 });

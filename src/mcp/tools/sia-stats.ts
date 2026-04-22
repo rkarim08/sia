@@ -2,6 +2,7 @@
 
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaStatsInput } from "@/mcp/server";
 
 export interface SiaStatsResult {
@@ -9,6 +10,7 @@ export interface SiaStatsResult {
 	edges: Record<string, number>;
 	session?: { callCounts: Record<string, number> };
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 /**
@@ -41,6 +43,22 @@ export async function handleSiaStats(
 			edges[row.type as string] = row.count as number;
 		}
 
+		// Derive hint-relevant counts: total active entities + tier-3 subset.
+		const totalEntities = Object.values(nodes).reduce((sum, n) => sum + n, 0);
+		let tier3Count = 0;
+		try {
+			const { rows: tier3Rows } = await db.execute(
+				"SELECT COUNT(*) AS cnt FROM graph_nodes WHERE trust_tier = 3 AND t_expired IS NULL",
+			);
+			tier3Count = (tier3Rows[0]?.cnt as number) ?? 0;
+		} catch {
+			// Non-fatal: if trust_tier column is absent for any reason, skip the hint.
+		}
+		const nextSteps = buildNextSteps("sia_stats", {
+			emptyGraph: totalEntities === 0,
+			tier3Count,
+		});
+
 		// Optional session stats from search_throttle
 		if (input.include_session && sessionId) {
 			const { rows: throttleRows } = await db.execute(
@@ -53,10 +71,14 @@ export async function handleSiaStats(
 				callCounts[row.tool_name as string] = row.call_count as number;
 			}
 
-			return { nodes, edges, session: { callCounts } };
+			const sessionResponse: SiaStatsResult = { nodes, edges, session: { callCounts } };
+			if (nextSteps.length > 0) sessionResponse.next_steps = nextSteps;
+			return sessionResponse;
 		}
 
-		return { nodes, edges };
+		const response: SiaStatsResult = { nodes, edges };
+		if (nextSteps.length > 0) response.next_steps = nextSteps;
+		return response;
 	} catch (err) {
 		return { nodes: {}, edges: {}, error: `Stats query failed: ${(err as Error).message}` };
 	}

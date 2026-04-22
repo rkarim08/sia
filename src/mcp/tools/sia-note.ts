@@ -2,6 +2,7 @@
 
 import type { SiaDb } from "@/graph/db-interface";
 import type { Entity } from "@/graph/entities";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import { OntologyError } from "@/ontology/errors";
 import {
 	createBug,
@@ -24,6 +25,7 @@ export interface SiaNoteResult {
 	node_id: string;
 	kind: string;
 	edges_created: number;
+	next_steps?: NextStep[];
 }
 
 /**
@@ -133,11 +135,14 @@ export async function handleSiaNote(db: SiaDb, input: SiaNoteInput): Promise<Sia
 			}
 		}
 
-		return {
+		const nextSteps = buildNextSteps("sia_note", { kind: input.kind });
+		const response: SiaNoteResult = {
 			node_id: entity.id,
 			kind: input.kind,
 			edges_created: edgesCreated,
 		};
+		if (nextSteps.length > 0) response.next_steps = nextSteps;
+		return response;
 	} catch (err) {
 		if (err instanceof OntologyError) {
 			throw new Error(`sia_note failed: ${err.message}`);

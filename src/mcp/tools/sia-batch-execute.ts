@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { ProgressiveThrottle } from "@/retrieval/throttle";
 import { buildSandboxEnv } from "@/sandbox/credential-pass";
 import { executeSubprocess } from "@/sandbox/executor";
@@ -45,6 +46,7 @@ export interface SiaBatchExecuteResult {
 	eventNodeIds: string[];
 	contextSavings: number;
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 const BATCH_MAX = 20;
@@ -161,9 +163,13 @@ export async function handleSiaBatchExecute(
 		}
 	}
 
-	return {
+	const hasFailure = results.some((r) => r.error !== undefined);
+	const nextSteps = buildNextSteps("sia_batch_execute", { hasFailure });
+	const response: SiaBatchExecuteResult = {
 		results,
 		eventNodeIds,
 		contextSavings: 0,
 	};
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

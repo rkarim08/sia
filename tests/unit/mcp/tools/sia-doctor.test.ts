@@ -132,4 +132,38 @@ describe("sia_doctor tool", () => {
 		expect(orphanCheck).toBeDefined();
 		expect(orphanCheck?.status).toBe("warn");
 	});
+
+	// -----------------------------------------------------------------------
+	// next_steps: sia_upgrade + /sia-setup on failure; sia_stats when healthy
+	// -----------------------------------------------------------------------
+
+	it("populates next_steps with upgrade/setup hints when any check fails", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		// Force a graph_integrity warn via orphan edge
+		await insertOrphanEdge(db, { fromId: "x", toId: "y" });
+
+		const result = await handleSiaDoctor(db, { checks: ["graph_integrity"] });
+		expect(result.healthy).toBe(false);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		const tools = result.next_steps?.map((s) => s.tool) ?? [];
+		expect(tools).toContain("sia_upgrade");
+		expect(tools).toContain("/sia-setup");
+	});
+
+	it("populates next_steps with sia_stats hint when healthy", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		// fts5 check is deterministic and should pass on a freshly opened DB
+		const result = await handleSiaDoctor(db, { checks: ["fts5"] });
+		if (result.healthy) {
+			expect(result.next_steps?.length).toBeGreaterThan(0);
+			expect(result.next_steps?.map((s) => s.tool)).toContain("sia_stats");
+		} else {
+			// If environment makes fts5 fail, we still test the other branch
+			expect(result.next_steps?.map((s) => s.tool)).toContain("sia_upgrade");
+		}
+	});
 });
