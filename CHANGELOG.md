@@ -6,6 +6,12 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.3.3] — 2026-04-22
+
+### Added
+
+- Stop hook now (a) runs a lightweight drift recompute when stale to catch mid-session divergence and (b) writes a new `SubagentEpisode` node kind for subagent-session Stops so every session gets an audit trail. Episodes chain remains primary-only. Closes Phase 4 §Stop gap. (fixes: `recomputeDriftIfStale` now honours its never-throws contract via an outer try/catch that logs to stderr and returns a safe no-op; signals-since-last-drift query scoped to `session_id` to prevent cross-session leakage in multi-agent scenarios.)
+
 ## [1.3.0] — 2026-04-22
 
 ### Added
