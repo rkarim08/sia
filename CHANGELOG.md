@@ -27,6 +27,7 @@ All notable changes to Sia are documented here. This project adheres to
 
 - `sia-brainstorm` frontmatter rewritten to superpowers-style mandate:
   "You MUST use this before any creative work…". Body unchanged.
+- augment-hook PreToolUse subscriber gains an LRU(32) cache + <3-char query skip (Phase 4 §4.4 cost mitigation). post-tool-use-handler skips TrackA for files >500 KB or binary content. preference-seeder folded into self-monitor as an internal step; SessionStart subscriber count drops 15 → 14 at the design level.
 
 ### Fixed
 

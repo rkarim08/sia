@@ -27,6 +27,39 @@ function inputStr(event: HookEvent, key: string): string | undefined {
 	return typeof val === "string" ? val : undefined;
 }
 
+/**
+ * Maximum content length (in chars) to run TrackA extraction on. Files larger
+ * than this are skipped to keep the hook latency bounded — the tree-sitter
+ * parse cost scales super-linearly on very large files and a 500 KB cap keeps
+ * the 99p under a few hundred ms on typical workstations.
+ */
+const TRACK_A_MAX_CONTENT_CHARS = 500_000;
+
+/** Length of prefix inspected when heuristically classifying content as binary. */
+const BINARY_SNIFF_BYTES = 1024;
+
+/**
+ * Heuristic binary-content detector: presence of a NUL byte in the first
+ * 1 KB is a strong signal that the content is not a source file worth
+ * parsing (a handful of text formats include NULs, but none that TrackA
+ * meaningfully extracts from).
+ */
+function looksBinary(content: string): boolean {
+	const snippet =
+		content.length > BINARY_SNIFF_BYTES ? content.slice(0, BINARY_SNIFF_BYTES) : content;
+	return snippet.includes("\x00");
+}
+
+/**
+ * Decide whether TrackA extraction should run for a given content payload.
+ * Returns `true` when the content is too large or appears binary — callers
+ * should short-circuit TrackA and emit an `[sia] post-tool-use skipped TrackA`
+ * log line.
+ */
+function shouldSkipTrackA(content: string): boolean {
+	return content.length > TRACK_A_MAX_CONTENT_CHARS || looksBinary(content);
+}
+
 /** Safely read tool_response as a string. */
 function responseStr(event: HookEvent): string {
 	if (typeof event.tool_response === "string") return event.tool_response;
@@ -145,6 +178,16 @@ async function handleWrite(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 	});
 	nodesCreated++;
 
+	// Size / binary guard: skip TrackA + pattern detection for oversize or
+	// binary content. The FileNode above is still recorded for retrieval,
+	// but the expensive tree-sitter + regex passes are bypassed. This keeps
+	// the hook's P99 bounded when Claude writes large generated artifacts
+	// (SQL dumps, lockfiles, compiled assets).
+	if (shouldSkipTrackA(content)) {
+		process.stderr.write("[sia] post-tool-use skipped TrackA (oversize/binary)\n");
+		return { status: "processed", nodes_created: nodesCreated };
+	}
+
 	// 2. Extract structural code entities via TrackA
 	const trackAFacts = extractTrackA(content, filePath);
 	for (const fact of trackAFacts) {
@@ -210,6 +253,10 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 
 	// 2. Extract structural code entities from new_string via TrackA (best-effort)
 	if (newStr) {
+		if (shouldSkipTrackA(newStr)) {
+			process.stderr.write("[sia] post-tool-use skipped TrackA (oversize/binary)\n");
+			return { status: "processed", nodes_created: nodesCreated };
+		}
 		try {
 			const trackAFacts = extractTrackA(newStr, filePath);
 			for (const fact of trackAFacts) {

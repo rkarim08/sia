@@ -3,9 +3,13 @@
 // Invoked from the SessionStart hook. Writes a fresh nous_sessions row, reads
 // the recent history window to compute a drift baseline, and returns the
 // optional drift warning string for injection into the agent's context.
+//
+// This module also owns first-run Preference seeding (previously lived in
+// nous/preference-seeder.ts — folded in as an internal step to reduce
+// SessionStart subscriber count; see CHANGELOG Phase D1 #19).
 
+import { v4 as uuid } from "uuid";
 import type { SiaDb } from "@/graph/db-interface";
-import { seedPreferences } from "./preference-seeder";
 import {
 	DEFAULT_NOUS_CONFIG,
 	DEFAULT_SESSION_STATE,
@@ -20,6 +24,101 @@ import {
 	getRecentHistory,
 	upsertSession,
 } from "./working-memory";
+
+// ---------------------------------------------------------------------------
+// Preference seeding (folded in from ex-`nous/preference-seeder`)
+// ---------------------------------------------------------------------------
+
+export interface PreferenceSeed {
+	name: string;
+	description: string;
+	trust_tier: 1 | 3;
+}
+
+/**
+ * Core developer values extracted from CLAUDE.md on first Nous run. Exported
+ * primarily for test assertions — runtime callers should not iterate this
+ * list directly; go through `seedPreferences` (which is idempotent) instead.
+ */
+export const CLAUDE_MD_PREFERENCES: PreferenceSeed[] = [
+	{
+		name: "Avoid sycophantic reversals",
+		description:
+			"Do not reverse a stated position solely in response to user pushback. A change in position requires new evidence or reasoning, not social pressure.",
+		trust_tier: 1,
+	},
+	{
+		name: "Cite retrieved memory entities",
+		description:
+			"When Sia memory entities constrain a decision, cite them explicitly. Do not silently apply memory.",
+		trust_tier: 1,
+	},
+	{
+		name: "Resolve conflicts before proceeding",
+		description:
+			"When conflict_group_id is non-null on a retrieved entity, stop and present both conflicting facts to the developer before continuing.",
+		trust_tier: 1,
+	},
+	{
+		name: "Prefer minimal scope",
+		description:
+			"Only make changes directly requested or clearly necessary. Do not add features, refactor, or improve beyond the task scope.",
+		trust_tier: 1,
+	},
+];
+
+/**
+ * Insert the CLAUDE_MD_PREFERENCES list as Preference nodes if none exist yet.
+ * Returns the number of rows inserted (0 if already seeded).
+ *
+ * Called internally from `runSessionStart` — idempotent, safe to invoke on
+ * every SessionStart. Exported for unit-test coverage of the folded logic.
+ */
+export function seedPreferences(db: SiaDb): number {
+	const raw = db.rawSqlite();
+	if (!raw) return 0;
+
+	// Skip if any Preference node already exists.
+	const existing = raw
+		.prepare("SELECT COUNT(*) as cnt FROM graph_nodes WHERE kind = 'Preference'")
+		.get() as { cnt: number };
+	if (existing.cnt > 0) return 0;
+
+	const now = Date.now();
+	const insert = raw.prepare(
+		`INSERT INTO graph_nodes (
+			id, type, name, content, summary,
+			tags, file_paths,
+			trust_tier, confidence, base_confidence,
+			importance, base_importance,
+			access_count, edge_count,
+			last_accessed, created_at, t_created,
+			visibility, created_by,
+			kind
+		) VALUES (
+			?, 'Preference', ?, ?, ?,
+			'[]', '[]',
+			?, 1.0, 1.0,
+			0.7, 0.7,
+			0, 0,
+			?, ?, ?,
+			'private', 'nous-seeder',
+			'Preference'
+		)`,
+	);
+
+	let inserted = 0;
+	for (const pref of CLAUDE_MD_PREFERENCES) {
+		insert.run(uuid(), pref.name, pref.description, pref.name, pref.trust_tier, now, now, now);
+		inserted++;
+	}
+
+	return inserted;
+}
+
+// ---------------------------------------------------------------------------
+// SessionStart entrypoint
+// ---------------------------------------------------------------------------
 
 export interface SessionStartInput {
 	session_id: string;
