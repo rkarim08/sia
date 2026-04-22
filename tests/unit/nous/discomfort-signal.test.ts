@@ -41,11 +41,7 @@ describe("discomfort-signal", () => {
 		db = openGraphDb("test-ds1", tmpDir);
 		seedSession(db, "sess-ds-1");
 
-		const result = runDiscomfortSignal(
-			db,
-			"sess-ds-1",
-			"Here is the analysis of the codebase.",
-		);
+		const result = runDiscomfortSignal(db, "sess-ds-1", "Here is the analysis of the codebase.");
 		expect(result.signalFired).toBe(false);
 		expect(result.score).toBeLessThan(0.6);
 	});
@@ -69,11 +65,7 @@ describe("discomfort-signal", () => {
 		db = openGraphDb("test-ds3", tmpDir);
 		seedSession(db, "sess-ds-3", 0.1); // low significance call
 
-		const result = runDiscomfortSignal(
-			db,
-			"sess-ds-3",
-			"You're right, I made a mistake there.",
-		);
+		const result = runDiscomfortSignal(db, "sess-ds-3", "You're right, I made a mistake there.");
 		// Low significance means threshold is more lenient — may or may not fire.
 		// Just verify the score is computed without crashing.
 		expect(typeof result.score).toBe("number");

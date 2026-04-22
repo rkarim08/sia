@@ -1,18 +1,26 @@
 import { describe, expect, it } from "vitest";
 import {
-	SIA_ENTITY_LABELS,
-	CONFIDENCE_THRESHOLDS,
 	buildGlinerTensors,
+	CONFIDENCE_THRESHOLDS,
 	classifyExtractionResult,
 	createGlinerExtractor,
 	type GlinerSpan,
+	SIA_ENTITY_LABELS,
 } from "@/capture/gliner-extractor";
 
 describe("GLiNER extractor", () => {
 	it("SIA_ENTITY_LABELS has all required label types", () => {
 		const required = [
-			"Decision", "Convention", "Bug", "Solution", "Pattern",
-			"FilePath", "FunctionName", "Dependency", "API", "Constraint",
+			"Decision",
+			"Convention",
+			"Bug",
+			"Solution",
+			"Pattern",
+			"FilePath",
+			"FunctionName",
+			"Dependency",
+			"API",
+			"Constraint",
 		];
 		for (const label of required) {
 			expect(SIA_ENTITY_LABELS).toContain(label);
@@ -91,9 +99,7 @@ describe("GLiNER extractor", () => {
 				chunkIdx++;
 				if (chunkIdx === 2) throw new Error("ONNX inference failed");
 				return {
-					spans: [
-						{ text: "express", label: "Dependency", score: 0.9, start: 0, end: 7 },
-					],
+					spans: [{ text: "express", label: "Dependency", score: 0.9, start: 0, end: 7 }],
 				};
 			},
 		};

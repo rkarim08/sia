@@ -35,7 +35,7 @@ describe("model downloader", () => {
 
 	it("throws descriptive error when airGapped is true", async () => {
 		await expect(
-			downloadFile("https://example.com/model.onnx", "/tmp/m.onnx", undefined, { airGapped: true })
+			downloadFile("https://example.com/model.onnx", "/tmp/m.onnx", undefined, { airGapped: true }),
 		).rejects.toThrow(/air-gapped/);
 	});
 

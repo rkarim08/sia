@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
-import { createReadStream, createWriteStream, existsSync, renameSync, unlinkSync } from "node:fs";
-import { mkdirSync } from "node:fs";
+import {
+	createReadStream,
+	createWriteStream,
+	existsSync,
+	mkdirSync,
+	renameSync,
+	unlinkSync,
+} from "node:fs";
 import { dirname } from "node:path";
 
 /**
@@ -31,8 +37,8 @@ export async function downloadFile(
 	if (opts?.airGapped) {
 		throw new Error(
 			`Cannot download model in air-gapped mode. ` +
-			`Pre-install models manually at: ${destPath}\n` +
-			`Download from: ${url}`,
+				`Pre-install models manually at: ${destPath}\n` +
+				`Download from: ${url}`,
 		);
 	}
 
@@ -89,7 +95,11 @@ export async function downloadFile(
 		renameSync(tmpPath, destPath);
 	} catch (err) {
 		// Clean up partial temp file
-		try { if (existsSync(tmpPath)) unlinkSync(tmpPath); } catch { /* best effort */ }
+		try {
+			if (existsSync(tmpPath)) unlinkSync(tmpPath);
+		} catch {
+			/* best effort */
+		}
 		throw err;
 	}
 }
@@ -113,9 +123,9 @@ export async function downloadAndVerify(
 		unlinkSync(destPath);
 		throw new Error(
 			`Checksum mismatch for ${destPath}:\n` +
-			`  expected: ${expectedSha256}\n` +
-			`  actual:   ${actualSha256}\n` +
-			`File deleted. Retry download.`,
+				`  expected: ${expectedSha256}\n` +
+				`  actual:   ${actualSha256}\n` +
+				`File deleted. Retry download.`,
 		);
 	}
 

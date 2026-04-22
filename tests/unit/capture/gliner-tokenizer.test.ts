@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
 	buildGlinerInput,
-	generateSpanIndices,
 	type GlinerModelInput,
+	generateSpanIndices,
 } from "@/capture/gliner-tokenizer";
 
 describe("GLiNER tokenizer", () => {
@@ -37,11 +37,7 @@ describe("GLiNER tokenizer", () => {
 	});
 
 	it("buildGlinerInput computes word count", () => {
-		const input = buildGlinerInput(
-			["Decision"],
-			"hello world foo bar",
-			64,
-		);
+		const input = buildGlinerInput(["Decision"], "hello world foo bar", 64);
 
 		expect(input.numWords).toBe(4);
 	});

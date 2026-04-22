@@ -101,16 +101,21 @@ export async function handleSiaSearch(
 	const effectiveLimit = Math.min(Math.max(1, rawLimit), MAX_LIMIT);
 
 	// Local search via three-stage pipeline
-	const searchResult = await hybridSearch(db, _embedder ?? null, {
-		query: input.query,
-		taskType: input.task_type,
-		nodeTypes: input.node_types,
-		packagePath: input.package_path,
-		paranoid: input.paranoid,
-		limit: effectiveLimit,
-		includeProvenance: input.include_provenance,
-		crossEncoderTimeoutMs: config?.crossEncoderTimeoutMs,
-	}, pipelineDeps);
+	const searchResult = await hybridSearch(
+		db,
+		_embedder ?? null,
+		{
+			query: input.query,
+			taskType: input.task_type,
+			nodeTypes: input.node_types,
+			packagePath: input.package_path,
+			paranoid: input.paranoid,
+			limit: effectiveLimit,
+			includeProvenance: input.include_provenance,
+			crossEncoderTimeoutMs: config?.crossEncoderTimeoutMs,
+		},
+		pipelineDeps,
+	);
 
 	const annotated = (await annotateFreshness(
 		searchResult.results as unknown as Record<string, unknown>[],
@@ -143,10 +148,7 @@ async function recordSearchFeedback(
 				candidatesShown: results.length,
 			});
 		} catch (err) {
-			console.error(
-				`[sia] sia_search: failed to record feedback for ${results[i].id}:`,
-				err,
-			);
+			console.error(`[sia] sia_search: failed to record feedback for ${results[i].id}:`, err);
 		}
 	}
 }

@@ -185,10 +185,9 @@ describe("sia_flag tool", () => {
 		expect(result.flagged).toBe(true);
 		expect(result.id).toBeDefined();
 
-		const nodeRows = await db.execute(
-			"SELECT embedding FROM graph_nodes WHERE id = ?",
-			[result.id],
-		);
+		const nodeRows = await db.execute("SELECT embedding FROM graph_nodes WHERE id = ?", [
+			result.id,
+		]);
 		expect(nodeRows.rows).toHaveLength(1);
 		expect((nodeRows.rows[0] as Record<string, unknown>).embedding).toBeNull();
 	});

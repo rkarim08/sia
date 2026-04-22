@@ -50,8 +50,9 @@ export async function writeEpisode(
 
 		const summary = `Session ${sessionId}: ${session.state.toolCallCount} tool calls, ${signalCount} signals, drift=${session.state.driftScore.toFixed(2)}`;
 
-		raw.prepare(
-			`INSERT INTO graph_nodes (
+		raw
+			.prepare(
+				`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths,
 				trust_tier, confidence, base_confidence,
@@ -72,18 +73,19 @@ export async function writeEpisode(
 				?, 'Episode',
 				?, ?
 			)`,
-		).run(
-			uuid(),
-			name,
-			description,
-			summary,
-			now,
-			now,
-			now,
-			sessionId,
-			sessionId,
-			session.session_type,
-		);
+			)
+			.run(
+				uuid(),
+				name,
+				description,
+				summary,
+				now,
+				now,
+				now,
+				sessionId,
+				sessionId,
+				session.session_type,
+			);
 
 		appendHistory(db, {
 			session_id: sessionId,

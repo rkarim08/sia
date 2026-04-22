@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+	computeContentHash,
+	getCurrentHead,
 	incrementalReindex,
 	readStoredHead,
-	getCurrentHead,
-	computeContentHash,
 } from "@/capture/incremental-reindexer";
 
 // Minimal mock DB that tracks calls
@@ -99,12 +99,21 @@ describe("incremental-reindex integration", () => {
 		const cacheDir = join(config.astCacheDir, "testhash");
 		mkdirSync(cacheDir, { recursive: true });
 		const cachePath = join(cacheDir, "index-cache.json");
-		writeFileSync(cachePath, JSON.stringify({
-			"a.ts": { mtimeMs: 0, contentHash: computeContentHash("export const a = 1;") }
-		}));
+		writeFileSync(
+			cachePath,
+			JSON.stringify({
+				"a.ts": { mtimeMs: 0, contentHash: computeContentHash("export const a = 1;") },
+			}),
+		);
 
 		const db = createMockDb();
-		const result = await incrementalReindex(db as any, repoDir, "testhash", config as any, featureHead);
+		const result = await incrementalReindex(
+			db as any,
+			repoDir,
+			"testhash",
+			config as any,
+			featureHead,
+		);
 
 		expect(result.triggered).toBe(true);
 		expect(result.filesSkippedByHash).toBe(1);

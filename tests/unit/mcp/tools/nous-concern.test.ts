@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { v4 as uuid } from "uuid";
+import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 import { handleNousConcern } from "@/mcp/tools/nous-concern";
@@ -16,8 +16,9 @@ function insertConcern(db: SiaDb, id: string, name: string, tags: string): void 
 	const raw = db.rawSqlite();
 	if (!raw) throw new Error("no raw handle");
 	const now = Date.now();
-	raw.prepare(
-		`INSERT INTO graph_nodes (
+	raw
+		.prepare(
+			`INSERT INTO graph_nodes (
 			id, type, name, content, summary,
 			tags, file_paths,
 			trust_tier, confidence, base_confidence,
@@ -27,7 +28,8 @@ function insertConcern(db: SiaDb, id: string, name: string, tags: string): void 
 			visibility, created_by,
 			kind
 		) VALUES (?, 'Concern', ?, 'Content', 'Summary', ?, '[]', 3, 0.7, 0.7, 0.5, 0.5, 0, 0, ?, ?, ?, 'private', 'test', 'Concern')`,
-	).run(id, name, tags, now, now, now);
+		)
+		.run(id, name, tags, now, now, now);
 }
 
 describe("nous-concern", () => {
@@ -63,9 +65,9 @@ describe("nous-concern", () => {
 
 		// Verify the concern was flipped to surfaced.
 		const raw = db.rawSqlite();
-		const updated = raw!
-			.prepare("SELECT tags FROM graph_nodes WHERE id = ?")
-			.get(id) as { tags: string };
+		const updated = raw!.prepare("SELECT tags FROM graph_nodes WHERE id = ?").get(id) as {
+			tags: string;
+		};
 		expect(updated.tags).toContain("status:surfaced");
 		expect(updated.tags).not.toContain("status:open");
 	});

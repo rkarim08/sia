@@ -31,10 +31,10 @@ export async function embedEntity(
 	const vec = await embedder.embed(text);
 	if (!vec) return;
 
-	await db.execute(
-		`UPDATE graph_nodes SET ${column} = ? WHERE id = ?`,
-		[Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength), entity.id],
-	);
+	await db.execute(`UPDATE graph_nodes SET ${column} = ? WHERE id = ?`, [
+		Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength),
+		entity.id,
+	]);
 }
 
 /**
@@ -59,16 +59,18 @@ export async function embedEntitiesBatch(
 		const embeddings = await embedder.embedBatch(texts);
 		for (let j = 0; j < batch.length; j++) {
 			if (embeddings[j]) {
-				await db.execute(
-					`UPDATE graph_nodes SET ${column} = ? WHERE id = ?`,
-					[Buffer.from(embeddings[j]!.buffer, embeddings[j]!.byteOffset, embeddings[j]!.byteLength), batch[j].id],
-				);
+				await db.execute(`UPDATE graph_nodes SET ${column} = ? WHERE id = ?`, [
+					Buffer.from(embeddings[j]!.buffer, embeddings[j]!.byteOffset, embeddings[j]!.byteLength),
+					batch[j].id,
+				]);
 				embedded++;
 			}
 		}
 	}
 	if (totalAttempted > 0 && embedded === 0) {
-		console.warn(`[sia] embedEntitiesBatch: 0/${totalAttempted} entities embedded — embedder may be non-functional`);
+		console.warn(
+			`[sia] embedEntitiesBatch: 0/${totalAttempted} entities embedded — embedder may be non-functional`,
+		);
 	}
 	return embedded;
 }

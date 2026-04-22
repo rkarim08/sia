@@ -1,8 +1,8 @@
 // Module: capture/tokenizer-dispatch — unified tokenizer dispatch.
 // Auto-selects WordPiece/BPE/SentencePiece by registry `tokenizerType`.
 
-import type { TokenizerType } from "@/models/types";
 import { MODEL_REGISTRY } from "@/models/registry";
+import type { TokenizerType } from "@/models/types";
 
 export type { TokenizerType };
 
@@ -52,7 +52,10 @@ export function loadTokenizerForModel(
 				if (isModuleNotFound) {
 					console.warn("[sia] BPE tokenizer module not available, falling back to WordPiece");
 				} else {
-					console.error("[sia] BPE tokenizer failed to load:", err instanceof Error ? err.message : String(err));
+					console.error(
+						"[sia] BPE tokenizer failed to load:",
+						err instanceof Error ? err.message : String(err),
+					);
 				}
 				return loadTokenizerForModel(tokenizerPath, "wordpiece");
 			}
@@ -61,14 +64,23 @@ export function loadTokenizerForModel(
 			try {
 				const { loadSentencePieceTokenizer } = require("@/capture/sentencepiece-tokenizer");
 				const tok = loadSentencePieceTokenizer(tokenizerPath);
-				return { type: "sentencepiece", encode: (text: string) => tok.encode(text), vocab: tok.vocab ?? {} };
+				return {
+					type: "sentencepiece",
+					encode: (text: string) => tok.encode(text),
+					vocab: tok.vocab ?? {},
+				};
 			} catch (err) {
 				// SentencePiece module not yet implemented — log and fall back to wordpiece
 				const isModuleNotFound = err instanceof Error && err.message.includes("Cannot find module");
 				if (isModuleNotFound) {
-					console.warn("[sia] SentencePiece tokenizer module not available, falling back to WordPiece");
+					console.warn(
+						"[sia] SentencePiece tokenizer module not available, falling back to WordPiece",
+					);
 				} else {
-					console.error("[sia] SentencePiece tokenizer failed to load:", err instanceof Error ? err.message : String(err));
+					console.error(
+						"[sia] SentencePiece tokenizer failed to load:",
+						err instanceof Error ? err.message : String(err),
+					);
 				}
 				return loadTokenizerForModel(tokenizerPath, "wordpiece");
 			}

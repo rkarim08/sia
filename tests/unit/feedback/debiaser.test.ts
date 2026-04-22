@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	estimateExaminationProbabilities,
-	applyIpsWeight,
-} from "@/feedback/debiaser";
+import { applyIpsWeight, estimateExaminationProbabilities } from "@/feedback/debiaser";
 
 describe("position bias debiaser", () => {
 	it("estimates higher examination probability for top positions", () => {
@@ -23,7 +20,10 @@ describe("position bias debiaser", () => {
 	});
 
 	it("applyIpsWeight returns higher weight for lower-position clicks", () => {
-		const probs = new Map([[0, 0.9], [5, 0.3]]);
+		const probs = new Map([
+			[0, 0.9],
+			[5, 0.3],
+		]);
 
 		const w0 = applyIpsWeight(0, probs);
 		const w5 = applyIpsWeight(5, probs);

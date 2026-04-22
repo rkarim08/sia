@@ -16,10 +16,7 @@ export interface NousStateResult {
 	nousModifyBlocked: boolean;
 }
 
-export async function handleNousState(
-	db: SiaDb,
-	sessionId: string,
-): Promise<NousStateResult> {
+export async function handleNousState(db: SiaDb, sessionId: string): Promise<NousStateResult> {
 	const session = getSession(db, sessionId);
 
 	if (!session) {

@@ -46,7 +46,10 @@ export function buildGlinerInput(
 
 	const textWithLabels = `${labelPrefix} <<ENT>> ${text}`;
 
-	const words = text.trim().split(/\s+/).filter((w) => w.length > 0);
+	const words = text
+		.trim()
+		.split(/\s+/)
+		.filter((w) => w.length > 0);
 	const numWords = words.length;
 
 	const spanIndices = generateSpanIndices(numWords, maxWidth);

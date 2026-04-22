@@ -58,13 +58,13 @@ export function createDefaultTime2VecParams(): Time2VecParams {
 
 	// Log-spaced frequencies from 0.01 to 10.0
 	for (let i = 0; i < 15; i++) {
-		periodicWeights[i] = 0.01 * Math.pow(10, (i / 14) * 3);
+		periodicWeights[i] = 0.01 * 10 ** ((i / 14) * 3);
 		periodicBiases[i] = 0; // Zero phase at bootstrap
 	}
 
 	return {
 		linearWeight: -0.1, // Negative = recency bias (lower score for older)
-		linearBias: 0.5,    // Center at 0.5
+		linearBias: 0.5, // Center at 0.5
 		periodicWeights,
 		periodicBiases,
 	};

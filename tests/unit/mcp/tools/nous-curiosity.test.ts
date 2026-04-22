@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { v4 as uuid } from "uuid";
+import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
@@ -27,8 +27,9 @@ function insertNode(
 	const raw = db.rawSqlite();
 	if (!raw) throw new Error("no raw sqlite handle");
 	const now = Date.now();
-	raw.prepare(
-		`INSERT INTO graph_nodes (
+	raw
+		.prepare(
+			`INSERT INTO graph_nodes (
 			id, type, name, content, summary,
 			tags, file_paths,
 			trust_tier, confidence, base_confidence,
@@ -38,17 +39,18 @@ function insertNode(
 			visibility, created_by,
 			kind
 		) VALUES (?, ?, ?, 'content', 'summary', '[]', '[]', ?, 0.9, 0.9, 0.5, 0.5, ?, 0, ?, ?, ?, 'private', 'test', ?)`,
-	).run(
-		opts.id,
-		opts.type,
-		opts.name,
-		opts.trust_tier,
-		opts.access_count,
-		now,
-		now,
-		now,
-		opts.kind ?? null,
-	);
+		)
+		.run(
+			opts.id,
+			opts.type,
+			opts.name,
+			opts.trust_tier,
+			opts.access_count,
+			now,
+			now,
+			now,
+			opts.kind ?? null,
+		);
 }
 
 describe("nous-curiosity", () => {
@@ -93,9 +95,9 @@ describe("nous-curiosity", () => {
 
 		// Verify the Concern node has status:open tag.
 		const raw = db.rawSqlite();
-		const concernRow = raw!
-			.prepare("SELECT tags FROM graph_nodes WHERE kind = 'Concern'")
-			.get() as { tags: string } | undefined;
+		const concernRow = raw!.prepare("SELECT tags FROM graph_nodes WHERE kind = 'Concern'").get() as
+			| { tags: string }
+			| undefined;
 		expect(concernRow?.tags).toContain("status:open");
 	});
 

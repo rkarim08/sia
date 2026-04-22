@@ -10,12 +10,12 @@ import { join } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
 import { incrementalReindex, readStoredHead } from "@/capture/incremental-reindexer";
 import { openGraphDb } from "@/graph/semantic-db";
-import { getConfig } from "@/shared/config";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
 import type { HookEvent } from "@/hooks/types";
 import { runSessionStart as runNousSessionStart } from "@/nous/self-monitor";
 import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
+import { getConfig } from "@/shared/config";
 
 /**
  * Ensures the SIA MCP server is configured in the project or user settings.
@@ -107,7 +107,7 @@ async function main() {
 			const reindexResult = await incrementalReindex(db, cwd, repoHash, config, storedHead);
 			if (reindexResult.triggered && reindexResult.filesReparsed > 0) {
 				process.stderr.write(
-					`[sia] Auto-reindex: ${reindexResult.filesChanged} files changed since last session (${reindexResult.filesReparsed} re-parsed, ${reindexResult.filesSkippedByHash} unchanged content)${reindexResult.reason ? ` — ${reindexResult.reason}` : ""}\n`
+					`[sia] Auto-reindex: ${reindexResult.filesChanged} files changed since last session (${reindexResult.filesReparsed} re-parsed, ${reindexResult.filesSkippedByHash} unchanged content)${reindexResult.reason ? ` — ${reindexResult.reason}` : ""}\n`,
 				);
 			}
 		} catch (err) {
@@ -124,11 +124,7 @@ async function main() {
 			try {
 				const config = getConfig();
 				const nousConfig = config.nous ?? DEFAULT_NOUS_CONFIG;
-				if (
-					nousConfig.enabled &&
-					event.session_id &&
-					event.session_id !== "unknown"
-				) {
+				if (nousConfig.enabled && event.session_id && event.session_id !== "unknown") {
 					const nousResult = await runNousSessionStart(
 						db,
 						{ session_id: event.session_id, cwd },

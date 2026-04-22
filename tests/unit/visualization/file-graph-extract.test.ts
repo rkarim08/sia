@@ -149,9 +149,7 @@ describe("file-graph-extract", () => {
 
 		const sourceId = "file:src/ast/indexer.ts";
 		const targetId = "file:src/ast/parser.ts";
-		const importEdge = result.edges.find(
-			(e) => e.source === sourceId && e.target === targetId,
-		);
+		const importEdge = result.edges.find((e) => e.source === sourceId && e.target === targetId);
 		expect(importEdge).toBeDefined();
 		expect(importEdge?.edgeType).toBe("imports");
 	});

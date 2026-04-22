@@ -65,7 +65,10 @@ export const TRAINING_PHASE_ORDER: Record<AttentionHeadMeta["trainingPhase"], nu
 };
 
 /** Shared ONNX session interface — used by cross-encoder, attention-fusion, GLiNER, embedder, session-pool, and server. */
-export type OnnxSession = { run(feeds: Record<string, unknown>): Promise<Record<string, unknown>>; release?(): void };
+export type OnnxSession = {
+	run(feeds: Record<string, unknown>): Promise<Record<string, unknown>>;
+	release?(): void;
+};
 
 /** Default empty manifest for fresh installs. */
 export function createEmptyManifest(): ModelManifest {

@@ -1,8 +1,14 @@
 // Module: feedback/collector — persist and retrieve feedback events for attention head training
 
 import { v4 as uuid } from "uuid";
+import {
+	createFeedbackEvent,
+	type FeedbackEvent,
+	type FeedbackSource,
+	SIGNAL_STRENGTHS,
+	type SignalType,
+} from "@/feedback/types";
 import type { SiaDb } from "@/graph/db-interface";
-import { createFeedbackEvent, SIGNAL_STRENGTHS, type FeedbackEvent, type FeedbackSource, type SignalType } from "@/feedback/types";
 
 /** Input for recording a feedback event (id and timestamp are auto-generated). */
 export interface RecordFeedbackInput {
@@ -37,7 +43,10 @@ export interface FeedbackCollectorOpts {
 	enabled?: boolean;
 }
 
-export function createFeedbackCollector(db: SiaDb, opts?: FeedbackCollectorOpts): FeedbackCollector {
+export function createFeedbackCollector(
+	db: SiaDb,
+	opts?: FeedbackCollectorOpts,
+): FeedbackCollector {
 	const enabled = opts?.enabled ?? true;
 
 	return {

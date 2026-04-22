@@ -86,18 +86,16 @@ describe("nous Phase 1 integration", () => {
 		expect(getSession(db, sessionId)).toBeNull();
 
 		const episode = raw
-			.prepare(
-				"SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?",
-			)
+			.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get(sessionId) as Record<string, unknown> | undefined;
 		expect(episode).toBeDefined();
 		expect(episode?.captured_by_session_type).toBe("primary");
 		expect((episode?.content as string).includes("Signal nodes written: 1")).toBe(true);
 
 		// 5. History contains both the initial drift entry and a discomfort entry.
-		const history = raw
-			.prepare("SELECT event_type FROM nous_history ORDER BY id")
-			.all() as Array<{ event_type: string }>;
+		const history = raw.prepare("SELECT event_type FROM nous_history ORDER BY id").all() as Array<{
+			event_type: string;
+		}>;
 		const events = history.map((h) => h.event_type);
 		expect(events).toContain("drift");
 		expect(events).toContain("discomfort");
@@ -113,10 +111,9 @@ describe("nous Phase 1 integration", () => {
 		const now = Math.floor(Date.now() / 1000);
 		await runSessionStart(db, { session_id: "primary-owner", cwd: "/tmp" });
 		// Force primary-owner to look recent so the subagent detection fires.
-		raw.prepare("UPDATE nous_sessions SET updated_at = ? WHERE session_id = ?").run(
-			now,
-			"primary-owner",
-		);
+		raw
+			.prepare("UPDATE nous_sessions SET updated_at = ? WHERE session_id = ?")
+			.run(now, "primary-owner");
 
 		const subResult = await runSessionStart(db, {
 			session_id: "subagent-1",
@@ -128,9 +125,7 @@ describe("nous Phase 1 integration", () => {
 		expect(getSession(db, "subagent-1")).toBeNull();
 
 		const episode = raw
-			.prepare(
-				"SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?",
-			)
+			.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get("subagent-1");
 		expect(episode).toBeUndefined();
 	});

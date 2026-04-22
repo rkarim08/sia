@@ -29,7 +29,11 @@ export function tokenizePair(
 
 	// Simple whitespace + lowercase tokenization (matches BERT WordPiece basics)
 	function tokenizeText(text: string): number[] {
-		const words = text.toLowerCase().replace(/([^\w\s])/g, " $1 ").trim().split(/\s+/);
+		const words = text
+			.toLowerCase()
+			.replace(/([^\w\s])/g, " $1 ")
+			.trim()
+			.split(/\s+/);
 		const ids: number[] = [];
 		for (const word of words) {
 			if (word === "") continue;

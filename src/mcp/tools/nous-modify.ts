@@ -80,8 +80,9 @@ export async function handleNousModify(
 
 	if (input.action === "create") {
 		const newId = uuid();
-		raw.prepare(
-			`INSERT INTO graph_nodes (
+		raw
+			.prepare(
+				`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths,
 				trust_tier, confidence, base_confidence,
@@ -102,17 +103,18 @@ export async function handleNousModify(
 				'Preference',
 				?, ?
 			)`,
-		).run(
-			newId,
-			input.preference.slice(0, 100),
-			input.preference,
-			`${input.preference.slice(0, 80)} — ${input.reason.slice(0, 60)}`,
-			now,
-			now,
-			now,
-			sessionId,
-			session.session_type,
-		);
+			)
+			.run(
+				newId,
+				input.preference.slice(0, 100),
+				input.preference,
+				`${input.preference.slice(0, 80)} — ${input.reason.slice(0, 60)}`,
+				now,
+				now,
+				now,
+				sessionId,
+				session.session_type,
+			);
 		return { blocked: false, newNodeId: newId };
 	}
 
@@ -144,13 +146,14 @@ export async function handleNousModify(
 		}
 
 		// Supersede the old node — set t_valid_until and t_expired.
-		raw.prepare(
-			"UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ?",
-		).run(now, now, input.existingNodeId);
+		raw
+			.prepare("UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ?")
+			.run(now, now, input.existingNodeId);
 
 		const newId = uuid();
-		raw.prepare(
-			`INSERT INTO graph_nodes (
+		raw
+			.prepare(
+				`INSERT INTO graph_nodes (
 				id, type, name, content, summary,
 				tags, file_paths,
 				trust_tier, confidence, base_confidence,
@@ -171,17 +174,18 @@ export async function handleNousModify(
 				'Preference',
 				?, ?
 			)`,
-		).run(
-			newId,
-			input.preference.slice(0, 100),
-			input.preference,
-			`${input.preference.slice(0, 80)} — updated: ${input.reason.slice(0, 60)}`,
-			now,
-			now,
-			now,
-			sessionId,
-			session.session_type,
-		);
+			)
+			.run(
+				newId,
+				input.preference.slice(0, 100),
+				input.preference,
+				`${input.preference.slice(0, 80)} — updated: ${input.reason.slice(0, 60)}`,
+				now,
+				now,
+				now,
+				sessionId,
+				session.session_type,
+			);
 
 		return {
 			blocked: false,
@@ -216,9 +220,9 @@ export async function handleNousModify(
 			};
 		}
 
-		raw.prepare(
-			"UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ?",
-		).run(now, now, input.existingNodeId);
+		raw
+			.prepare("UPDATE graph_nodes SET t_valid_until = ?, t_expired = ? WHERE id = ?")
+			.run(now, now, input.existingNodeId);
 
 		return { blocked: false, supersededNodeId: input.existingNodeId };
 	}

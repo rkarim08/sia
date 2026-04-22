@@ -2,16 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
 	formatConfirmationPrompt,
 	parseConfirmationResponse,
-	reconcileExtractions,
 	type ReconciliationInput,
+	reconcileExtractions,
 } from "@/capture/entity-reconciler";
 
 describe("entity reconciler", () => {
 	it("accepts high-confidence GLiNER spans directly", () => {
 		const input: ReconciliationInput = {
-			glinerSpans: [
-				{ text: "express", label: "Dependency", score: 0.9, start: 0, end: 7 },
-			],
+			glinerSpans: [{ text: "express", label: "Dependency", score: 0.9, start: 0, end: 7 }],
 			regexEntities: [],
 		};
 
@@ -36,9 +34,7 @@ describe("entity reconciler", () => {
 
 	it("rejects low-confidence spans", () => {
 		const input: ReconciliationInput = {
-			glinerSpans: [
-				{ text: "the", label: "Decision", score: 0.1, start: 0, end: 3 },
-			],
+			glinerSpans: [{ text: "the", label: "Decision", score: 0.1, start: 0, end: 3 }],
 			regexEntities: [],
 		};
 
@@ -86,9 +82,7 @@ describe("entity reconciler", () => {
 	it("score exactly at threshold is classified as 'accept'", () => {
 		// FilePath threshold is 0.6 — exact boundary should be "accept"
 		const input: ReconciliationInput = {
-			glinerSpans: [
-				{ text: "src/index.ts", label: "FilePath", score: 0.6, start: 0, end: 12 },
-			],
+			glinerSpans: [{ text: "src/index.ts", label: "FilePath", score: 0.6, start: 0, end: 12 }],
 			regexEntities: [],
 		};
 

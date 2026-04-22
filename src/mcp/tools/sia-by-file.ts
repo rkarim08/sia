@@ -125,10 +125,7 @@ async function recordByFileFeedback(
 				candidatesShown: entities.length,
 			});
 		} catch (err) {
-			console.error(
-				`[sia] sia_by_file: failed to record feedback for ${entities[i].id}:`,
-				err,
-			);
+			console.error(`[sia] sia_by_file: failed to record feedback for ${entities[i].id}:`, err);
 		}
 	}
 }

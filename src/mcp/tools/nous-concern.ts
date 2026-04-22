@@ -22,10 +22,7 @@ export interface ConcernResult {
 	concerns: SurfacedConcern[];
 }
 
-export async function handleNousConcern(
-	db: SiaDb,
-	_input: ConcernInput,
-): Promise<ConcernResult> {
+export async function handleNousConcern(db: SiaDb, _input: ConcernInput): Promise<ConcernResult> {
 	const raw = db.rawSqlite();
 	if (!raw) return { concerns: [] };
 

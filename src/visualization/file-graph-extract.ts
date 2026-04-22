@@ -2,15 +2,15 @@
 
 import type { SiaDb } from "@/graph/db-interface";
 import {
-	KNOWLEDGE_COLORS,
 	type EntitiesResponse,
 	type ExpandResponse,
+	folderColor,
 	type G6Combo,
 	type G6Edge,
 	type G6Node,
 	type GraphResponse,
+	KNOWLEDGE_COLORS,
 	type SearchResult,
-	folderColor,
 } from "@/visualization/types";
 
 /** Options for extractInitialGraph. */
@@ -474,11 +474,7 @@ export async function getFileEntities(db: SiaDb, filePath: string): Promise<Enti
  * Search for nodes by name substring.
  * Returns matches with combo ancestry for navigation.
  */
-export async function searchNodes(
-	db: SiaDb,
-	query: string,
-	limit = 20,
-): Promise<SearchResult[]> {
+export async function searchNodes(db: SiaDb, query: string, limit = 20): Promise<SearchResult[]> {
 	const { rows } = await db.execute(
 		`SELECT id, type, name, summary, file_paths
 		 FROM graph_nodes

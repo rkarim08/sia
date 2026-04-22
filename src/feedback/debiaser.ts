@@ -18,11 +18,11 @@ export interface DebiaserEvent {
  * P(examination | rank_position) decreasing geometrically from position 0.
  */
 const EXAMINATION_PRIOR: Record<number, number> = {
-	0: 1.00,
+	0: 1.0,
 	1: 0.85,
-	2: 0.70,
+	2: 0.7,
 	3: 0.55,
-	4: 0.40,
+	4: 0.4,
 	5: 0.25,
 };
 const DEFAULT_EXAMINATION_PRIOR = 0.15;
@@ -38,9 +38,7 @@ function getCascadePrior(position: number): number {
  * Estimate P(examination | rank_position) from historical click data using
  * Bayesian posterior update over cascade model priors.
  */
-export function estimateExaminationProbabilities(
-	events: DebiaserEvent[],
-): Map<number, number> {
+export function estimateExaminationProbabilities(events: DebiaserEvent[]): Map<number, number> {
 	const positiveCounts = new Map<number, number>();
 	const totalCounts = new Map<number, number>();
 

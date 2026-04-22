@@ -16,7 +16,15 @@ export interface G6Node {
 	id: string;
 	label: string;
 	parentId: string;
-	nodeType: 'file' | 'function' | 'class' | 'interface' | 'decision' | 'bug' | 'convention' | 'solution';
+	nodeType:
+		| "file"
+		| "function"
+		| "class"
+		| "interface"
+		| "decision"
+		| "bug"
+		| "convention"
+		| "solution";
 	filePath?: string;
 	importance: number;
 	trustTier: number;
@@ -29,7 +37,7 @@ export interface G6Edge {
 	id: string;
 	source: string;
 	target: string;
-	edgeType: 'imports' | 'calls' | 'relates_to';
+	edgeType: "imports" | "calls" | "relates_to";
 	weight: number;
 	label?: string;
 }
@@ -77,26 +85,26 @@ export interface SearchResponse {
 
 /** 12-color palette for folder coloring on dark background. */
 export const FOLDER_PALETTE = [
-	'#4fc3f7',
-	'#81c784',
-	'#ba68c8',
-	'#ef5350',
-	'#ff8a65',
-	'#7e57c2',
-	'#26a69a',
-	'#ffd54f',
-	'#ec407a',
-	'#42a5f5',
-	'#66bb6a',
-	'#ab47bc',
+	"#4fc3f7",
+	"#81c784",
+	"#ba68c8",
+	"#ef5350",
+	"#ff8a65",
+	"#7e57c2",
+	"#26a69a",
+	"#ffd54f",
+	"#ec407a",
+	"#42a5f5",
+	"#66bb6a",
+	"#ab47bc",
 ];
 
 /** Fixed colors for non-code entity types. */
 export const KNOWLEDGE_COLORS: Record<string, string> = {
-	Decision: '#ef5350',
-	Bug: '#f44336',
-	Convention: '#26a69a',
-	Solution: '#66bb6a',
+	Decision: "#ef5350",
+	Bug: "#f44336",
+	Convention: "#26a69a",
+	Solution: "#66bb6a",
 };
 
 /**
@@ -104,7 +112,7 @@ export const KNOWLEDGE_COLORS: Record<string, string> = {
  * Hashes the top-level folder name to index into FOLDER_PALETTE.
  */
 export function folderColor(folderPath: string): string {
-	const topLevel = folderPath.split('/')[0] ?? folderPath;
+	const topLevel = folderPath.split("/")[0] ?? folderPath;
 	let hash = 0;
 	for (let i = 0; i < topLevel.length; i++) {
 		hash = ((hash << 5) - hash + topLevel.charCodeAt(i)) | 0;
@@ -122,19 +130,39 @@ export function lightenColor(hex: string, amount: number): string {
 	const lr = Math.min(255, Math.round(r + (255 - r) * amount));
 	const lg = Math.min(255, Math.round(g + (255 - g) * amount));
 	const lb = Math.min(255, Math.round(b + (255 - b) * amount));
-	return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+	return `#${lr.toString(16).padStart(2, "0")}${lg.toString(16).padStart(2, "0")}${lb.toString(16).padStart(2, "0")}`;
 }
 
 /** Map a file extension to a Shiki language identifier. */
 export function extToLanguage(ext: string): string {
 	const map: Record<string, string> = {
-		'.ts': 'typescript', '.tsx': 'tsx', '.js': 'javascript', '.jsx': 'jsx',
-		'.py': 'python', '.rs': 'rust', '.go': 'go', '.java': 'java',
-		'.c': 'c', '.cpp': 'cpp', '.h': 'c', '.hpp': 'cpp',
-		'.rb': 'ruby', '.php': 'php', '.swift': 'swift', '.kt': 'kotlin',
-		'.cs': 'csharp', '.css': 'css', '.html': 'html', '.json': 'json',
-		'.yaml': 'yaml', '.yml': 'yaml', '.md': 'markdown', '.sql': 'sql',
-		'.sh': 'bash', '.bash': 'bash', '.zsh': 'bash',
+		".ts": "typescript",
+		".tsx": "tsx",
+		".js": "javascript",
+		".jsx": "jsx",
+		".py": "python",
+		".rs": "rust",
+		".go": "go",
+		".java": "java",
+		".c": "c",
+		".cpp": "cpp",
+		".h": "c",
+		".hpp": "cpp",
+		".rb": "ruby",
+		".php": "php",
+		".swift": "swift",
+		".kt": "kotlin",
+		".cs": "csharp",
+		".css": "css",
+		".html": "html",
+		".json": "json",
+		".yaml": "yaml",
+		".yml": "yaml",
+		".md": "markdown",
+		".sql": "sql",
+		".sh": "bash",
+		".bash": "bash",
+		".zsh": "bash",
 	};
-	return map[ext.toLowerCase()] ?? 'text';
+	return map[ext.toLowerCase()] ?? "text";
 }

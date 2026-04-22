@@ -12,27 +12,25 @@
 //
 // Usage: npx tsx scripts/create-attention-head.ts [output-path]
 
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
-
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 // onnx-proto is CJS-only; use createRequire for ESM compat
 import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+
 const require = createRequire(import.meta.url);
 const { onnx } = require("onnx-proto") as { onnx: typeof import("onnx-proto").onnx };
 const Long = require("long") as typeof import("long");
 
 const FEATURE_DIM = 405;
 const HIDDEN_DIM = 128;
+
 import { fileURLToPath } from "node:url";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const OUTPUT_DIR = process.argv[2] || join(__dirname, "../models");
 
-function createFloat32Tensor(
-	name: string,
-	dims: number[],
-	data: number[],
-): onnx.TensorProto {
+function createFloat32Tensor(name: string, dims: number[], data: number[]): onnx.TensorProto {
 	const tensor = new onnx.TensorProto();
 	tensor.name = name;
 	tensor.dataType = onnx.TensorProto.DataType.FLOAT;
@@ -127,7 +125,9 @@ function buildModel(): Uint8Array {
 	featuresInput.type.tensorType.shape = new onnx.TensorShapeProto();
 	featuresInput.type.tensorType.shape.dim = [
 		Object.assign(new onnx.TensorShapeProto.Dimension(), { dimParam: "K" }),
-		Object.assign(new onnx.TensorShapeProto.Dimension(), { dimValue: Long.fromNumber(FEATURE_DIM) }),
+		Object.assign(new onnx.TensorShapeProto.Dimension(), {
+			dimValue: Long.fromNumber(FEATURE_DIM),
+		}),
 	];
 
 	const scoresOutput = new onnx.ValueInfoProto();
@@ -182,4 +182,6 @@ if (!existsSync(dirname(outputPath))) {
 writeFileSync(outputPath, Buffer.from(modelBytes));
 console.log(`Created attention head model at: ${outputPath}`);
 console.log(`Size: ${modelBytes.length} bytes`);
-console.log(`Parameters: ${FEATURE_DIM * HIDDEN_DIM + HIDDEN_DIM + HIDDEN_DIM + 1} = ~${Math.round((FEATURE_DIM * HIDDEN_DIM + HIDDEN_DIM + HIDDEN_DIM + 1) / 1000)}K`);
+console.log(
+	`Parameters: ${FEATURE_DIM * HIDDEN_DIM + HIDDEN_DIM + HIDDEN_DIM + 1} = ~${Math.round((FEATURE_DIM * HIDDEN_DIM + HIDDEN_DIM + HIDDEN_DIM + 1) / 1000)}K`,
+);

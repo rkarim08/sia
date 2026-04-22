@@ -2,15 +2,20 @@
 // HTTP server exposing the visualizer frontend and graph data API.
 // Uses Node's http module so it runs in both Bun and Node/vitest environments.
 
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, existsSync, statSync } from "node:fs";
-import { extname, join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
-import type { SiaDb } from "@/graph/db-interface";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { dirname, extname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { FeedbackCollector } from "@/feedback/collector";
 import type { SignalType } from "@/feedback/types";
-import { expandFolder, extractInitialGraph, getFileEntities, searchNodes } from "@/visualization/file-graph-extract";
+import type { SiaDb } from "@/graph/db-interface";
+import {
+	expandFolder,
+	extractInitialGraph,
+	getFileEntities,
+	searchNodes,
+} from "@/visualization/file-graph-extract";
 import { renderG6Html } from "@/visualization/g6-renderer";
 import { extToLanguage } from "@/visualization/types";
 
@@ -39,7 +44,11 @@ function serveStatic(res: ServerResponse, urlPath: string): boolean {
 	let filePath = join(FRONTEND_DIST, safePath);
 
 	// If path is directory or root, serve index.html
-	if (safePath === "" || safePath === "/" || (existsSync(filePath) && statSync(filePath).isDirectory())) {
+	if (
+		safePath === "" ||
+		safePath === "/" ||
+		(existsSync(filePath) && statSync(filePath).isDirectory())
+	) {
 		filePath = join(FRONTEND_DIST, "index.html");
 	}
 
@@ -194,9 +203,7 @@ async function handleRequest(
 	// fileNodeId format: "file:<path>" (URL-encoded)
 	if (req.method === "GET" && pathname.startsWith("/api/entities/")) {
 		const fileNodeId = decodeURIComponent(pathname.slice("/api/entities/".length));
-		const filePath = fileNodeId.startsWith("file:")
-			? fileNodeId.slice("file:".length)
-			: fileNodeId;
+		const filePath = fileNodeId.startsWith("file:") ? fileNodeId.slice("file:".length) : fileNodeId;
 		try {
 			const result = await getFileEntities(db, filePath);
 			sendJson(res, result);

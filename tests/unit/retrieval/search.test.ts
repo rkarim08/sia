@@ -296,10 +296,15 @@ describe("hybridSearch — five-stage pipeline", () => {
 				candidates.map((c) => ({ entityId: c.entityId, score: 0.95 })),
 		};
 
-		const result = await hybridSearch(db, null, {
-			query: "TestEntity",
-			limit: 10,
-		}, { crossEncoder: mockCrossEncoder as any });
+		const result = await hybridSearch(
+			db,
+			null,
+			{
+				query: "TestEntity",
+				limit: 10,
+			},
+			{ crossEncoder: mockCrossEncoder as any },
+		);
 
 		expect(result.mode).toBe("local");
 		expect(result.results.length).toBeGreaterThanOrEqual(1);
@@ -319,13 +324,18 @@ describe("hybridSearch — five-stage pipeline", () => {
 			importance: 0.9,
 		});
 
-		const result = await hybridSearch(db, null, {
-			query: "FusionTest",
-			limit: 10,
-		}, {
-			// attentionFusionSession: null means RRF fallback
-			attentionFusionSession: null,
-		});
+		const result = await hybridSearch(
+			db,
+			null,
+			{
+				query: "FusionTest",
+				limit: 10,
+			},
+			{
+				// attentionFusionSession: null means RRF fallback
+				attentionFusionSession: null,
+			},
+		);
 
 		expect(result.mode).toBe("local");
 		expect(result.results.length).toBeGreaterThanOrEqual(1);
@@ -336,24 +346,33 @@ describe("hybridSearch — five-stage pipeline", () => {
 		db = openGraphDb("search-ce-fast-timeout", tmpDir);
 
 		await insertEntity(db, {
-			type: "Concept", name: "TimeoutEntity",
+			type: "Concept",
+			name: "TimeoutEntity",
 			content: "This entity tests timeout with very fast timeout.",
-			summary: "Timeout entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+			summary: "Timeout entity",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
 		});
 
 		// Cross-encoder that takes 100ms — much longer than the 1ms timeout
 		const slowCE = {
 			rerank: async (_query: string, candidates: Array<{ entityId: string; text: string }>) => {
-				await new Promise(resolve => setTimeout(resolve, 100));
-				return candidates.map(c => ({ entityId: c.entityId, score: 0.95 }));
+				await new Promise((resolve) => setTimeout(resolve, 100));
+				return candidates.map((c) => ({ entityId: c.entityId, score: 0.95 }));
 			},
 		};
 
-		const result = await hybridSearch(db, null, {
-			query: "TimeoutEntity",
-			limit: 10,
-			crossEncoderTimeoutMs: 1,
-		}, { crossEncoder: slowCE as any });
+		const result = await hybridSearch(
+			db,
+			null,
+			{
+				query: "TimeoutEntity",
+				limit: 10,
+				crossEncoderTimeoutMs: 1,
+			},
+			{ crossEncoder: slowCE as any },
+		);
 
 		expect(result.mode).toBe("local");
 		expect(result.results.length).toBeGreaterThanOrEqual(1);
@@ -364,9 +383,13 @@ describe("hybridSearch — five-stage pipeline", () => {
 		db = openGraphDb("search-ce-timeout", tmpDir);
 
 		await insertEntity(db, {
-			type: "Concept", name: "SlowEntity",
+			type: "Concept",
+			name: "SlowEntity",
 			content: "This entity tests timeout fallback.",
-			summary: "Slow entity", trust_tier: 2, confidence: 0.9, importance: 0.8,
+			summary: "Slow entity",
+			trust_tier: 2,
+			confidence: 0.9,
+			importance: 0.8,
 		});
 
 		// Cross-encoder that never resolves (simulates slow CPU inference)
@@ -376,8 +399,12 @@ describe("hybridSearch — five-stage pipeline", () => {
 		};
 
 		// Should not hang — timeout resolves with empty results, RRF ordering used
-		const result = await hybridSearch(db, null, { query: "SlowEntity", limit: 10 },
-			{ crossEncoder: neverResolves as any });
+		const result = await hybridSearch(
+			db,
+			null,
+			{ query: "SlowEntity", limit: 10 },
+			{ crossEncoder: neverResolves as any },
+		);
 
 		expect(result.results.length).toBeGreaterThanOrEqual(1); // RRF fallback returns the entity
 	});

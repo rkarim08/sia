@@ -33,10 +33,7 @@ export function handleSiaModels(
 			)
 			.join("\n");
 
-		const totalSize = Object.values(manifest.models).reduce(
-			(sum, e) => sum + e.sizeBytes,
-			0,
-		);
+		const totalSize = Object.values(manifest.models).reduce((sum, e) => sum + e.sizeBytes, 0);
 
 		return [
 			`Installed tier: ${manifest.installedTier}`,

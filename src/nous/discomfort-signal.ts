@@ -23,8 +23,7 @@ const APPROVAL_PATTERNS: ApprovalPattern[] = [
 	{ pattern: /i apologize for (the confusion|that|my mistake)/i, weight: 0.2 },
 	{ pattern: /good (point|catch|observation|call)/i, weight: 0.2 },
 	{
-		pattern:
-			/that'?s? a (great|excellent|valid|fair) (point|suggestion|observation)/i,
+		pattern: /that'?s? a (great|excellent|valid|fair) (point|suggestion|observation)/i,
 		weight: 0.2,
 	},
 	{ pattern: /you'?r?e? right(,| —| \.)/i, weight: 0.25 },
@@ -52,15 +51,11 @@ export function runDiscomfortSignal(
 
 	// Low-significance calls get a more lenient effective threshold —
 	// casual reads shouldn't fire on a single "good point".
-	const effectiveThreshold =
-		config.discomfortThreshold + (1 - significance) * 0.2;
+	const effectiveThreshold = config.discomfortThreshold + (1 - significance) * 0.2;
 	const signalFired = rawScore > effectiveThreshold;
 
 	const now = Math.floor(Date.now() / 1000);
-	const newDiscomfortScore = Math.max(
-		session.state.discomfortRunningScore,
-		rawScore,
-	);
+	const newDiscomfortScore = Math.max(session.state.discomfortRunningScore, rawScore);
 
 	updateSessionState(db, sessionId, {
 		...session.state,
@@ -109,8 +104,9 @@ function writeSignalNode(
 	const now = Date.now();
 	const trimmedSnippet = snippet.slice(0, 200);
 
-	raw.prepare(
-		`INSERT INTO graph_nodes (
+	raw
+		.prepare(
+			`INSERT INTO graph_nodes (
 			id, type, name, content, summary,
 			tags, file_paths,
 			trust_tier, confidence, base_confidence,
@@ -131,19 +127,20 @@ function writeSignalNode(
 			'Signal',
 			?, ?
 		)`,
-	).run(
-		id,
-		`discomfort:${sessionId}`,
-		`Discomfort signal in session ${sessionId}: score ${score.toFixed(2)}\n\nSnippet: ${trimmedSnippet}`,
-		`Discomfort score ${score.toFixed(2)} — approval-seeking detected`,
-		score,
-		score,
-		now,
-		now,
-		now,
-		sessionId,
-		sessionType,
-	);
+		)
+		.run(
+			id,
+			`discomfort:${sessionId}`,
+			`Discomfort signal in session ${sessionId}: score ${score.toFixed(2)}\n\nSnippet: ${trimmedSnippet}`,
+			`Discomfort score ${score.toFixed(2)} — approval-seeking detected`,
+			score,
+			score,
+			now,
+			now,
+			now,
+			sessionId,
+			sessionType,
+		);
 
 	return id;
 }

@@ -126,10 +126,7 @@ export function getModelsToDownload(
 /**
  * Return models that should be removed when downgrading from one tier to another.
  */
-export function getModelsToRemove(
-	fromTier: ModelTier,
-	toTier: ModelTier,
-): string[] {
+export function getModelsToRemove(fromTier: ModelTier, toTier: ModelTier): string[] {
 	const fromOrder = TIER_ORDER[fromTier];
 	const toOrder = TIER_ORDER[toTier];
 	if (toOrder >= fromOrder) return [];

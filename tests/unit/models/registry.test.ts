@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getModelsForTier, getModelsToDownload, getModelsToRemove, MODEL_REGISTRY } from "@/models/registry";
+import {
+	getModelsForTier,
+	getModelsToDownload,
+	getModelsToRemove,
+	MODEL_REGISTRY,
+} from "@/models/registry";
 
 describe("model registry", () => {
 	it("T0 includes bge-small and ms-marco-MiniLM", () => {

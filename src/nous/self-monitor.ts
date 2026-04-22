@@ -5,6 +5,7 @@
 // optional drift warning string for injection into the agent's context.
 
 import type { SiaDb } from "@/graph/db-interface";
+import { seedPreferences } from "./preference-seeder";
 import {
 	DEFAULT_NOUS_CONFIG,
 	DEFAULT_SESSION_STATE,
@@ -13,7 +14,6 @@ import {
 	type NousSessionState,
 	type SessionType,
 } from "./types";
-import { seedPreferences } from "./preference-seeder";
 import {
 	appendHistory,
 	cleanStaleSessions,
@@ -111,12 +111,9 @@ function loadPreferenceNodeIds(db: SiaDb): string[] {
 	return rows.map((r) => r.id);
 }
 
-function computeDriftScore(
-	history: Array<{ score: number; event_type: string }>,
-): number {
+function computeDriftScore(history: Array<{ score: number; event_type: string }>): number {
 	const discomfortEvents = history.filter((e) => e.event_type === "discomfort");
 	if (discomfortEvents.length === 0) return 0.0;
-	const avg =
-		discomfortEvents.reduce((sum, e) => sum + e.score, 0) / discomfortEvents.length;
+	const avg = discomfortEvents.reduce((sum, e) => sum + e.score, 0) / discomfortEvents.length;
 	return Math.min(1.0, avg);
 }

@@ -28,10 +28,16 @@ async function loadOnnxRuntime(): Promise<typeof import("onnxruntime-node") | nu
 	try {
 		return await import("onnxruntime-node");
 	} catch (err) {
-		if (err instanceof Error && (err.message.includes("Cannot find module") || err.message.includes("MODULE_NOT_FOUND"))) {
+		if (
+			err instanceof Error &&
+			(err.message.includes("Cannot find module") || err.message.includes("MODULE_NOT_FOUND"))
+		) {
 			console.debug("[sia] embedder: onnxruntime-node not installed — embedding disabled");
 		} else {
-			console.error("[sia] embedder: unexpected error loading onnxruntime-node:", err instanceof Error ? err.message : String(err));
+			console.error(
+				"[sia] embedder: unexpected error loading onnxruntime-node:",
+				err instanceof Error ? err.message : String(err),
+			);
 		}
 		return null;
 	}
@@ -77,7 +83,15 @@ export interface NamedEmbedder extends Embedder {
  * Same lazy ONNX loading as createEmbedder, but parameterized for multi-model use.
  */
 export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): NamedEmbedder {
-	const { modelName, modelPath, tokenizerPath, embeddingDim, maxSeqLength, textPrefix, matryoshkaDim } = config;
+	const {
+		modelName,
+		modelPath,
+		tokenizerPath,
+		embeddingDim,
+		maxSeqLength,
+		textPrefix,
+		matryoshkaDim,
+	} = config;
 
 	let session: OnnxSession | null = null;
 	let tokenizer: Tokenizer | null = null;
@@ -89,18 +103,25 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 		initialized = true;
 
 		if (!existsSync(modelPath)) {
-			console.error(`[sia] embedder(${modelName}): model file not found at ${modelPath} — run \`sia download-model\` to install`);
+			console.error(
+				`[sia] embedder(${modelName}): model file not found at ${modelPath} — run \`sia download-model\` to install`,
+			);
 			return false;
 		}
 		if (!existsSync(tokenizerPath)) {
-			console.error(`[sia] embedder(${modelName}): tokenizer file not found at ${tokenizerPath} — run \`sia download-model\` to install`);
+			console.error(
+				`[sia] embedder(${modelName}): tokenizer file not found at ${tokenizerPath} — run \`sia download-model\` to install`,
+			);
 			return false;
 		}
 
 		try {
 			tokenizer = loadTokenizer(tokenizerPath);
 		} catch (err) {
-			console.error(`[sia] embedder(${modelName}): failed to load tokenizer from ${tokenizerPath}:`, err instanceof Error ? err.message : String(err));
+			console.error(
+				`[sia] embedder(${modelName}): failed to load tokenizer from ${tokenizerPath}:`,
+				err instanceof Error ? err.message : String(err),
+			);
 			return false;
 		}
 
@@ -113,7 +134,10 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 			})) as unknown as typeof session;
 			return true;
 		} catch (err) {
-			console.error(`[sia] embedder(${modelName}): failed to create ONNX session from ${modelPath}:`, err instanceof Error ? err.message : String(err));
+			console.error(
+				`[sia] embedder(${modelName}): failed to create ONNX session from ${modelPath}:`,
+				err instanceof Error ? err.message : String(err),
+			);
 			session = null;
 			return false;
 		}
@@ -146,7 +170,9 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 				dims: readonly number[];
 			};
 			if (!lastHiddenState?.data) {
-				console.error(`[sia] embedder(${modelName}): ONNX output missing 'last_hidden_state' tensor — model file may be corrupt`);
+				console.error(
+					`[sia] embedder(${modelName}): ONNX output missing 'last_hidden_state' tensor — model file may be corrupt`,
+				);
 				return null;
 			}
 
@@ -174,7 +200,10 @@ export function createMultiModelEmbedder(config: MultiModelEmbedderConfig): Name
 						try {
 							return await this.embed(t);
 						} catch (err) {
-							console.error("[sia] embedder: embedBatch individual embed failed:", err instanceof Error ? err.message : String(err));
+							console.error(
+								"[sia] embedder: embedBatch individual embed failed:",
+								err instanceof Error ? err.message : String(err),
+							);
 							return null;
 						}
 					}),
