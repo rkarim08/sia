@@ -6,6 +6,27 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.10] - 2026-04-21
+
+### Added
+- `scripts/validate-plugin.sh` — comprehensive plugin-schema validator
+  that runs 9 checks (manifest, counts, MCP tool registry, agent
+  frontmatter, skill frontmatter, command frontmatter, hook handler
+  existence, portability, PLUGIN_USAGE drift). Exits fast on first
+  failure with a clear diagnostic; prints an OK summary on success.
+- `.github/workflows/plugin-validate.yml` — GitHub Actions workflow
+  that runs the validator, tests, type-check, and lint on every PR
+  and push to main. This is what should have caught the 17/22/29
+  MCP tool-count drift before v1.1.5 had to mop it up.
+- `scripts/git-hooks/pre-commit` + CONTRIBUTING.md opt-in instructions
+  — contributors who run `git config core.hooksPath scripts/git-hooks`
+  get the validator on every commit.
+
+### Fixed
+- README.md and PLUGIN_README.md claimed "23 agents" — actual count is
+  24 since the `sia-pr-writer` agent landed in v1.1.8. Caught by the
+  new validator, which is exactly the drift class it exists to catch.
+
 ## [1.1.9] - 2026-04-21
 
 ### Added
