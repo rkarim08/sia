@@ -62,7 +62,11 @@ Or invoke `/sia-tour` for an interactive walkthrough.
 
 ### Step 5: Summary
 
-Present what SIA learned:
+After setup completes, call the `sia_stats` MCP tool and display the graph
+state so the user sees the bootstrap worked. Then suggest three follow-up
+commands so there is an obvious next action.
+
+Present what SIA learned, filling in real numbers from `sia_stats`:
 > **SIA is ready!**
 > - 342 code entities indexed across 142 files
 > - 45 documentation chunks from 8 docs
@@ -70,8 +74,12 @@ Present what SIA learned:
 > - 3 external references (Notion, Jira, GitHub)
 >
 > Try these next:
+> - `/sia-search <topic>` — try a search to see if prior context was captured
+> - `/sia-visualize-live` — open the graph in your browser
+> - `/sia-learn --incremental` — update the graph as you continue working
+>
+> Other useful commands:
 > - Ask me any question — SIA tools activate automatically
-> - `/sia-search` — search the knowledge graph
 > - `/sia-status` — check graph health
 > - `/sia-team` — set up team sync
 

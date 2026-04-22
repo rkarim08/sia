@@ -25,6 +25,7 @@
 		],
 		"PostToolUse": [
 			{
+				"_comment": "Read is intentionally included — handlers/post-tool-use.ts#handleRead queries the graph for entities associated with the read file and returns them as context. Dropping Read would remove the 'touch for importance' signal and file-read context hints. See handlers/post-tool-use.ts:379.",
 				"matcher": "Write|Edit|Read",
 				"hooks": [
 					{

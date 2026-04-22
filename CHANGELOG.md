@@ -6,6 +6,36 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-04-21
+
+### Added
+- SessionStart emits `[Sia] No graph detected for this project. Run
+  /sia-setup to bootstrap` when the graph has zero active entities.
+  Closes the silent first-run loop — previously a user with a fresh
+  install saw no Sia output at all. Gated on the `graph_nodes` table
+  existing; no error if a brand-new session predates the schema.
+- `ensure-runtime.sh` now logs every invocation to
+  `${CLAUDE_PLUGIN_DATA}/logs/ensure-runtime.log` and prints a
+  one-line notice to stderr before auto-installing bun.
+- Stamp-file-gated invocation of `postinstall.sh` from
+  `ensure-runtime.sh`. The `.git` strip and native tree-sitter
+  rebuild previously never ran on a fresh install; they now run
+  exactly once, logging to
+  `${CLAUDE_PLUGIN_DATA}/logs/postinstall.log`.
+- `/sia-setup` ends by calling `sia_stats` and suggesting three
+  follow-up commands so the user sees the bootstrap worked and has
+  an obvious next action.
+
+### Changed
+- `scripts/postinstall.sh` no longer swallows build stderr with
+  `2>/dev/null`. Failures are now visible in the new postinstall
+  log.
+- `hooks/hooks.json` — the `PostToolUse` `Write|Edit|Read` matcher
+  now carries a `_comment` documenting why `Read` is intentionally
+  included (the handler queries the graph for entities associated
+  with the read file and returns them as context — see
+  `handlers/post-tool-use.ts:379`).
+
 ## [1.1.8] - 2026-04-21
 
 ### Added
