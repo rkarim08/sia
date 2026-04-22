@@ -2,6 +2,7 @@
 name: sia-decision-reviewer
 description: Surfaces past architectural decisions, what was tried and rejected, and constraints in the same area — prevents repeating failed approaches before making new choices
 model: sonnet
+color: purple
 whenToUse: |
   Use when making an architectural or design decision, especially in an area where past decisions exist. This agent does "decision archaeology" — finding what was decided before, why, and what was rejected.
 

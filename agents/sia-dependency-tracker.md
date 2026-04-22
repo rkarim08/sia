@@ -2,6 +2,7 @@
 name: sia-dependency-tracker
 description: Monitors cross-repo and cross-package dependencies — surfaces API contract changes, detects breaking changes across repo boundaries, and tracks workspace-level relationships
 model: sonnet
+color: cyan
 whenToUse: |
   Use when working across repository boundaries, checking API contracts, or when changes in one repo might affect another.
 

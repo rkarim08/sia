@@ -2,6 +2,7 @@
 name: sia-test-advisor
 description: Advises on test strategy using SIA's knowledge of past test failures, coverage gaps, edge cases from Bug entities, and project-specific test conventions
 model: sonnet
+color: purple
 whenToUse: |
   Use when writing tests and want to know what edge cases to cover, what test patterns to follow, or what areas have historically been fragile.
 

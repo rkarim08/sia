@@ -2,6 +2,7 @@
 name: sia-changelog-writer
 description: Generates changelogs and release notes from SIA's knowledge graph — pulls decisions, bugs fixed, features added, and conventions established since a given date or tag
 model: sonnet
+color: green
 whenToUse: |
   Use when preparing a release, writing changelog entries, or generating release notes.
 

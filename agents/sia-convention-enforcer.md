@@ -2,6 +2,7 @@
 name: sia-convention-enforcer
 description: Proactively checks code changes against all known conventions and flags violations — lighter than a full code review, focused purely on convention compliance
 model: sonnet
+color: cyan
 whenToUse: |
   Use when checking if recent changes follow project conventions, or when the user wants a quick convention check before committing.
 

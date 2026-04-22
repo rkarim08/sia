@@ -2,6 +2,7 @@
 name: sia-lead-team-health
 description: Analyzes team knowledge health — knowledge distribution across modules, coverage gaps, convention compliance, capture rate trends, and identifies areas where knowledge is concentrated in one person
 model: sonnet
+color: cyan
 whenToUse: |
   Use when a tech lead wants to understand team knowledge distribution, identify bus-factor risks, or assess overall knowledge health.
 

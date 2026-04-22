@@ -2,6 +2,7 @@
 name: sia-conflict-resolver
 description: Guides resolution of conflicting knowledge in the graph — when two entities contradict each other, walks through evidence and helps the developer choose which is correct
 model: sonnet
+color: red
 whenToUse: |
   Use when SIA's search results return entities with conflict_group_id set, or when the user asks about contradictions in the knowledge graph.
 

@@ -2,6 +2,7 @@
 name: sia-pm-briefing
 description: Generates plain-language project briefings for project managers — progress updates, decision summaries, risk areas, and team activity from the knowledge graph. Works for both technical and non-technical PMs.
 model: sonnet
+color: blue
 whenToUse: |
   Use when a project manager needs a status update, sprint summary, or project briefing.
 

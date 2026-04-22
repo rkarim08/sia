@@ -2,6 +2,7 @@
 name: sia-onboarding
 description: Runs a comprehensive onboarding session for new team members — walks through architecture, conventions, decisions, known issues, and team context over multiple topics. Use for full onboarding, not quick questions (use sia-orientation for those).
 model: sonnet
+color: blue
 whenToUse: |
   Use when a new developer is joining the project and needs comprehensive onboarding beyond just architecture overview.
 

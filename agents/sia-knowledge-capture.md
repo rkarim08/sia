@@ -2,6 +2,7 @@
 name: sia-knowledge-capture
 description: Reviews the current session's work and systematically captures all uncaptured knowledge — decisions made, conventions discovered, bugs found, solutions applied
 model: sonnet
+color: green
 whenToUse: |
   Use at the end of a significant work session, or when the user wants to ensure important knowledge was captured. This agent reviews what happened and produces sia_note calls for anything missing.
 

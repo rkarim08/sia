@@ -2,6 +2,7 @@
 name: sia-explain
 description: Helps users understand, query, and work with SIA's knowledge graph — explains graph structure, entity types, edge relationships, trust tiers, tools, skills, and agents
 model: sonnet
+color: blue
 whenToUse: |
   Use when the user asks about SIA itself — how it works, what tools are available, how to query the graph, what entity types mean, or how to get the most out of SIA.
 
