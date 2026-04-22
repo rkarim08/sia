@@ -28,6 +28,17 @@ description: Guides test-driven development using SIA's knowledge of test conven
 
 TDD informed by SIA's knowledge graph — surfaces this project's test conventions, known edge cases from past bugs, and actual interface contracts before writing the first test.
 
+## Usage
+
+**When to invoke:**
+- Implementing a feature or bugfix TDD-style
+- Writing the first test for a module where conventions may exist
+- After a Bug entity was captured and a regression test is required
+
+**Inputs:** No arguments. The skill queries SIA for test conventions, known bugs, and the file entities under test.
+
+**Worked example:** Starting on `src/orders/checkout.ts`. Skill runs `sia_search({ query: "test conventions checkout orders", node_types: ["Convention"] })` → returns "All order tests use in-memory SQLite, seed with `seedOrders()`, assert on JSON shape"; then `sia_search({ query: "bugs checkout orders", node_types: ["Bug"] })` → returns two historical bugs (double-charge on retry, tax rounding). First test written covers both edge cases using the established convention — not a generic template.
+
 ## Checklist
 
 ```

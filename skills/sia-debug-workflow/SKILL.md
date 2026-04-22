@@ -29,6 +29,18 @@ description: Debugs systematically using SIA's temporal knowledge graph — trac
 
 Debug methodically with SIA's temporal knowledge graph — adds temporal investigation ("when did it break?"), known bug history, and cross-session memory to standard debugging.
 
+## Usage
+
+**When to invoke:**
+- Bug reproduced, stack trace in hand, before investigating
+- Test failure or regression you don't immediately recognise
+- "It used to work" — always routes here (temporal investigation)
+- Error message appears to match a pattern you've seen before
+
+**Inputs:** No arguments. The skill drives `sia_search` / `sia_at_time` / `sia_by_file` MCP tools against the active repo.
+
+**Worked example:** User reports `TypeError: Cannot read property 'userId' of undefined in auth/session.ts`. Phase 1 runs `sia_search({ query: "userId undefined session", node_types: ["Bug", "Solution"] })` and returns a matching Bug + Solution pair from 6 weeks ago — the session object needed `requireAuth` middleware. Apply the known fix (5 minutes) instead of re-deriving it (2 hours).
+
 ## Checklist
 
 ```

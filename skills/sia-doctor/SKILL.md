@@ -7,6 +7,28 @@ description: Runs SIA system health diagnostics — checks databases, providers,
 
 Run comprehensive diagnostics on the SIA installation.
 
+## Usage
+
+**When to invoke:**
+- `sia_search` or any MCP tool returns an error
+- Knowledge feels missing (empty results on mature repos)
+- User reports "SIA isn't working" / "hooks aren't firing"
+- After upgrade, before filing a bug report
+
+**Inputs:** No arguments required. Optional `checks` via the MCP tool — see below.
+
+**Worked example:**
+
+```
+$ /sia-doctor
+[sia-doctor] graph_integrity: OK (2,431 entities, 6,104 edges)
+[sia-doctor] fts5: OK
+[sia-doctor] vss: OK (768-dim vectors)
+[sia-doctor] onnx: OK (bge-small-en-v1.5)
+[sia-doctor] runtimes: WARN — bun 1.0.30 detected (<1.1 recommended)
+[sia-doctor] hooks: OK (9/9 registered)
+```
+
 ## Steps
 
 Run the doctor command:

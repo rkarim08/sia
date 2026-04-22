@@ -30,6 +30,17 @@ description: Finishes development branches using SIA — generates semantic PR s
 
 Finish a development branch with graph-powered semantic PR summaries and post-merge knowledge capture.
 
+## Usage
+
+**When to invoke:**
+- Feature/fix implementation is done and tests pass
+- User asks to "wrap up", "open a PR", or "finish the branch"
+- After the last commit on a dev branch, before merge
+
+**Inputs:** No arguments. Reads the current branch + SIA entities captured during the branch's lifetime.
+
+**Worked example:** On branch `feature/add-rate-limiting` with 4 commits. Skill runs `sia_search({ query: "rate limiting", limit: 20 })` → finds 2 Decisions and 1 Convention captured this branch; generates a PR body with `## Knowledge Captured` listing them; after merge runs `sia_note({ kind: "Decision", name: "Merged: add rate limiting" })` so future sessions see the branch-level summary.
+
 ## Checklist
 
 ```
