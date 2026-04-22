@@ -8,6 +8,10 @@ All notable changes to Sia are documented here. This project adheres to
 
 ### Added
 
+- Transformer-stack Phase 1 landed: model manager + registry, bge-small
+  embedder upgrade via multi-model support, embedding cache extended for
+  model-keyed lookups, config fields for model tier, `@/models/*` tsconfig
+  path alias. Unblocks Phase 2 cross-encoder reranker.
 - UserPromptSubmit hook now classifies task type and injects top-k memory
   retrieval + open-Concern matches as `additionalContext`. Prompts < 20
   chars skipped. Per-turn memoized; 200 ms hard timeout with graceful
