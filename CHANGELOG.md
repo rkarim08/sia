@@ -6,6 +6,16 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-04-21
+
+### Changed
+- MCP server configuration moved from `.mcp.json` into the
+  `mcpServers` field of `.claude-plugin/plugin.json`, matching the
+  newer Claude Code plugin idiom. `.mcp.json` has been deleted.
+  Sia's MCP stdio server boots identically — same `command`,
+  `args`, and `env` forwarding; this is a packaging change, not a
+  behavioural one.
+
 ## [1.2.0] - 2026-04-21
 
 ### Added

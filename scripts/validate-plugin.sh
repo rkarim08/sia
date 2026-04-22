@@ -21,7 +21,8 @@
 #                     to an existing, executable file (after substituting
 #                     ${CLAUDE_PLUGIN_ROOT})
 #   8. portability  — no hardcoded /Users/, /home/, or ~/ paths in
-#                     hooks.json, .mcp.json, or scripts/*.sh
+#                     hooks.json, .claude-plugin/plugin.json, or
+#                     scripts/*.sh
 #   9. usage        — scripts/generate-plugin-usage.sh --verify passes
 #
 # Exit 0 on success with one-line OK summary. Exit non-zero with a
@@ -489,14 +490,15 @@ EOF
 # Check 8: portability — no hardcoded absolute paths
 # ---------------------------------------------------------------------------
 check_portability() {
-	# Files scoped by spec: hooks.json, .mcp.json, scripts/*.sh.
+	# Files scoped by spec: hooks.json, .claude-plugin/plugin.json,
+	# scripts/*.sh.
 	#
 	# Forbidden patterns: /Users/, /home/, ~/ (user-relative).
 	# Comments that contain ~/.claude/... are also caught, which is
 	# intentional — comments that embed absolute paths still hurt
 	# portability in generated docs.
 	local pattern='(/Users/|/home/|~/)'
-	local files=(hooks/hooks.json .mcp.json)
+	local files=(hooks/hooks.json .claude-plugin/plugin.json)
 	local f
 	for f in scripts/*.sh; do
 		# Skip the validator itself — it mentions the forbidden
