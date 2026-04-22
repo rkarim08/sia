@@ -41,11 +41,35 @@ Biome excludes `**/*.md`, so markdown files are not linted, but JSON/TS/JS files
 
 ## Plugin validator
 
-A plugin validator script lands in Phase 5 and will wire `scripts/count-plugin-components.sh` into the drift check. For now, run that script manually to verify the authoritative component counts:
+`scripts/validate-plugin.sh` runs nine schema + integrity checks over the plugin
+(manifest, documented counts, MCP tool registry, agent / skill / command
+frontmatter, hook handler existence, portability, and PLUGIN_USAGE drift).
+
+```bash
+bash scripts/validate-plugin.sh
+```
+
+It fails fast on the first drift with a `[validate-plugin] FAIL (<check>): ...`
+diagnostic, or prints a single OK line on success. The same script runs in CI
+via [`.github/workflows/plugin-validate.yml`](.github/workflows/plugin-validate.yml)
+on every PR and push to `main`.
+
+If you only want the authoritative component counts without the full validator:
 
 ```bash
 bash scripts/count-plugin-components.sh
 ```
+
+### Optional: pre-commit validation
+
+To run the plugin validator before every commit:
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+This points git at `scripts/git-hooks/pre-commit`, which runs
+`bash scripts/validate-plugin.sh` and blocks the commit on any drift.
 
 ## Commit messages
 
@@ -73,7 +97,7 @@ Run in order:
 bun run test
 bunx tsc --noEmit
 bunx @biomejs/biome check .
-bash scripts/count-plugin-components.sh
+bash scripts/validate-plugin.sh
 ```
 
-All four should succeed cleanly.
+All four should succeed cleanly. CI runs exactly the same four commands.

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Opt in: `git config core.hooksPath scripts/git-hooks`
+set -euo pipefail
+bash scripts/validate-plugin.sh
