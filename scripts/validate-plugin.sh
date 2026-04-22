@@ -292,6 +292,8 @@ check_agents() {
 		[[ -f "$f" ]] || continue
 		local fname
 		fname="$(basename "$f")"
+		# README.md documents the directory, not an agent.
+		[[ "$fname" == "README.md" ]] && continue
 
 		# Extract the frontmatter block between the first two `---` lines.
 		local fm
@@ -415,6 +417,8 @@ check_commands() {
 	local f
 	for f in commands/*.md; do
 		[[ -f "$f" ]] || continue
+		# README.md documents the directory, not a command.
+		[[ "$(basename "$f")" == "README.md" ]] && continue
 		local fm
 		fm=$(awk '
 			/^---[[:space:]]*$/ { c++; if (c == 2) exit; next }

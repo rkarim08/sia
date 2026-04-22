@@ -83,6 +83,7 @@ print_agents_table() {
   echo "|---|---|---|"
   for f in agents/*.md; do
     [[ -f "$f" ]] || continue
+    [[ "$(basename "$f")" == "README.md" ]] && continue
     local name
     name=$(basename "$f" .md)
     local desc
@@ -103,6 +104,7 @@ print_commands_table() {
   echo "|---|---|---|---|"
   for f in commands/*.md; do
     [[ -f "$f" ]] || continue
+    [[ "$(basename "$f")" == "README.md" ]] && continue
     local name
     name=$(basename "$f" .md)
     local desc
@@ -155,6 +157,7 @@ if [[ "$MODE" == "verify" ]]; then
     fi
   done
   for f in agents/*.md; do
+    [[ "$(basename "$f")" == "README.md" ]] && continue
     name=$(basename "$f" .md)
     if ! grep -Eq "(^|[^A-Za-z0-9_-])${name}([^A-Za-z0-9_-]|$)" "$target"; then
       echo "drift: agent '$name' not listed in $target" >&2
