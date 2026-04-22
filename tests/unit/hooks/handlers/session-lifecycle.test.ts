@@ -12,6 +12,7 @@ import { createPreCompactHandler } from "@/hooks/handlers/pre-compact";
 import { createSessionEndHandler } from "@/hooks/handlers/session-end";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
 import type { HookEvent } from "@/hooks/types";
+import { upsertSession } from "@/nous/working-memory";
 
 function makeTmp(): string {
 	const dir = join(tmpdir(), `sia-test-${randomUUID()}`);
@@ -624,5 +625,246 @@ describe("createSessionEndHandler", () => {
 		const result = await handler(event);
 		expect(result.status).toBe("processed");
 		expect(result.nodes_this_session).toBe(0);
+	});
+
+	// -----------------------------------------------------------------------
+	// Phase A6 — final consolidation (staging drain + signal rollup + mark ended).
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Directly write a Signal graph_node scoped to `sessionId`. Bypasses the
+	 * discomfort-signal pipeline so tests can control signal count / shape.
+	 */
+	function insertSignalNode(
+		siaDb: SiaDb,
+		sessionId: string,
+		subtype: "discomfort" | "surprise",
+		score: number,
+		createdAt: number,
+	): void {
+		const raw = siaDb.rawSqlite();
+		if (!raw) throw new Error("test fixture requires bun:sqlite-backed SiaDb");
+		raw
+			.prepare(
+				`INSERT INTO graph_nodes (
+					id, type, name, content, summary,
+					tags, file_paths,
+					trust_tier, confidence, base_confidence,
+					importance, base_importance,
+					access_count, edge_count,
+					last_accessed, created_at, t_created,
+					visibility, created_by,
+					kind,
+					captured_by_session_id, captured_by_session_type
+				) VALUES (
+					?, 'Signal', ?, ?, ?,
+					'[]', '[]',
+					2, ?, ?,
+					0.5, 0.5,
+					0, 0,
+					?, ?, ?,
+					'private', 'nous',
+					'Signal',
+					?, 'primary'
+				)`,
+			)
+			.run(
+				randomUUID(),
+				`${subtype}:${sessionId}`,
+				`${subtype} signal in session ${sessionId}`,
+				`${subtype} score ${score}`,
+				score,
+				score,
+				createdAt,
+				createdAt,
+				createdAt,
+				sessionId,
+			);
+	}
+
+	it("(a) 0 signals + 0 staged → counts present, no rollup, staging zero", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("session-end-a6-empty", tmpDir);
+
+		const sessionId = "a6-empty";
+		upsertSession(db, {
+			session_id: sessionId,
+			parent_session_id: null,
+			session_type: "primary",
+			state: {
+				driftScore: 0,
+				preferenceNodeIds: [],
+				currentCallSignificance: 0,
+				surpriseCount: 0,
+				nousModifyBlocked: false,
+				discomfortRunningScore: 0,
+				toolCallCount: 0,
+				sessionStartedAt: Math.floor(Date.now() / 1000),
+			},
+			created_at: Math.floor(Date.now() / 1000),
+			updated_at: Math.floor(Date.now() / 1000),
+		});
+
+		const handler = createSessionEndHandler(db);
+		const result = await handler(
+			baseEvent({ hook_event_name: "SessionEnd", session_id: sessionId }),
+		);
+
+		expect(result.status).toBe("processed");
+		expect(result.nodes_this_session).toBe(0);
+		expect(result.staging_promoted).toBe(0);
+		expect(result.staging_kept).toBe(0);
+		expect(result.staging_rejected).toBe(0);
+		expect(result.signal_rollup_created).toBe(false);
+
+		// No EpisodeSummary written below the 3-signal threshold.
+		const raw = db.rawSqlite();
+		if (!raw) throw new Error("test requires bun:sqlite");
+		const row = raw
+			.prepare(
+				"SELECT COUNT(*) as cnt FROM graph_nodes WHERE kind = 'EpisodeSummary' AND captured_by_session_id = ?",
+			)
+			.get(sessionId) as { cnt: number };
+		expect(row.cnt).toBe(0);
+
+		// ended_at was stamped on the existing nous_sessions row.
+		const sessionRow = raw
+			.prepare("SELECT ended_at FROM nous_sessions WHERE session_id = ?")
+			.get(sessionId) as { ended_at: number | null } | undefined;
+		expect(sessionRow).toBeDefined();
+		expect(sessionRow?.ended_at).not.toBeNull();
+	});
+
+	it("(b) 5 signals → EpisodeSummary node written, signal_rollup_created = true", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("session-end-a6-rollup", tmpDir);
+
+		const sessionId = "a6-rollup";
+		const now = Date.now();
+		insertSignalNode(db, sessionId, "discomfort", 0.6, now - 4000);
+		insertSignalNode(db, sessionId, "discomfort", 0.75, now - 3000);
+		insertSignalNode(db, sessionId, "discomfort", 0.9, now - 2000);
+		insertSignalNode(db, sessionId, "surprise", 0.5, now - 1000);
+		insertSignalNode(db, sessionId, "surprise", 0.8, now);
+
+		const handler = createSessionEndHandler(db);
+		const result = await handler(
+			baseEvent({ hook_event_name: "SessionEnd", session_id: sessionId }),
+		);
+
+		expect(result.status).toBe("processed");
+		expect(result.signal_rollup_created).toBe(true);
+
+		const raw = db.rawSqlite();
+		if (!raw) throw new Error("test requires bun:sqlite");
+		const summaryRow = raw
+			.prepare(
+				"SELECT name, content, summary FROM graph_nodes WHERE kind = 'EpisodeSummary' AND captured_by_session_id = ?",
+			)
+			.get(sessionId) as { name: string; content: string; summary: string } | undefined;
+
+		expect(summaryRow).toBeDefined();
+		expect(summaryRow?.name).toBe(`EpisodeSummary:${sessionId}`);
+		expect(summaryRow?.content).toContain("Signals: 5 (discomfort: 3, surprise: 2)");
+		// Max intensity should be the discomfort-peak of 0.9 (> surprise peak 0.8).
+		expect(summaryRow?.content).toContain("Max intensity: 0.900");
+	});
+
+	it("(c) staged entity above confidence threshold → promoted", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("session-end-a6-staging", tmpDir);
+
+		await insertStagedFact(db, {
+			proposed_type: "Convention",
+			proposed_name: "A6 promote",
+			proposed_content: "A convention captured in the session that survived confirmatory signals.",
+			trust_tier: 4,
+			raw_confidence: 0.92,
+		});
+		await insertStagedFact(db, {
+			proposed_type: "Concept",
+			proposed_name: "A6 keep",
+			proposed_content: "Something tentative.",
+			trust_tier: 4,
+			raw_confidence: 0.4,
+		});
+
+		const handler = createSessionEndHandler(db);
+		const result = await handler(
+			baseEvent({ hook_event_name: "SessionEnd", session_id: "a6-staging" }),
+		);
+
+		expect(result.status).toBe("processed");
+		expect(result.staging_promoted).toBe(1);
+		expect(result.staging_kept).toBe(1);
+		expect(result.staging_rejected).toBe(0);
+	});
+
+	it("(d) staging failure → caught, stderr logged, hook still returns processed", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("session-end-a6-staging-failure", tmpDir);
+
+		// Stage a clean high-confidence fact so the helper enters the write path.
+		await insertStagedFact(db, {
+			proposed_type: "Convention",
+			proposed_name: "Clean fact",
+			proposed_content: "A convention captured from normal session dialog with full support.",
+			trust_tier: 4,
+			raw_confidence: 0.95,
+		});
+
+		const originalExecute = db.execute.bind(db);
+		const execSpy = vi
+			.spyOn(db, "execute")
+			.mockImplementation(async (sql: string, params?: unknown[]) => {
+				const up = sql.trim().toUpperCase();
+				const isWrite = up.startsWith("UPDATE") || up.startsWith("INSERT");
+				const touchesStagingOrGraph = sql.includes("memory_staging") || sql.includes("graph_nodes");
+				if (isWrite && touchesStagingOrGraph) {
+					throw new Error("simulated staging write failure");
+				}
+				return originalExecute(sql, params);
+			});
+		const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+		try {
+			const handler = createSessionEndHandler(db);
+			const result = await handler(
+				baseEvent({ hook_event_name: "SessionEnd", session_id: "a6-fail" }),
+			);
+
+			expect(result.status).toBe("processed");
+			// Staging counts default to zero on failure — hook still returns a safe shape.
+			expect(result.staging_promoted).toBe(0);
+
+			const errCalls = stderrSpy.mock.calls
+				.map((c) => String(c[0]))
+				.filter((s) => s.includes("sia:session-end") || s.includes("sia:staging"));
+			expect(errCalls.length).toBeGreaterThanOrEqual(1);
+		} finally {
+			execSpy.mockRestore();
+			stderrSpy.mockRestore();
+		}
+	});
+
+	it("(e) session_id not in nous_sessions → safe no-op, no throw", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("session-end-a6-no-session", tmpDir);
+
+		const handler = createSessionEndHandler(db);
+		const result = await handler(
+			baseEvent({ hook_event_name: "SessionEnd", session_id: "never-started" }),
+		);
+
+		expect(result.status).toBe("processed");
+		expect(result.signal_rollup_created).toBe(false);
+
+		// No nous_sessions row exists; markSessionEnded was a safe no-op.
+		const raw = db.rawSqlite();
+		if (!raw) throw new Error("test requires bun:sqlite");
+		const row = raw
+			.prepare("SELECT COUNT(*) as cnt FROM nous_sessions WHERE session_id = ?")
+			.get("never-started") as { cnt: number };
+		expect(row.cnt).toBe(0);
 	});
 });

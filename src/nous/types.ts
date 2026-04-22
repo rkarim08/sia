@@ -70,6 +70,7 @@ export const DEFAULT_SESSION_STATE: NousSessionState = {
 export const NOUS_BOOKKEEPING_KINDS = [
 	"Episode",
 	"SubagentEpisode",
+	"EpisodeSummary",
 	"Signal",
 	"Concern",
 	"Preference",
