@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import { getEmptyGraphHint, type HintDb } from "@/hooks/session-start-hints";
+import { EMPTY_GRAPH_HINT, getEmptyGraphHint, type HintDb } from "@/hooks/session-start-hints";
 
 function makeTmp() {
 	return join(tmpdir(), `sia-session-start-${randomUUID()}`);
@@ -28,8 +28,27 @@ describe("getEmptyGraphHint", () => {
 		db = openGraphDb("test-empty", tmpDir);
 
 		const hint = await getEmptyGraphHint(db);
-		expect(hint).toContain("No graph detected");
-		expect(hint).toContain("/sia-setup");
+		expect(hint).toBe(EMPTY_GRAPH_HINT);
+	});
+
+	it("does NOT emit the hint when every entity is bi-temporally invalidated", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("test-invalidated", tmpDir);
+
+		// Seed via the canonical path, then bi-temporally invalidate. The active
+		// filter requires BOTH t_valid_until IS NULL AND archived_at IS NULL, so a
+		// row with t_valid_until set should still trigger the empty-graph hint.
+		await insertEntity(db, {
+			type: "Concept",
+			name: "Retired",
+			content: "to be invalidated",
+			summary: "r",
+		});
+		const now = Math.floor(Date.now() / 1000);
+		await db.execute("UPDATE graph_nodes SET t_valid_until = ?", [now]);
+
+		const hint = await getEmptyGraphHint(db);
+		expect(hint).toBe(EMPTY_GRAPH_HINT);
 	});
 
 	it("does NOT emit the hint when the graph contains at least one active entity", async () => {
