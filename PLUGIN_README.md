@@ -162,7 +162,7 @@ See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usa
 | `/sia-pm-decision-log` | Chronological decision log with rationale |
 | `/sia-pm-risk-dashboard` | Technical risk dashboard scored by impact |
 
-### Subagents (23 agents)
+### Subagents (24 agents)
 
 | Agent | Purpose | Category |
 |---|---|---|
