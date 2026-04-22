@@ -1,0 +1,48 @@
+# Nested node_modules — the big offender; 106MB from src/visualization/frontend
+**/node_modules/
+**/node_modules/**
+
+# Tests — don't ship test suites with the runtime package
+**/*.test.ts
+**/*.test.js
+**/*.test.mjs
+tests/
+**/tests/
+**/__tests__/
+**/*.spec.ts
+**/*.spec.js
+
+# Build / tooling artefacts
+*.tsbuildinfo
+*.map
+coverage/
+.nyc_output/
+.turbo/
+.next/
+
+# Dev tooling + editor
+.claude/
+.vscode/
+.idea/
+.github/
+.husky/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Misc
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docs that are repo-only (gitignored plans + ephemeral scratch)
+docs/superpowers/plans/
+docs/scratch/
+
+# Keep the following even though they might match above:
+!.claude-plugin/
+!.claude-plugin/**
