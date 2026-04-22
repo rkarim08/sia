@@ -45,9 +45,9 @@ export function upsertSession(db: SiaDb, session: NousSession): void {
 }
 
 export function getSession(db: SiaDb, sessionId: string): NousSession | null {
-	const row = raw(db)
-		.prepare("SELECT * FROM nous_sessions WHERE session_id = ?")
-		.get(sessionId) as Record<string, unknown> | undefined;
+	const row = raw(db).prepare("SELECT * FROM nous_sessions WHERE session_id = ?").get(sessionId) as
+		| Record<string, unknown>
+		| undefined;
 	if (!row) return null;
 	return {
 		session_id: row.session_id as string,
@@ -59,11 +59,7 @@ export function getSession(db: SiaDb, sessionId: string): NousSession | null {
 	};
 }
 
-export function updateSessionState(
-	db: SiaDb,
-	sessionId: string,
-	state: NousSessionState,
-): void {
+export function updateSessionState(db: SiaDb, sessionId: string, state: NousSessionState): void {
 	const now = Math.floor(Date.now() / 1000);
 	raw(db)
 		.prepare("UPDATE nous_sessions SET state = ?, updated_at = ? WHERE session_id = ?")

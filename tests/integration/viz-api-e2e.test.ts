@@ -10,8 +10,8 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
-import { createVizApiServer } from "@/visualization/viz-api-server";
 import type { VizServer } from "@/visualization/viz-api-server";
+import { createVizApiServer } from "@/visualization/viz-api-server";
 
 describe("viz-api-e2e", () => {
 	let tmpDir: string | undefined;
@@ -81,7 +81,7 @@ describe("viz-api-e2e", () => {
 		mkdirSync(join(projectRoot, "src/mcp"), { recursive: true });
 		writeFileSync(
 			join(projectRoot, "src/ast/indexer.ts"),
-			'export function indexFile(path: string): void {\n  console.log(path);\n}\n',
+			"export function indexFile(path: string): void {\n  console.log(path);\n}\n",
 		);
 
 		// Start server on random port
@@ -91,7 +91,7 @@ describe("viz-api-e2e", () => {
 		// 1. GET /api/graph — combos.length >= 2, nodes.length >= 3
 		const graphRes = await fetch(`${baseUrl}/api/graph`);
 		expect(graphRes.status).toBe(200);
-		const graphData = await graphRes.json() as {
+		const graphData = (await graphRes.json()) as {
 			nodes: unknown[];
 			edges: unknown[];
 			combos: unknown[];
@@ -102,21 +102,19 @@ describe("viz-api-e2e", () => {
 		// 2. GET /api/expand/combo:src/ast — nodes.length >= 1
 		const expandRes = await fetch(`${baseUrl}/api/expand/combo:src%2Fast`);
 		expect(expandRes.status).toBe(200);
-		const expandData = await expandRes.json() as { nodes: unknown[] };
+		const expandData = (await expandRes.json()) as { nodes: unknown[] };
 		expect(expandData.nodes.length).toBeGreaterThanOrEqual(1);
 
 		// 3. GET /api/entities/file:src/ast/indexer.ts — nodes.length >= 1
-		const entitiesRes = await fetch(
-			`${baseUrl}/api/entities/file:src%2Fast%2Findexer.ts`,
-		);
+		const entitiesRes = await fetch(`${baseUrl}/api/entities/file:src%2Fast%2Findexer.ts`);
 		expect(entitiesRes.status).toBe(200);
-		const entitiesData = await entitiesRes.json() as { nodes: unknown[] };
+		const entitiesData = (await entitiesRes.json()) as { nodes: unknown[] };
 		expect(entitiesData.nodes.length).toBeGreaterThanOrEqual(1);
 
 		// 4. GET /api/file?path=src/ast/indexer.ts — content, language
 		const fileRes = await fetch(`${baseUrl}/api/file?path=src/ast/indexer.ts`);
 		expect(fileRes.status).toBe(200);
-		const fileData = await fileRes.json() as {
+		const fileData = (await fileRes.json()) as {
 			content: string;
 			language: string;
 			lineCount: number;
@@ -127,7 +125,7 @@ describe("viz-api-e2e", () => {
 		// 5. GET /api/search?q=index — results.length >= 1
 		const searchRes = await fetch(`${baseUrl}/api/search?q=index`);
 		expect(searchRes.status).toBe(200);
-		const searchData = await searchRes.json() as { results: unknown[] };
+		const searchData = (await searchRes.json()) as { results: unknown[] };
 		expect(searchData.results.length).toBeGreaterThanOrEqual(1);
 
 		// 6. GET / — HTML with "g6"

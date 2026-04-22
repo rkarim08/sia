@@ -9,7 +9,13 @@ import { dirname, join, relative } from "node:path";
 import { chunkPayload } from "@/capture/chunker";
 import { consolidate } from "@/capture/consolidate";
 import { inferEdges } from "@/capture/edge-inferrer";
+import type { NamedEmbedder } from "@/capture/embedder";
 import { processFlags } from "@/capture/flag-processor";
+import {
+	classifyExtractionResult,
+	type GlinerExtractor,
+	type GlinerSpan,
+} from "@/capture/gliner-extractor";
 import { resolveRepoHash } from "@/capture/hook";
 import { extractTrackA } from "@/capture/track-a-ast";
 import { extractTrackB } from "@/capture/track-b-llm";
@@ -25,12 +31,6 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import { openEpisodicDb, openGraphDb } from "@/graph/semantic-db";
 import { insertStagedFact } from "@/graph/staging";
-import type { NamedEmbedder } from "@/capture/embedder";
-import {
-	type GlinerExtractor,
-	type GlinerSpan,
-	classifyExtractionResult,
-} from "@/capture/gliner-extractor";
 import { getConfig, type SiaConfig } from "@/shared/config";
 
 // ---------------------------------------------------------------------------
@@ -349,7 +349,11 @@ async function generateCodeEmbeddings(
 		const isCodeType = CODE_ADJACENT_TYPES.has(entityType);
 		let hasFilePaths = false;
 		if (filePaths) {
-			try { hasFilePaths = JSON.parse(filePaths).length > 0; } catch { /* malformed JSON */ }
+			try {
+				hasFilePaths = JSON.parse(filePaths).length > 0;
+			} catch {
+				/* malformed JSON */
+			}
 		}
 		const candidateHasFilePaths = candidate?.file_paths && candidate.file_paths.length > 0;
 
@@ -360,10 +364,10 @@ async function generateCodeEmbeddings(
 
 		const embedding = await codeEmbedder.embed(content);
 		if (embedding) {
-			await graphDb.execute(
-				"UPDATE graph_nodes SET embedding_code = ? WHERE id = ?",
-				[Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength), row.id as string],
-			);
+			await graphDb.execute("UPDATE graph_nodes SET embedding_code = ? WHERE id = ?", [
+				Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength),
+				row.id as string,
+			]);
 		}
 	}
 }

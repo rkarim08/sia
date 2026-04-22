@@ -116,6 +116,8 @@ describe("downloadModel", () => {
 
 		// T0 model files should now exist in per-model subdirectories
 		expect(existsSync(join(modelsDir, "bge-small-en-v1.5", "model_quantized.onnx"))).toBe(true);
-		expect(existsSync(join(modelsDir, "ms-marco-MiniLM-L-6-v2", "model_quantized.onnx"))).toBe(true);
+		expect(existsSync(join(modelsDir, "ms-marco-MiniLM-L-6-v2", "model_quantized.onnx"))).toBe(
+			true,
+		);
 	});
 });

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-	createCrossEncoderReranker,
-	type CrossEncoderReranker,
 	type CrossEncoderCandidate,
+	type CrossEncoderReranker,
+	createCrossEncoderReranker,
 	sigmoid,
 } from "@/retrieval/cross-encoder";
 
@@ -103,11 +103,11 @@ describe("CrossEncoderReranker", () => {
 
 		expect(results.length).toBe(3);
 		// 2nd candidate (b) should have score 0 due to error
-		const bResult = results.find(r => r.entityId === "b");
+		const bResult = results.find((r) => r.entityId === "b");
 		expect(bResult?.score).toBe(0);
 		// 1st and 3rd should have proper sigmoid scores
-		const aResult = results.find(r => r.entityId === "a");
-		const cResult = results.find(r => r.entityId === "c");
+		const aResult = results.find((r) => r.entityId === "a");
+		const cResult = results.find((r) => r.entityId === "c");
 		expect(aResult!.score).toBeGreaterThan(0);
 		expect(cResult!.score).toBeGreaterThan(0);
 	});

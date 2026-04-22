@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { v4 as uuid } from "uuid";
+import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 import { handleNousModify } from "@/mcp/tools/nous-modify";
@@ -34,8 +34,9 @@ function insertPreferenceNode(db: SiaDb, id: string, trust_tier: number, name: s
 	const raw = db.rawSqlite();
 	if (!raw) throw new Error("no raw sqlite handle");
 	const now = Date.now();
-	raw.prepare(
-		`INSERT INTO graph_nodes (
+	raw
+		.prepare(
+			`INSERT INTO graph_nodes (
 			id, type, name, content, summary,
 			tags, file_paths,
 			trust_tier, confidence, base_confidence,
@@ -45,7 +46,8 @@ function insertPreferenceNode(db: SiaDb, id: string, trust_tier: number, name: s
 			visibility, created_by,
 			kind
 		) VALUES (?, 'Preference', ?, 'Old content', 'Old summary', '[]', '[]', ?, 0.8, 0.8, 0.6, 0.6, 0, 0, ?, ?, ?, 'private', 'test', 'Preference')`,
-	).run(id, name, trust_tier, now, now, now);
+		)
+		.run(id, name, trust_tier, now, now, now);
 }
 
 describe("nous-modify", () => {

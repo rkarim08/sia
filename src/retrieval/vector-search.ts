@@ -35,7 +35,9 @@ const BRUTE_FORCE_LIMIT = 1000;
  */
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
 	if (a.length !== b.length) {
-		throw new Error(`cosineSimilarity: dimension mismatch — a.length=${a.length}, b.length=${b.length}`);
+		throw new Error(
+			`cosineSimilarity: dimension mismatch — a.length=${a.length}, b.length=${b.length}`,
+		);
 	}
 	let dot = 0;
 	let normA = 0;
@@ -144,8 +146,10 @@ function tryVssSearch(
 		results.sort((a, b) => b.score - a.score);
 		return results.slice(0, limit);
 	} catch (err) {
-		console.error("[sia] vector-search: sqlite-vss unavailable, falling back to brute-force:",
-			err instanceof Error ? err.message : String(err));
+		console.error(
+			"[sia] vector-search: sqlite-vss unavailable, falling back to brute-force:",
+			err instanceof Error ? err.message : String(err),
+		);
 		return null;
 	}
 }

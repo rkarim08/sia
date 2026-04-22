@@ -104,10 +104,7 @@ describe("ModelManager", () => {
 		const crypto = await import("node:crypto");
 		const expected = crypto.createHash("sha256").update(content).digest("hex");
 
-		const result = await manager.verifyChecksum(
-			join(modelDir, "model.onnx"),
-			expected,
-		);
+		const result = await manager.verifyChecksum(join(modelDir, "model.onnx"), expected);
 		expect(result).toBe(true);
 	});
 
@@ -118,10 +115,7 @@ describe("ModelManager", () => {
 		mkdirSync(modelDir, { recursive: true });
 		writeFileSync(join(modelDir, "model.onnx"), "test content");
 
-		const result = await manager.verifyChecksum(
-			join(modelDir, "model.onnx"),
-			"wrong_hash",
-		);
+		const result = await manager.verifyChecksum(join(modelDir, "model.onnx"), "wrong_hash");
 		expect(result).toBe(false);
 	});
 
@@ -154,8 +148,13 @@ describe("ModelManager", () => {
 		writeFileSync(join(modelDir, "model.onnx"), "fake model");
 
 		manager.recordModelInstalled("test-model", {
-			version: "1.0.0", variant: "int8", sha256: "abc",
-			sizeBytes: 100, source: "test", installedAt: new Date().toISOString(), tier: "T0",
+			version: "1.0.0",
+			variant: "int8",
+			sha256: "abc",
+			sizeBytes: 100,
+			source: "test",
+			installedAt: new Date().toISOString(),
+			tier: "T0",
 		});
 		manager.removeModel("test-model", true);
 

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { join, relative, resolve } from "node:path";
+import type { WorkerMessage, WorkerResult } from "@/ast/index-worker";
 import { parseFileWithRetry } from "@/ast/index-worker";
 import { getLanguageForFile } from "@/ast/languages";
 import { createIgnoreMatcher, toPosixPath } from "@/ast/path-utils";
@@ -11,8 +12,6 @@ import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
 import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
-
-import type { WorkerMessage, WorkerResult } from "@/ast/index-worker";
 
 /**
  * Runtime-agnostic handle to a single worker.
@@ -61,7 +60,9 @@ function getNodeAdapter(): WorkerAdapter {
 			const w = new Worker(typeof workerPath === "string" ? workerPath : workerPath.pathname);
 			return {
 				postMessage: (msg) => w.postMessage(msg),
-				terminate: () => { w.terminate(); },
+				terminate: () => {
+					w.terminate();
+				},
 				raw: w,
 			};
 		},

@@ -3,10 +3,10 @@ import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { SiaDb } from "@/graph/db-interface";
-import { openGraphDb } from "@/graph/semantic-db";
 import { createFeedbackCollector } from "@/feedback/collector";
 import { createFeedbackEvent, SIGNAL_STRENGTHS, type SignalType } from "@/feedback/types";
+import type { SiaDb } from "@/graph/db-interface";
+import { openGraphDb } from "@/graph/semantic-db";
 
 describe("FeedbackCollector", () => {
 	let tmpDir: string;
@@ -19,7 +19,10 @@ describe("FeedbackCollector", () => {
 	}
 
 	afterEach(async () => {
-		if (db) { await db.close(); db = undefined; }
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
 		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
 	});
 
@@ -203,20 +206,24 @@ describe("createFeedbackEvent", () => {
 	};
 
 	it("throws when candidatesShown <= 0", () => {
-		expect(() => createFeedbackEvent({
-			...base,
-			signalType: "agent_cite",
-			candidatesShown: 0,
-		})).toThrow("candidatesShown must be > 0");
+		expect(() =>
+			createFeedbackEvent({
+				...base,
+				signalType: "agent_cite",
+				candidatesShown: 0,
+			}),
+		).toThrow("candidatesShown must be > 0");
 	});
 
 	it("throws when rankPosition >= candidatesShown", () => {
-		expect(() => createFeedbackEvent({
-			...base,
-			signalType: "agent_cite",
-			rankPosition: 5,
-			candidatesShown: 5,
-		})).toThrow("out of range");
+		expect(() =>
+			createFeedbackEvent({
+				...base,
+				signalType: "agent_cite",
+				rankPosition: 5,
+				candidatesShown: 5,
+			}),
+		).toThrow("out of range");
 	});
 
 	it("succeeds at boundary rankPosition = candidatesShown - 1", () => {

@@ -138,7 +138,8 @@ describe("working-memory", () => {
 		// force it to be stale. Drop straight through to the raw handle for test setup.
 		const raw = db.rawSqlite();
 		if (raw) {
-			raw.prepare("UPDATE nous_sessions SET updated_at = ? WHERE session_id = ?")
+			raw
+				.prepare("UPDATE nous_sessions SET updated_at = ? WHERE session_id = ?")
 				.run(staleTime, "stale-sess");
 		}
 

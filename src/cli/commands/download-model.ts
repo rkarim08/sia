@@ -10,10 +10,10 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { SIA_HOME } from "@/shared/config";
 import { createModelManager, type ModelManager } from "@/models/manager";
 import { getModelsForTier } from "@/models/registry";
 import type { ModelTier } from "@/models/types";
+import { SIA_HOME } from "@/shared/config";
 
 /**
  * Download a single file from `url` to `destPath`.
@@ -67,7 +67,10 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
  * Verify the SHA-256 checksum of a file via streaming.
  * Returns true if match, false if mismatch. Deletes file on mismatch.
  */
-export async function verifyModelChecksum(filePath: string, expectedHash: string): Promise<boolean> {
+export async function verifyModelChecksum(
+	filePath: string,
+	expectedHash: string,
+): Promise<boolean> {
 	return new Promise<boolean>((resolve, reject) => {
 		const hash = createHash("sha256");
 		const stream = createReadStream(filePath);
@@ -138,7 +141,11 @@ export async function downloadModelsForTier(
 			if (!fileExistsWithContent(tokPath)) {
 				console.log(`Downloading ${name} tokenizer...`);
 				await downloadFile(`${hfBaseUrl}/${entry.tokenizerFile}`, tokPath);
-				if (!process.env.SIA_SKIP_CHECKSUM && entry.tokenizerSha256 && !entry.tokenizerSha256.startsWith("PLACEHOLDER")) {
+				if (
+					!process.env.SIA_SKIP_CHECKSUM &&
+					entry.tokenizerSha256 &&
+					!entry.tokenizerSha256.startsWith("PLACEHOLDER")
+				) {
 					const ok = await verifyModelChecksum(tokPath, entry.tokenizerSha256);
 					if (!ok) {
 						console.error(`Tokenizer checksum verification failed for ${name} — skipping`);

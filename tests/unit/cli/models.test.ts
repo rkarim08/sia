@@ -38,7 +38,12 @@ describe("handleModelsCommand", () => {
 				schemaVersion: 1,
 				installedTier: tier,
 				models: {},
-				attentionHead: { trainingPhase: "none" as const, feedbackEvents: 0, lastTrained: null, projectVariants: {} },
+				attentionHead: {
+					trainingPhase: "none" as const,
+					feedbackEvents: 0,
+					lastTrained: null,
+					projectVariants: {},
+				},
 			}),
 			installModel: vi.fn(),
 			removeModel: vi.fn(),

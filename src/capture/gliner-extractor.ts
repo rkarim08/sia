@@ -3,9 +3,15 @@
 // Reference: Zaratiana et al., 2023 — "GLiNER: Generalist Model for NER"
 // https://arxiv.org/abs/2311.08526
 //
+
+import {
+	buildGlinerInput,
+	buildWordsMask,
+	type GlinerModelInput,
+	generateSpanIndices,
+} from "@/capture/gliner-tokenizer";
+import { type DispatchedTokenizer, loadTokenizerForModel } from "@/capture/tokenizer-dispatch";
 import type { OnnxSession } from "@/models/types";
-import { buildGlinerInput, buildWordsMask, generateSpanIndices, type GlinerModelInput } from "@/capture/gliner-tokenizer";
-import { loadTokenizerForModel, type DispatchedTokenizer } from "@/capture/tokenizer-dispatch";
 // At T2+, this supplements the LLM capture pipeline:
 // - High confidence → accepted directly into the graph
 // - Mid confidence → sent to Haiku for confirmation
@@ -273,10 +279,18 @@ async function loadOnnxRuntime(): Promise<typeof import("onnxruntime-node") | nu
 	try {
 		return await import("onnxruntime-node");
 	} catch (err) {
-		if (err instanceof Error && (err.message.includes("Cannot find module") || err.message.includes("MODULE_NOT_FOUND"))) {
-			console.debug("[sia] gliner-extractor: onnxruntime-node not installed — real-tensor path disabled");
+		if (
+			err instanceof Error &&
+			(err.message.includes("Cannot find module") || err.message.includes("MODULE_NOT_FOUND"))
+		) {
+			console.debug(
+				"[sia] gliner-extractor: onnxruntime-node not installed — real-tensor path disabled",
+			);
 		} else {
-			console.error("[sia] gliner-extractor: unexpected error loading onnxruntime-node:", err instanceof Error ? err.message : String(err));
+			console.error(
+				"[sia] gliner-extractor: unexpected error loading onnxruntime-node:",
+				err instanceof Error ? err.message : String(err),
+			);
 		}
 		return null;
 	}
@@ -331,7 +345,9 @@ export function createGlinerExtractor(config: GlinerExtractorConfig): GlinerExtr
 		async extract(text: string): Promise<GlinerSpan[]> {
 			if (!session) {
 				if (!nullSessionLogged) {
-					console.error("[sia] gliner-extractor: session is null — extraction disabled (T0/T1 degradation)");
+					console.error(
+						"[sia] gliner-extractor: session is null — extraction disabled (T0/T1 degradation)",
+					);
 					nullSessionLogged = true;
 				}
 				return [];
@@ -376,21 +392,55 @@ export function createGlinerExtractor(config: GlinerExtractorConfig): GlinerExtr
 						maxChunkLength,
 						DEFAULT_MAX_SPAN_WIDTH,
 					);
-					const words = chunk.trim().split(/\s+/).filter((w) => w.length > 0);
-					const tensors = buildGlinerTensors(tok as DispatchedTokenizer, glinerInput, words, maxChunkLength);
+					const words = chunk
+						.trim()
+						.split(/\s+/)
+						.filter((w) => w.length > 0);
+					const tensors = buildGlinerTensors(
+						tok as DispatchedTokenizer,
+						glinerInput,
+						words,
+						maxChunkLength,
+					);
 
 					const seqShape = [1, tensors.seqLength];
 					const feeds = {
-						input_ids: new (ortMod as typeof import("onnxruntime-node")).Tensor("int64", tensors.inputIds, seqShape),
-						attention_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor("int64", tensors.attentionMask, seqShape),
-						words_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor("int64", tensors.wordsMask, seqShape),
-						text_lengths: new (ortMod as typeof import("onnxruntime-node")).Tensor("int64", tensors.textLengths, [1, 1]),
-						span_idx: new (ortMod as typeof import("onnxruntime-node")).Tensor("int64", tensors.spanIdxData, [1, tensors.numSpans, 2]),
-						span_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor("bool", tensors.spanMaskData, [1, tensors.numSpans]),
+						input_ids: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"int64",
+							tensors.inputIds,
+							seqShape,
+						),
+						attention_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"int64",
+							tensors.attentionMask,
+							seqShape,
+						),
+						words_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"int64",
+							tensors.wordsMask,
+							seqShape,
+						),
+						text_lengths: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"int64",
+							tensors.textLengths,
+							[1, 1],
+						),
+						span_idx: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"int64",
+							tensors.spanIdxData,
+							[1, tensors.numSpans, 2],
+						),
+						span_mask: new (ortMod as typeof import("onnxruntime-node")).Tensor(
+							"bool",
+							tensors.spanMaskData,
+							[1, tensors.numSpans],
+						),
 					};
 
 					const output = await session.run(feeds);
-					const logits = output.logits as { data: Float32Array; dims: readonly number[] } | undefined;
+					const logits = output.logits as
+						| { data: Float32Array; dims: readonly number[] }
+						| undefined;
 					if (!logits?.data) {
 						console.error(
 							`[sia] gliner-extractor: chunk ${c}/${chunks.length} — ONNX output missing 'logits' tensor`,

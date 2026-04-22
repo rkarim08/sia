@@ -13,9 +13,9 @@
 // not TypeScript-side logic. This module handles feature assembly, model invocation,
 // and fallback when no ONNX model is available.
 
-import { GRAPHORMER_MAX_DIST } from "@/retrieval/graph-distance";
-import { createDefaultTime2VecParams, time2vecEncode, TIME2VEC_DIM } from "@/retrieval/time2vec";
 import type { OnnxSession } from "@/models/types";
+import { GRAPHORMER_MAX_DIST } from "@/retrieval/graph-distance";
+import { createDefaultTime2VecParams, TIME2VEC_DIM, time2vecEncode } from "@/retrieval/time2vec";
 
 /** Per-candidate features assembled before fusion. */
 export interface CandidateFeatures {
@@ -75,7 +75,9 @@ export function assembleFeatureVector(candidate: CandidateFeatures): Float32Arra
 	// Entity embedding (indices 5-388) — must be exactly 384d
 	const emb = candidate.entityEmbedding;
 	if (emb.length !== 384) {
-		throw new Error(`entityEmbedding must be 384d; got ${emb.length}d for entity ${candidate.entityId}`);
+		throw new Error(
+			`entityEmbedding must be 384d; got ${emb.length}d for entity ${candidate.entityId}`,
+		);
 	}
 	for (let i = 0; i < 384; i++) {
 		vec[5 + i] = emb[i];
@@ -98,7 +100,13 @@ export function assembleFeatureVector(candidate: CandidateFeatures): Float32Arra
 	return vec;
 }
 
-const FALLBACK_WEIGHTS = { bm25: 0.3, vector: 0.25, graph: 0.2, crossEncoder: 0.25, samePackageBoost: 0.1 } as const;
+const FALLBACK_WEIGHTS = {
+	bm25: 0.3,
+	vector: 0.25,
+	graph: 0.2,
+	crossEncoder: 0.25,
+	samePackageBoost: 0.1,
+} as const;
 let _attentionFusionNullLogged = false;
 
 /**
@@ -160,7 +168,9 @@ export async function attentionFusion(
 	// Fallback to weighted score when no model is available
 	if (!session) {
 		if (!_attentionFusionNullLogged) {
-			console.error("[sia] attention-fusion: session is null — using weighted score fallback (T0 degradation)");
+			console.error(
+				"[sia] attention-fusion: session is null — using weighted score fallback (T0 degradation)",
+			);
 			_attentionFusionNullLogged = true;
 		}
 		return weightedScoreFallback(candidates);
@@ -171,7 +181,9 @@ export async function attentionFusion(
 	const hasCode = candidates[0].codeVectorScore !== undefined;
 	const inconsistent = candidates.some((c) => (c.codeVectorScore !== undefined) !== hasCode);
 	if (inconsistent) {
-		console.warn("[sia] attention-fusion: heterogeneous codeVectorScore presence across candidates — using first candidate's mode");
+		console.warn(
+			"[sia] attention-fusion: heterogeneous codeVectorScore presence across candidates — using first candidate's mode",
+		);
 	}
 	const featureDim = hasCode ? FEATURE_DIM_T1 : FEATURE_DIM;
 
@@ -202,7 +214,11 @@ export async function attentionFusion(
 		const feeds: Record<string, unknown> = {
 			features: { data: features, dims: [K, featureDim], type: "float32" },
 			graph_distances: { data: distMatrix, dims: [K, K], type: "float32" },
-			has_code_context: { data: new Float32Array([hasCodeCtx ? 1.0 : 0.0]), dims: [1], type: "float32" },
+			has_code_context: {
+				data: new Float32Array([hasCodeCtx ? 1.0 : 0.0]),
+				dims: [1],
+				type: "float32",
+			},
 		};
 
 		if (hasCodeCtx && codeContextEmbedding) {
@@ -217,7 +233,9 @@ export async function attentionFusion(
 		const scores = output.scores as { data: Float32Array; dims: readonly number[] };
 
 		if (!scores?.data) {
-			console.error("[sia] attention-fusion: ONNX output missing 'scores' tensor — model schema mismatch?");
+			console.error(
+				"[sia] attention-fusion: ONNX output missing 'scores' tensor — model schema mismatch?",
+			);
 			return weightedScoreFallback(candidates);
 		}
 

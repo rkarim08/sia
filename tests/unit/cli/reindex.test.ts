@@ -109,10 +109,7 @@ describe("siaReindex — package_path backfill (Task 14.12)", () => {
 
 		// Confirm all three start with NULL package_path.
 		for (const id of [entityA.id, entityB.id, entityC.id]) {
-			const { rows } = await db.execute(
-				"SELECT package_path FROM graph_nodes WHERE id = ?",
-				[id],
-			);
+			const { rows } = await db.execute("SELECT package_path FROM graph_nodes WHERE id = ?", [id]);
 			expect(rows[0]?.package_path).toBeNull();
 		}
 

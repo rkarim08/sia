@@ -18,7 +18,10 @@ describe("vectorSearch — dual-column support", () => {
 	}
 
 	afterEach(async () => {
-		if (db) { await db.close(); db = undefined; }
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
 		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
 	});
 
@@ -54,7 +57,10 @@ describe("vectorSearch — dual-column support", () => {
 				opts.trustTier ?? 2,
 				opts.embedding ?? null,
 				opts.embeddingCode ?? null,
-				now, now, now, now,
+				now,
+				now,
+				now,
+				now,
 			],
 		);
 	}
@@ -171,6 +177,8 @@ describe("vectorSearch — dual-column support", () => {
 		const embedder = makeEmbedder(queryVec);
 
 		// Should throw due to dimension mismatch in cosineSim
-		await expect(vectorSearch(db, "test", embedder, { limit: 5 })).rejects.toThrow("dimension mismatch");
+		await expect(vectorSearch(db, "test", embedder, { limit: 5 })).rejects.toThrow(
+			"dimension mismatch",
+		);
 	});
 });

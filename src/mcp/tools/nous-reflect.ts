@@ -45,10 +45,7 @@ export async function handleNousReflect(
 	);
 	const overallDrift =
 		discomfortEvents.length > 0
-			? Math.min(
-					1.0,
-					discomfortEvents.reduce((s, e) => s + e.score, 0) / discomfortEvents.length,
-				)
+			? Math.min(1.0, discomfortEvents.reduce((s, e) => s + e.score, 0) / discomfortEvents.length)
 			: 0.0;
 
 	// Load Signal nodes as driving signals.

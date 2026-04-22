@@ -41,8 +41,22 @@ describe("attention fusion", () => {
 
 	it("weightedScoreFallback returns sorted scores matching RRF behavior", () => {
 		const candidates: CandidateFeatures[] = [
-			{ ...candidate, entityId: "a", bm25Score: 0.9, vectorScore: 0.8, graphScore: 0.7, crossEncoderScore: 0.9 },
-			{ ...candidate, entityId: "b", bm25Score: 0.3, vectorScore: 0.2, graphScore: 0.1, crossEncoderScore: 0.3 },
+			{
+				...candidate,
+				entityId: "a",
+				bm25Score: 0.9,
+				vectorScore: 0.8,
+				graphScore: 0.7,
+				crossEncoderScore: 0.9,
+			},
+			{
+				...candidate,
+				entityId: "b",
+				bm25Score: 0.3,
+				vectorScore: 0.2,
+				graphScore: 0.1,
+				crossEncoderScore: 0.3,
+			},
 		];
 
 		const results = weightedScoreFallback(candidates);
@@ -87,7 +101,15 @@ describe("attention fusion", () => {
 				scores: { data: new Float32Array([0.9, 0.1]), dims: [2] },
 			}),
 		};
-		const result = await attentionFusion([c1, c2], [[0, 5], [5, 0]], null, mockSession);
+		const result = await attentionFusion(
+			[c1, c2],
+			[
+				[0, 5],
+				[5, 0],
+			],
+			null,
+			mockSession,
+		);
 		expect(result[0].entityId).toBe("c1");
 		expect(result[0].score).toBeCloseTo(0.9, 3);
 	});
@@ -96,9 +118,19 @@ describe("attention fusion", () => {
 		const c1: CandidateFeatures = { ...candidate, entityId: "c1", bm25Score: 0.9 };
 		const c2: CandidateFeatures = { ...candidate, entityId: "c2", bm25Score: 0.1 };
 		const throwingSession = {
-			run: async () => { throw new Error("ONNX crashed"); },
+			run: async () => {
+				throw new Error("ONNX crashed");
+			},
 		};
-		const result = await attentionFusion([c1, c2], [[0, 5], [5, 0]], null, throwingSession);
+		const result = await attentionFusion(
+			[c1, c2],
+			[
+				[0, 5],
+				[5, 0],
+			],
+			null,
+			throwingSession,
+		);
 		expect(result[0].entityId).toBe("c1");
 		expect(result.length).toBe(2);
 	});
@@ -124,7 +156,11 @@ describe("attention fusion", () => {
 
 		const result = await attentionFusion(
 			[c1, c2, c3],
-			[[0, 5, 5], [5, 0, 5], [5, 5, 0]],
+			[
+				[0, 5, 5],
+				[5, 0, 5],
+				[5, 5, 0],
+			],
 			null,
 			partialSession,
 		);

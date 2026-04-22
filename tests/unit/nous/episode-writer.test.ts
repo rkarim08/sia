@@ -47,9 +47,7 @@ describe("episode-writer", () => {
 		const raw = db.rawSqlite();
 		expect(raw).not.toBeNull();
 		const episode = raw
-			?.prepare(
-				"SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?",
-			)
+			?.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get("ep-sess-1") as Record<string, unknown> | undefined;
 		expect(episode).toBeDefined();
 		expect(episode?.trust_tier).toBe(2);
@@ -77,9 +75,7 @@ describe("episode-writer", () => {
 		// No Episode node for subagents
 		const raw = db.rawSqlite();
 		const episode = raw
-			?.prepare(
-				"SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?",
-			)
+			?.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get("ep-sess-2");
 		expect(episode).toBeUndefined();
 	});

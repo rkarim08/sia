@@ -25,3 +25,6 @@ src/visualization/frontend/node_modules/
 # ONNX model files (downloaded to ~/.sia/models/, never committed)
 *.onnx
 /models/
+
+# Local HuggingFace/npm tarball downloads
+*.tgz

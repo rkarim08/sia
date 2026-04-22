@@ -6,15 +6,15 @@
 //
 // Security: All git commands use execFileSync (array args, no shell).
 
-import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, extname } from "node:path";
-import { getLanguageForFile } from "@/ast/languages";
-import { loadCache, saveCache, type CacheMap } from "@/ast/indexer";
+import { extname, join } from "node:path";
 import { parseFileWithRetry } from "@/ast/index-worker";
-import { insertEntity, updateEntity } from "@/graph/entities";
+import { type CacheMap, loadCache, saveCache } from "@/ast/indexer";
+import { getLanguageForFile } from "@/ast/languages";
 import type { SiaDb } from "@/graph/db-interface";
+import { insertEntity, updateEntity } from "@/graph/entities";
 import type { SiaConfig } from "@/shared/config";
 
 /** Maximum files to reindex inline (blocking). Beyond this, cap and log. */
@@ -44,10 +44,11 @@ export function computeContentHash(content: string): string {
 export function getChangedFiles(cwd: string, oldHead: string, newHead: string): string[] {
 	if (oldHead === newHead) return [];
 	try {
-		const output = execFileSync(
-			"git", ["diff", "--name-only", oldHead, newHead],
-			{ cwd, encoding: "utf-8", timeout: 10_000 },
-		);
+		const output = execFileSync("git", ["diff", "--name-only", oldHead, newHead], {
+			cwd,
+			encoding: "utf-8",
+			timeout: 10_000,
+		});
 		return output.trim().split("\n").filter(Boolean);
 	} catch {
 		return [];
@@ -118,7 +119,14 @@ export async function incrementalReindex(
 ): Promise<IncrementalReindexResult> {
 	const currentHead = getCurrentHead(cwd);
 	if (!currentHead) {
-		return { triggered: false, reason: "not a git repo", filesChanged: 0, filesReparsed: 0, filesSkippedByHash: 0, errors: [] };
+		return {
+			triggered: false,
+			reason: "not a git repo",
+			filesChanged: 0,
+			filesReparsed: 0,
+			filesSkippedByHash: 0,
+			errors: [],
+		};
 	}
 
 	const repoDataDir = join(config.repoDir, repoHash);
@@ -126,26 +134,54 @@ export async function incrementalReindex(
 	// First run — store HEAD and skip
 	if (!oldHead) {
 		writeStoredHead(repoDataDir, currentHead);
-		return { triggered: false, reason: "first run — stored HEAD", filesChanged: 0, filesReparsed: 0, filesSkippedByHash: 0, errors: [] };
+		return {
+			triggered: false,
+			reason: "first run — stored HEAD",
+			filesChanged: 0,
+			filesReparsed: 0,
+			filesSkippedByHash: 0,
+			errors: [],
+		};
 	}
 
 	// Same HEAD — nothing to do
 	if (oldHead === currentHead) {
-		return { triggered: false, reason: "HEAD unchanged", filesChanged: 0, filesReparsed: 0, filesSkippedByHash: 0, errors: [] };
+		return {
+			triggered: false,
+			reason: "HEAD unchanged",
+			filesChanged: 0,
+			filesReparsed: 0,
+			filesSkippedByHash: 0,
+			errors: [],
+		};
 	}
 
 	// Get changed files
 	let changedFiles = getChangedFiles(cwd, oldHead, currentHead);
 	if (changedFiles.length === 0) {
 		writeStoredHead(repoDataDir, currentHead);
-		return { triggered: true, reason: "diff empty", filesChanged: 0, filesReparsed: 0, filesSkippedByHash: 0, errors: [] };
+		return {
+			triggered: true,
+			reason: "diff empty",
+			filesChanged: 0,
+			filesReparsed: 0,
+			filesSkippedByHash: 0,
+			errors: [],
+		};
 	}
 
 	// Filter to supported extensions
 	changedFiles = filterSupportedFiles(changedFiles);
 	if (changedFiles.length === 0) {
 		writeStoredHead(repoDataDir, currentHead);
-		return { triggered: true, reason: "no supported files in diff", filesChanged: 0, filesReparsed: 0, filesSkippedByHash: 0, errors: [] };
+		return {
+			triggered: true,
+			reason: "no supported files in diff",
+			filesChanged: 0,
+			filesReparsed: 0,
+			filesSkippedByHash: 0,
+			errors: [],
+		};
 	}
 
 	// Cap at MAX_INLINE_BATCH

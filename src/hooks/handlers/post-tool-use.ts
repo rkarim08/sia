@@ -255,7 +255,12 @@ async function handleEdit(db: SiaDb, event: HookEvent): Promise<HookResponse> {
 	return { status: "processed", nodes_created: nodesCreated };
 }
 
-async function handleBash(db: SiaDb, event: HookEvent, config?: SiaConfig, repoHash?: string): Promise<HookResponse> {
+async function handleBash(
+	db: SiaDb,
+	event: HookEvent,
+	config?: SiaConfig,
+	repoHash?: string,
+): Promise<HookResponse> {
 	const command = inputStr(event, "command") ?? "";
 	const output = responseStr(event);
 
@@ -347,7 +352,8 @@ async function handleBash(db: SiaDb, event: HookEvent, config?: SiaConfig, repoH
 	// Detect git graph-mutating operations and trigger incremental reindex
 	const exitCode = event.tool_input?.exit_code ?? 0;
 	const isGitMutatingOp =
-		/\bgit\s+(pull|merge|checkout|switch|rebase|cherry-pick|reset)(\s|$)/.test(command) && exitCode === 0;
+		/\bgit\s+(pull|merge|checkout|switch|rebase|cherry-pick|reset)(\s|$)/.test(command) &&
+		exitCode === 0;
 
 	let reindexMessage: string | undefined;
 	if (isGitMutatingOp && config && repoHash) {

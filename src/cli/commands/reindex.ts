@@ -109,7 +109,11 @@ export async function siaReindex(opts: ReindexOptions = {}): Promise<ReindexResu
 					const entityId = row.id as string;
 					try {
 						const filePaths = JSON.parse(row.file_paths as string) as unknown;
-						if (Array.isArray(filePaths) && filePaths.length > 0 && typeof filePaths[0] === "string") {
+						if (
+							Array.isArray(filePaths) &&
+							filePaths.length > 0 &&
+							typeof filePaths[0] === "string"
+						) {
 							const packagePath = inferPackagePath(filePaths[0] as string, resolvedRoot);
 							if (packagePath) {
 								await db.execute("UPDATE graph_nodes SET package_path = ? WHERE id = ?", [

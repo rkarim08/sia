@@ -74,8 +74,6 @@ describe("significance-detector", () => {
 		const localDb = openGraphDb("test-sig4", tmpDir);
 		db = localDb;
 		// Should not throw
-		expect(() =>
-			runSignificanceDetector(localDb, "nonexistent", "Write", {}),
-		).not.toThrow();
+		expect(() => runSignificanceDetector(localDb, "nonexistent", "Write", {})).not.toThrow();
 	});
 });

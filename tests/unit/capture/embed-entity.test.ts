@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { embedEntity, embedEntitiesBatch } from "@/capture/embed-entity";
+import { embedEntitiesBatch, embedEntity } from "@/capture/embed-entity";
 
 describe("embedEntity", () => {
 	it("embeds entity and updates graph_nodes", async () => {
@@ -35,10 +35,9 @@ describe("embedEntitiesBatch", () => {
 	it("embeds multiple entities and returns count", async () => {
 		const mockEmbedder = {
 			embed: vi.fn(),
-			embedBatch: vi.fn().mockResolvedValue([
-				new Float32Array(384).fill(0.1),
-				new Float32Array(384).fill(0.2),
-			]),
+			embedBatch: vi
+				.fn()
+				.mockResolvedValue([new Float32Array(384).fill(0.1), new Float32Array(384).fill(0.2)]),
 			close: vi.fn(),
 		};
 		const mockDb = { execute: vi.fn() };

@@ -5,10 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
-import {
-	computeGraphDistances,
-	updateLandmarkCache,
-} from "@/retrieval/graph-distance";
+import { computeGraphDistances, updateLandmarkCache } from "@/retrieval/graph-distance";
 
 describe("graph distance cache", () => {
 	let tmpDir: string;
@@ -21,7 +18,10 @@ describe("graph distance cache", () => {
 	}
 
 	afterEach(async () => {
-		if (db) { await db.close(); db = undefined; }
+		if (db) {
+			await db.close();
+			db = undefined;
+		}
 		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
 	});
 

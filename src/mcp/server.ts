@@ -10,10 +10,12 @@ import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { FeedbackCollector } from "@/feedback/collector";
 import type { SiaDb } from "@/graph/db-interface";
-import type { ModelManager } from "@/models/manager";
-import type { OnnxSession } from "@/models/types";
-import type { PipelineDeps } from "@/retrieval/search";
 import { getNextStepHint } from "@/mcp/next-step-hints";
+import { handleNousConcern } from "@/mcp/tools/nous-concern";
+import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
+import { handleNousModify } from "@/mcp/tools/nous-modify";
+import { handleNousReflect } from "@/mcp/tools/nous-reflect";
+import { handleNousState } from "@/mcp/tools/nous-state";
 import {
 	handleSiaAstQuery,
 	type SiaAstQueryInput as SiaAstQueryHandlerInput,
@@ -32,18 +34,16 @@ import { handleSiaFetchAndIndex } from "@/mcp/tools/sia-fetch-and-index";
 import { handleSiaFlag } from "@/mcp/tools/sia-flag";
 import { handleSiaImpact } from "@/mcp/tools/sia-impact";
 import { handleSiaIndex } from "@/mcp/tools/sia-index";
+import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
-import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
-import { handleNousConcern } from "@/mcp/tools/nous-concern";
-import { handleNousCuriosity } from "@/mcp/tools/nous-curiosity";
-import { handleNousModify } from "@/mcp/tools/nous-modify";
-import { handleNousReflect } from "@/mcp/tools/nous-reflect";
-import { handleNousState } from "@/mcp/tools/nous-state";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
 import { truncateResponse } from "@/mcp/truncate";
+import type { ModelManager } from "@/models/manager";
+import type { OnnxSession } from "@/models/types";
+import type { PipelineDeps } from "@/retrieval/search";
 import { ProgressiveThrottle } from "@/retrieval/throttle";
 import type { SiaConfig } from "@/shared/config";
 
@@ -200,10 +200,7 @@ export const NousStateInput = z.object({
 });
 
 export const NousReflectInput = z.object({
-	context: z
-		.string()
-		.optional()
-		.describe("Optional context string to narrow Preference retrieval"),
+	context: z.string().optional().describe("Optional context string to narrow Preference retrieval"),
 	session_id: z.string().optional(),
 });
 
@@ -373,18 +370,19 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 				};
 				return safeToolCall(
 					"sia_search",
-					() => handleSiaSearch(
-						deps.graphDb,
-						args,
-						deps.embedder ?? undefined,
-						undefined,
-						{ crossEncoderTimeoutMs: deps.config.crossEncoderTimeoutMs },
-						pipelineDeps,
-						{
-							feedbackCollector: deps.feedbackCollector ?? null,
-							sessionId: deps.sessionId,
-						},
-					),
+					() =>
+						handleSiaSearch(
+							deps.graphDb,
+							args,
+							deps.embedder ?? undefined,
+							undefined,
+							{ crossEncoderTimeoutMs: deps.config.crossEncoderTimeoutMs },
+							pipelineDeps,
+							{
+								feedbackCollector: deps.feedbackCollector ?? null,
+								sessionId: deps.sessionId,
+							},
+						),
 					maxChars,
 				);
 			}
@@ -412,10 +410,11 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"sia_by_file",
-					() => handleSiaByFile(deps.graphDb, args, undefined, {
-						feedbackCollector: deps.feedbackCollector ?? null,
-						sessionId: deps.sessionId,
-					}),
+					() =>
+						handleSiaByFile(deps.graphDb, args, undefined, {
+							feedbackCollector: deps.feedbackCollector ?? null,
+							sessionId: deps.sessionId,
+						}),
 					maxChars,
 				);
 			}
@@ -443,10 +442,11 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"sia_expand",
-					() => handleSiaExpand(deps.graphDb, args, {
-						feedbackCollector: deps.feedbackCollector ?? null,
-						sessionId: deps.sessionId,
-					}),
+					() =>
+						handleSiaExpand(deps.graphDb, args, {
+							feedbackCollector: deps.feedbackCollector ?? null,
+							sessionId: deps.sessionId,
+						}),
 					maxChars,
 				);
 			}
@@ -1151,7 +1151,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 		"nous_concern",
 		{
 			description:
-				"Reads open Concern nodes and surfaces them as developer-relevant insights. Filters by active Preference nodes. Call before responding to open-ended \"what should I look at?\" questions.",
+				'Reads open Concern nodes and surfaces them as developer-relevant insights. Filters by active Preference nodes. Call before responding to open-ended "what should I look at?" questions.',
 			inputSchema: NousConcernInput.shape,
 			annotations: { readOnlyHint: false },
 		},
@@ -1159,8 +1159,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"nous_concern",
-					() =>
-						handleNousConcern(deps.graphDb, { context: args.context, person: args.person }),
+					() => handleNousConcern(deps.graphDb, { context: args.context, person: args.person }),
 					maxChars,
 				);
 			}

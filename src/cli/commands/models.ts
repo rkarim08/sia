@@ -1,7 +1,8 @@
 // Module: cli/commands/models — sia models status/upgrade/downgrade
+
+import { getModelsToDownload, getModelsToRemove } from "@/models/registry";
 import type { ModelManifest, ModelTier } from "@/models/types";
 import { TIER_ORDER } from "@/models/types";
-import { getModelsToDownload, getModelsToRemove } from "@/models/registry";
 
 /**
  * Format model manifest into human-readable status output.
@@ -9,7 +10,9 @@ import { getModelsToDownload, getModelsToRemove } from "@/models/registry";
 export function formatModelStatus(manifest: ModelManifest): string {
 	const lines: string[] = [];
 	lines.push(`Installed tier: ${manifest.installedTier}`);
-	lines.push(`Attention head: ${manifest.attentionHead.trainingPhase} (${manifest.attentionHead.feedbackEvents} events)`);
+	lines.push(
+		`Attention head: ${manifest.attentionHead.trainingPhase} (${manifest.attentionHead.feedbackEvents} events)`,
+	);
 	lines.push("");
 	lines.push("Models:");
 

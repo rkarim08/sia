@@ -39,7 +39,7 @@ describe("viz-api-server", () => {
 		mkdirSync(join(projectRoot, "src/ast"), { recursive: true });
 		writeFileSync(
 			join(projectRoot, "src/ast/indexer.ts"),
-			'export function indexFile(path: string) {\n  return path;\n}\n',
+			"export function indexFile(path: string) {\n  return path;\n}\n",
 		);
 
 		server = await createVizApiServer(db, projectRoot, 0);
@@ -71,7 +71,7 @@ describe("viz-api-server", () => {
 	it("GET /api/graph returns graph data", async () => {
 		const res = await fetch(`${baseUrl}/api/graph`);
 		expect(res.status).toBe(200);
-		const data = await res.json() as { nodes: unknown[]; edges: unknown[]; combos: unknown[] };
+		const data = (await res.json()) as { nodes: unknown[]; edges: unknown[]; combos: unknown[] };
 		expect(Array.isArray(data.nodes)).toBe(true);
 		expect(Array.isArray(data.edges)).toBe(true);
 		expect(Array.isArray(data.combos)).toBe(true);
@@ -81,7 +81,7 @@ describe("viz-api-server", () => {
 	it("GET /api/file returns source code", async () => {
 		const res = await fetch(`${baseUrl}/api/file?path=src/ast/indexer.ts`);
 		expect(res.status).toBe(200);
-		const data = await res.json() as { content: string; language: string; lineCount: number };
+		const data = (await res.json()) as { content: string; language: string; lineCount: number };
 		expect(data.content).toContain("export function indexFile");
 		expect(data.language).toBe("typescript");
 		expect(data.lineCount).toBe(3);
@@ -95,7 +95,7 @@ describe("viz-api-server", () => {
 	it("GET /api/search returns results", async () => {
 		const res = await fetch(`${baseUrl}/api/search?q=index`);
 		expect(res.status).toBe(200);
-		const data = await res.json() as { results: Array<{ name: string }> };
+		const data = (await res.json()) as { results: Array<{ name: string }> };
 		expect(Array.isArray(data.results)).toBe(true);
 		expect(data.results[0].name).toBe("indexFile");
 	});
@@ -103,7 +103,7 @@ describe("viz-api-server", () => {
 	it("GET /health returns ok", async () => {
 		const res = await fetch(`${baseUrl}/health`);
 		expect(res.status).toBe(200);
-		const data = await res.json() as { status: string };
+		const data = (await res.json()) as { status: string };
 		expect(data.status).toBe("ok");
 	});
 });

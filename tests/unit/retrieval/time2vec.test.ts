@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createDefaultTime2VecParams, time2vecEncode, type Time2VecParams } from "@/retrieval/time2vec";
+import {
+	createDefaultTime2VecParams,
+	type Time2VecParams,
+	time2vecEncode,
+} from "@/retrieval/time2vec";
 
 describe("Time2Vec encoding", () => {
 	const params: Time2VecParams = {

@@ -1,21 +1,21 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	applyDebiasingToExamples,
 	determineTrainingPhase,
 	exportTrainingData,
-	trainAttentionHead,
-	shouldTrain,
-	mseLoss,
 	gradientDescentStep,
-	applyDebiasingToExamples,
-	type TrainingPhase,
+	mseLoss,
+	shouldTrain,
 	type TrainerDeps,
 	type TrainingExample,
+	type TrainingPhase,
+	trainAttentionHead,
 } from "@/feedback/trainer";
 import type { FeedbackEvent } from "@/feedback/types";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
 
 describe("feedback trainer", () => {
 	it("returns 'rrf' phase for 0 events", () => {
@@ -57,8 +57,18 @@ describe("exportTrainingData", () => {
 			{
 				queryText: "authentication pattern",
 				candidates: [
-					{ entityId: "e1", features: new Float32Array(405).fill(0.5), targetScore: 0.9, ipsWeight: 1.0 },
-					{ entityId: "e2", features: new Float32Array(405).fill(0.2), targetScore: 0.3, ipsWeight: 1.18 },
+					{
+						entityId: "e1",
+						features: new Float32Array(405).fill(0.5),
+						targetScore: 0.9,
+						ipsWeight: 1.0,
+					},
+					{
+						entityId: "e2",
+						features: new Float32Array(405).fill(0.2),
+						targetScore: 0.3,
+						ipsWeight: 1.18,
+					},
 				],
 			},
 		];
@@ -78,8 +88,23 @@ describe("trainAttentionHead manifest update", () => {
 		const mockManifest = {
 			schemaVersion: 1,
 			installedTier: "T1" as const,
-			models: { "sia-attention-head": { version: "1.0", variant: "fp32" as const, sha256: "abc", sizeBytes: 360000, source: "local", installedAt: new Date().toISOString(), tier: "T1" as const } },
-			attentionHead: { trainingPhase: "rrf" as const, feedbackEvents: 0, lastTrained: null, projectVariants: {} },
+			models: {
+				"sia-attention-head": {
+					version: "1.0",
+					variant: "fp32" as const,
+					sha256: "abc",
+					sizeBytes: 360000,
+					source: "local",
+					installedAt: new Date().toISOString(),
+					tier: "T1" as const,
+				},
+			},
+			attentionHead: {
+				trainingPhase: "rrf" as const,
+				feedbackEvents: 0,
+				lastTrained: null,
+				projectVariants: {},
+			},
 		};
 
 		const modelManager = {
@@ -134,12 +159,72 @@ describe("mseLoss", () => {
 describe("applyDebiasingToExamples", () => {
 	it("applies IPS weights to 2 candidates given 6 events", () => {
 		const rawEvents: FeedbackEvent[] = [
-			{ id: "1", queryText: "q1", entityId: "e1", signalStrength: 1.0, source: "visualizer", timestamp: 1, sessionId: "s1", rankPosition: 0, candidatesShown: 3 },
-			{ id: "2", queryText: "q1", entityId: "e2", signalStrength: 0.0, source: "visualizer", timestamp: 2, sessionId: "s1", rankPosition: 1, candidatesShown: 3 },
-			{ id: "3", queryText: "q1", entityId: "e3", signalStrength: 0.0, source: "visualizer", timestamp: 3, sessionId: "s1", rankPosition: 2, candidatesShown: 3 },
-			{ id: "4", queryText: "q2", entityId: "e4", signalStrength: 1.0, source: "visualizer", timestamp: 4, sessionId: "s2", rankPosition: 0, candidatesShown: 2 },
-			{ id: "5", queryText: "q2", entityId: "e5", signalStrength: 0.8, source: "visualizer", timestamp: 5, sessionId: "s2", rankPosition: 1, candidatesShown: 2 },
-			{ id: "6", queryText: "q3", entityId: "e6", signalStrength: 0.0, source: "synthetic", timestamp: 6, sessionId: "s3", rankPosition: 3, candidatesShown: 4 },
+			{
+				id: "1",
+				queryText: "q1",
+				entityId: "e1",
+				signalStrength: 1.0,
+				source: "visualizer",
+				timestamp: 1,
+				sessionId: "s1",
+				rankPosition: 0,
+				candidatesShown: 3,
+			},
+			{
+				id: "2",
+				queryText: "q1",
+				entityId: "e2",
+				signalStrength: 0.0,
+				source: "visualizer",
+				timestamp: 2,
+				sessionId: "s1",
+				rankPosition: 1,
+				candidatesShown: 3,
+			},
+			{
+				id: "3",
+				queryText: "q1",
+				entityId: "e3",
+				signalStrength: 0.0,
+				source: "visualizer",
+				timestamp: 3,
+				sessionId: "s1",
+				rankPosition: 2,
+				candidatesShown: 3,
+			},
+			{
+				id: "4",
+				queryText: "q2",
+				entityId: "e4",
+				signalStrength: 1.0,
+				source: "visualizer",
+				timestamp: 4,
+				sessionId: "s2",
+				rankPosition: 0,
+				candidatesShown: 2,
+			},
+			{
+				id: "5",
+				queryText: "q2",
+				entityId: "e5",
+				signalStrength: 0.8,
+				source: "visualizer",
+				timestamp: 5,
+				sessionId: "s2",
+				rankPosition: 1,
+				candidatesShown: 2,
+			},
+			{
+				id: "6",
+				queryText: "q3",
+				entityId: "e6",
+				signalStrength: 0.0,
+				source: "synthetic",
+				timestamp: 6,
+				sessionId: "s3",
+				rankPosition: 3,
+				candidatesShown: 4,
+			},
 		];
 
 		const examples: TrainingExample[] = [
@@ -163,8 +248,14 @@ describe("applyDebiasingToExamples", () => {
 		// Rank 1 should have a larger IPS weight than rank 0 (lower examination prior)
 		expect(result[0].candidates[1].ipsWeight).toBeGreaterThan(result[0].candidates[0].ipsWeight);
 		// targetScore must be re-scaled by ipsWeight
-		expect(result[0].candidates[0].targetScore).toBeCloseTo(1.0 * result[0].candidates[0].ipsWeight, 5);
-		expect(result[0].candidates[1].targetScore).toBeCloseTo(0.5 * result[0].candidates[1].ipsWeight, 5);
+		expect(result[0].candidates[0].targetScore).toBeCloseTo(
+			1.0 * result[0].candidates[0].ipsWeight,
+			5,
+		);
+		expect(result[0].candidates[1].targetScore).toBeCloseTo(
+			0.5 * result[0].candidates[1].ipsWeight,
+			5,
+		);
 	});
 });
 

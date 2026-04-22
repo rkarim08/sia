@@ -1,4 +1,5 @@
 import type { OnnxSession } from "@/models/types";
+
 export type { OnnxSession };
 
 /** Factory function to create an ONNX session. */
@@ -86,7 +87,9 @@ export function createSessionPool(config: { maxSessions: number }): SessionPool 
 				evictIfNeeded();
 				const activeAfterEvict = [...entries.values()].filter((e) => e.session !== null).length;
 				if (activeAfterEvict >= config.maxSessions && !entry.pinned) {
-					console.warn(`[sia] session-pool: all ${config.maxSessions} sessions are pinned — cannot load ${modelName}`);
+					console.warn(
+						`[sia] session-pool: all ${config.maxSessions} sessions are pinned — cannot load ${modelName}`,
+					);
 					return null;
 				}
 				entry.loading = (async () => {

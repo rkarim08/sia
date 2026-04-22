@@ -8,9 +8,9 @@ export function renderG6Html(): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SIA Knowledge Graph</title>
-<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/dist/sigma.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/graphology-library@0.8.0/dist/graphology-library.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/dist/sigma.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -444,104 +444,104 @@ export function renderG6Html(): string {
     pointer-events: none;
     z-index: 5;
   }
-<\/style>
-<\/head>
+</style>
+</head>
 <body>
 <div id="app">
 
   <!-- Left Sidebar -->
   <div id="sidebar-left">
     <div class="sidebar-section">
-      <h3>Explorer<\/h3>
+      <h3>Explorer</h3>
       <input id="tree-search" type="text" placeholder="Filter files\u2026" autocomplete="off">
-    <\/div>
-    <div id="file-tree"><\/div>
+    </div>
+    <div id="file-tree"></div>
 
     <div class="sidebar-section">
-      <h3>Filters<\/h3>
+      <h3>Filters</h3>
       <label class="filter-row">
         <input type="checkbox" data-type="file" checked>
-        <span class="filter-dot" style="background:#4fc3f7"><\/span> File
-      <\/label>
+        <span class="filter-dot" style="background:#4fc3f7"></span> File
+      </label>
       <label class="filter-row">
         <input type="checkbox" data-type="function" checked>
-        <span class="filter-dot" style="background:#a5d6a7"><\/span> Function
-      <\/label>
+        <span class="filter-dot" style="background:#a5d6a7"></span> Function
+      </label>
       <label class="filter-row">
         <input type="checkbox" data-type="class" checked>
-        <span class="filter-dot" style="background:#ce93d8"><\/span> Class
-      <\/label>
+        <span class="filter-dot" style="background:#ce93d8"></span> Class
+      </label>
       <label class="filter-row">
         <input type="checkbox" data-type="decision" checked>
-        <span class="filter-dot" style="background:#ffcc02"><\/span> Decision
-      <\/label>
+        <span class="filter-dot" style="background:#ffcc02"></span> Decision
+      </label>
       <label class="filter-row">
         <input type="checkbox" data-type="bug" checked>
-        <span class="filter-dot" style="background:#ef9a9a"><\/span> Bug
-      <\/label>
+        <span class="filter-dot" style="background:#ef9a9a"></span> Bug
+      </label>
       <label class="filter-row">
         <input type="checkbox" data-type="convention" checked>
-        <span class="filter-dot" style="background:#ffb74d"><\/span> Convention
-      <\/label>
-    <\/div>
+        <span class="filter-dot" style="background:#ffb74d"></span> Convention
+      </label>
+    </div>
 
     <div class="sidebar-section">
-      <h3>Legend<\/h3>
-      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> File node<\/div>
-      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> Function / Class<\/div>
-      <div class="legend-row"><div class="legend-shape">\u25cf<\/div> Decision / Bug<\/div>
+      <h3>Legend</h3>
+      <div class="legend-row"><div class="legend-shape">\u25cf</div> File node</div>
+      <div class="legend-row"><div class="legend-shape">\u25cf</div> Function / Class</div>
+      <div class="legend-row"><div class="legend-shape">\u25cf</div> Decision / Bug</div>
       <div class="legend-row">
-        <div class="legend-shape" style="background:#4fc3f7;width:18px;height:2px;border-radius:1px"><\/div>
+        <div class="legend-shape" style="background:#4fc3f7;width:18px;height:2px;border-radius:1px"></div>
         Imports
-      <\/div>
+      </div>
       <div class="legend-row">
-        <div class="legend-shape" style="background:#ffb74d;width:18px;height:2px;border-radius:1px"><\/div>
+        <div class="legend-shape" style="background:#ffb74d;width:18px;height:2px;border-radius:1px"></div>
         Calls
-      <\/div>
-    <\/div>
-  <\/div>
+      </div>
+    </div>
+  </div>
 
   <!-- Center Panel -->
   <div id="center">
-    <div id="loading">Loading graph\u2026<\/div>
-    <div id="graph-canvas"><\/div>
+    <div id="loading">Loading graph\u2026</div>
+    <div id="graph-canvas"></div>
 
     <!-- Zoom controls -->
     <div id="zoom-controls">
-      <button class="zoom-btn" id="zoom-in" title="Zoom in">+<\/button>
-      <button class="zoom-btn" id="zoom-out" title="Zoom out">\u2212<\/button>
-      <button class="zoom-btn" id="zoom-fit" title="Fit to view" style="font-size:12px">\u229f<\/button>
-    <\/div>
+      <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+      <button class="zoom-btn" id="zoom-out" title="Zoom out">\u2212</button>
+      <button class="zoom-btn" id="zoom-fit" title="Fit to view" style="font-size:12px">\u229f</button>
+    </div>
 
     <!-- Search overlay (Cmd+K) -->
     <div id="search-overlay">
       <div id="search-box">
         <input id="search-box-input" type="text" placeholder="Search nodes\u2026 (Esc to close)" autocomplete="off">
-        <div id="search-results"><\/div>
-      <\/div>
-    <\/div>
-  <\/div>
+        <div id="search-results"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Right Sidebar (Inspector) -->
   <div id="sidebar-right">
-    <div id="inspector-placeholder">Click a file node to inspect<\/div>
+    <div id="inspector-placeholder">Click a file node to inspect</div>
     <div id="inspector-content">
       <div id="inspector-header">
-        <div id="inspector-path"><\/div>
-        <button id="inspector-close">\u00d7<\/button>
-      <\/div>
+        <div id="inspector-path"></div>
+        <button id="inspector-close">\u00d7</button>
+      </div>
       <div id="inspector-tabs">
-        <div class="inspector-tab active" data-tab="code">Code<\/div>
-        <div class="inspector-tab" data-tab="entities">Entities<\/div>
-      <\/div>
+        <div class="inspector-tab active" data-tab="code">Code</div>
+        <div class="inspector-tab" data-tab="entities">Entities</div>
+      </div>
       <div id="inspector-body">
-        <div id="code-viewer"><\/div>
-        <div id="entity-list"><\/div>
-      <\/div>
-    <\/div>
-  <\/div>
+        <div id="code-viewer"></div>
+        <div id="entity-list"></div>
+      </div>
+    </div>
+  </div>
 
-<\/div>
+</div>
 
 <script>
 // ── Utilities ────────────────────────────────────────────────────────────────
@@ -1254,7 +1254,7 @@ initGraph().catch(err => {
   loadingEl.textContent = 'Error: ' + String(err);
   loadingEl.style.display = 'block';
 });
-<\/script>
-<\/body>
-<\/html>`;
+</script>
+</body>
+</html>`;
 }

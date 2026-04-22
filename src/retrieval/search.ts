@@ -14,16 +14,16 @@
 
 import type { Embedder, NamedEmbedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
-import type { OnnxSession } from "@/models/types";
-import type { CrossEncoderReranker } from "@/retrieval/cross-encoder";
 import type { SiaSearchResult } from "@/mcp/tools/sia-search";
-import type { TaskType } from "@/shared/config";
+import type { OnnxSession } from "@/models/types";
 import { bm25Search } from "@/retrieval/bm25-search";
+import type { CrossEncoderReranker } from "@/retrieval/cross-encoder";
 import { graphTraversalSearch } from "@/retrieval/graph-traversal";
 import { classifyQuery } from "@/retrieval/query-classifier";
 import { selectEmbedders } from "@/retrieval/query-router";
 import { type RankedCandidate, rerank, rrfCombine } from "@/retrieval/reranker";
 import { vectorSearch } from "@/retrieval/vector-search";
+import type { TaskType } from "@/shared/config";
 
 /** Options accepted by hybridSearch. */
 export interface SearchOptions {
@@ -122,7 +122,9 @@ export async function hybridSearch(
 		bm25Search(db, opts.query, searchOpts),
 		graphTraversalSearch(db, opts.query, searchOpts),
 		useNlEmbedder ? vectorSearch(db, opts.query, embedder, searchOpts) : Promise.resolve([]),
-		useCodeEmbedder ? vectorSearch(db, opts.query, deps!.codeEmbedder!, searchOpts) : Promise.resolve([]),
+		useCodeEmbedder
+			? vectorSearch(db, opts.query, deps!.codeEmbedder!, searchOpts)
+			: Promise.resolve([]),
 	]);
 
 	// --- Stage 2: expand 1-hop neighbors ----------------------------------
@@ -175,7 +177,9 @@ export async function hybridSearch(
 		]);
 		if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
 		if (ceResults.length === 0 && candidates.length > 0) {
-			console.debug(`[sia] cross-encoder: timed out after ${ceTimeoutMs}ms with ${candidates.length} candidates — using RRF ordering`);
+			console.debug(
+				`[sia] cross-encoder: timed out after ${ceTimeoutMs}ms with ${candidates.length} candidates — using RRF ordering`,
+			);
 		}
 		const crossEncoderScores = new Map(ceResults.map((r) => [r.entityId, r.score]));
 
@@ -216,7 +220,9 @@ export async function hybridSearch(
 	// TODO: when attention fusion is activated, assemble CandidateFeatures from
 	// entity data and call attentionFusion() instead of rerank().
 	if (deps?.attentionFusionSession && !_attentionFusionFallbackLogged) {
-		console.debug("[sia] attention fusion session provided but not yet active — using RRF fallback");
+		console.debug(
+			"[sia] attention fusion session provided but not yet active — using RRF fallback",
+		);
 		_attentionFusionFallbackLogged = true;
 	}
 

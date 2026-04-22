@@ -129,13 +129,10 @@ export async function handleSiaFlag(
 		try {
 			const embedding = await embedder.embed(textToEmbed);
 			if (embedding) {
-				await db.execute(
-					"UPDATE graph_nodes SET embedding = ? WHERE id = ?",
-					[
-						Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength),
-						flagEntity.id,
-					],
-				);
+				await db.execute("UPDATE graph_nodes SET embedding = ? WHERE id = ?", [
+					Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength),
+					flagEntity.id,
+				]);
 			}
 		} catch (err) {
 			console.error(`[sia] sia_flag: failed to embed entity ${flagEntity.id}:`, err);
