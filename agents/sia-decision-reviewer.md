@@ -16,7 +16,7 @@ whenToUse: |
   user: "I think we should switch from REST to GraphQL for the API"
   assistant: "I'll use the sia-decision-reviewer to surface past decisions about the API architecture."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__nous_reflect, mcp__sia__nous_state, mcp__sia__sia_at_time, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---
 
 # SIA Decision Reviewer — Decision Archaeology Agent
