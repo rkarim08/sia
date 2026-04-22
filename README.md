@@ -103,6 +103,10 @@ sia doctor                          # Health check
 /sia-visualize-live                 # Graph explorer in your browser
 ```
 
+### Full component usage
+
+See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usage guides with invocation triggers and worked examples.
+
 ### Running the Test Suite
 
 Always run tests via the `bun run` wrapper so vitest picks up the project
