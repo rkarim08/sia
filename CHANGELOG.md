@@ -12,9 +12,9 @@ All notable changes to Sia are documented here. This project adheres to
 - Three `sia-lead-*` skill stubs (`sia-lead-compliance`,
   `sia-lead-drift-report`, `sia-lead-knowledge-map`). Each was a 16-line
   stub that shelled a command without a documented methodology; shipping
-  stubs as skills is a broken promise. Leadership reporting is covered
-  by existing skills like `sia-compliance-audit` and
-  `sia-lead-tech-report`.
+  stubs as skills is a broken promise. Leadership reporting remains
+  available through the existing `sia-lead-architecture-advisor` and
+  `sia-lead-team-health` agents.
 - `commands/visualize.md` — dead alias that redirected to
   `/sia-visualize-live`. Kept `sia-visualize-live` as the single entry
   point.
