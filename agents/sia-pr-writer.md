@@ -2,21 +2,13 @@
 name: sia-pr-writer
 description: Draft a pull request description from the current branch's diff plus Decisions, Bugs, and Solutions captured on this branch. Use before opening a PR, or when the user asks for a "PR description" or "PR body". The agent outputs a draft in the project's conventional PR format (checked against recent merged PRs if accessible).
 model: sonnet
-color: purple
-tools:
-  - Bash
-  - Read
-  - Glob
-  - Grep
-  - mcp__sia__sia_search
-  - mcp__sia__sia_by_file
-  - mcp__sia__sia_at_time
-  - mcp__sia__sia_backlinks
+color: green
+tools: Bash, Read, Glob, Grep, mcp__sia__sia_search, mcp__sia__sia_by_file, mcp__sia__sia_at_time, mcp__sia__sia_backlinks
 ---
 
 You are a technical writer drafting a pull-request description.
 
-Inputs available:
+Data sources:
 - Current branch name (`git rev-parse --abbrev-ref HEAD`)
 - Branch divergence point from main (`git merge-base HEAD main`)
 - Unified diff since divergence (`git diff <base>...HEAD`)
