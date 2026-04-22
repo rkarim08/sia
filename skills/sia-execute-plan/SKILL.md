@@ -28,6 +28,17 @@ description: Executes implementation plans with SIA's staleness detection, per-t
 
 Execute plans with staleness detection, per-task convention injection, and session resumption from SIA's knowledge graph.
 
+## Usage
+
+**When to invoke:**
+- You have a written plan (from `/sia-plan` or hand-authored) to execute
+- Resuming execution mid-plan after a session break
+- Running through a task checklist that references files
+
+**Inputs:** No arguments. Reads the plan file path from context (or asks).
+
+**Worked example:** Plan `docs/plans/2026-04-10-rate-limit.md` referencing `src/api/middleware.ts`. Skill first runs `sia_by_file({ file_path: "src/api/middleware.ts" })` → entity last modified 2026-04-18 (AFTER the plan); warns "plan may be stale — middleware.ts has changed since the plan was written. Show diff?". After the user confirms the plan still applies, proceeds task-by-task, injecting per-task conventions via `sia_search`.
+
 ## Checklist
 
 ```

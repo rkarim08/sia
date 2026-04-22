@@ -7,6 +7,17 @@ description: Dispatches parallel agents using SIA's community detection for inde
 
 Dispatch parallel agents with graph-powered independence verification and rich per-agent context extraction.
 
+## Usage
+
+**When to invoke:**
+- 2+ independent tasks you're considering running in parallel
+- Large refactor that could be split across subagents
+- Any dispatch decision where "are these actually independent?" matters
+
+**Inputs:** No arguments. The skill takes the set of proposed tasks from context.
+
+**Worked example:** Three tasks: (1) add metrics to `api/`, (2) rewrite `docs/README.md`, (3) refactor `api/auth.ts`. Skill runs `sia_community({ level: 0 })` → tasks 1 and 3 are both in the `api` community (must be sequential); task 2 is in `docs` (safe to parallelise with either). Output: dispatch task 2 in parallel with (task 1 → task 3). Per-agent context injected from `sia_search` for conventions + known bugs in each agent's domain.
+
 ## Checklist
 
 ```

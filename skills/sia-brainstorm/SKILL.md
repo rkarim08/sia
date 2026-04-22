@@ -7,6 +7,17 @@ description: Brainstorms features using SIA's knowledge graph — surfaces past 
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue, powered by SIA's knowledge graph. This improves upon standard brainstorming by starting with accumulated project knowledge instead of from scratch.
 
+## Usage
+
+**When to invoke:**
+- User starts any creative work — "I want to add X", "how should we design Y?"
+- Before touching code on a feature that needs shape
+- When revisiting a previously rejected approach and considering a retry
+
+**Inputs:** No arguments. The skill reads the idea from the user's message and drives a multi-round dialogue.
+
+**Worked example:** User: "I want to add a notifications panel." Skill first runs `sia_search({ query: "notifications panel", task_type: "feature" })` → finds a prior rejected design ("polling-based, caused N+1 load"); surfaces it up front ("you tried polling in Jan and rejected it — propose we go with a websocket push?"); proceeds to clarifying questions, then design, then spec doc at `docs/specs/YYYY-MM-DD-notifications-panel-design.md`.
+
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
