@@ -6,6 +6,14 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.2.4] — 2026-04-22
+
+### Changed
+
+- Extract 3 inline snapshot MCP handlers to dedicated
+  `src/mcp/tools/sia-snapshot-*.ts` files (no behaviour change; matches
+  pattern of other tools). Unblocks Phase A2 next_steps helper rollout.
+
 ## [1.2.3] - 2026-04-21
 
 ### Removed
