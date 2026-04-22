@@ -80,7 +80,7 @@ Present what SIA learned, filling in real numbers from `sia_stats`:
 >
 > Other useful commands:
 > - Ask me any question — SIA tools activate automatically
-> - `/sia-status` — check graph health
+> - `/sia-health` — check graph health
 > - `/sia-team` — set up team sync
 
 ## When To Use
