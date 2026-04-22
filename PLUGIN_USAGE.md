@@ -136,9 +136,9 @@ Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command
 | [sia-security-audit](agents/sia-security-audit.md) | Security review with paranoid mode and Tier 4 exposure | Security review |
 | [sia-test-advisor](agents/sia-test-advisor.md) | Test strategy from past failures + edge cases | Test-planning session |
 
-## Commands (non-shim)
+## Commands (40)
 
-Most commands are thin shims that forward to a skill (`Run the /sia-X skill`) or dispatch an agent (`Dispatch the @sia-Y agent`). The ones below have substantive bodies worth reading directly:
+The command palette was pruned in 1.2.1 from 74 → 40 under a principled rule: keep a command if it takes arguments, wraps an MCP tool directly, is part of the Nous cognitive layer, or is a high-frequency daily-workflow short alias. Otherwise the canonical `/sia-<name>` skill or `@sia-<name>` agent is the entry point (both autocomplete from the palette). See [CHANGELOG.md](CHANGELOG.md#121---2026-04-21) for the rule in full and the cut list.
 
 ### Direct MCP wrappers
 
@@ -146,7 +146,6 @@ Most commands are thin shims that forward to a skill (`Run the /sia-X skill`) or
 |---|---|
 | [/at-time](commands/at-time.md) | Query graph state at a past timestamp |
 | [/community](commands/community.md) | Inspect community partitioning at a level |
-| [/freshness](commands/freshness.md) | Run the freshness engine |
 
 ### Nous cognitive layer
 
@@ -158,9 +157,52 @@ Most commands are thin shims that forward to a skill (`Run the /sia-X skill`) or
 | [/nous-concern](commands/nous-concern.md) | Surface open Concern nodes as prioritised insights |
 | [/nous-modify](commands/nous-modify.md) | Create / update / deprecate a Preference node (always requires a reason) |
 
-### Agent-delegation commands
+### Short aliases (daily workflow)
 
-The remaining non-shim commands dispatch agents. Each has a one-line summary of the agent plus a link to its full definition — see `commands/*.md`. The full agent list is in the Agents table above.
+Every command below is a 2-line shim forwarding to the matching `/sia-<name>` skill or `@sia-<name>` agent; the short form is kept for palette ergonomics. Pass-through arg examples: `/search <query>`, `/learn --incremental`.
+
+| Command | Forwards to | When to use |
+|---|---|---|
+| [/setup](commands/setup.md) | `/sia-setup` skill | First-run bootstrap |
+| [/install](commands/install.md) | `/sia-install` skill | DB scaffold, no indexing |
+| [/learn](commands/learn.md) | `/sia-learn` skill | Build / refresh the graph |
+| [/search](commands/search.md) | `/sia-search` skill | Hybrid graph retrieval |
+| [/capture](commands/capture.md) | `/sia-capture` skill | End-of-session knowledge capture |
+| [/tour](commands/tour.md) | `/sia-tour` skill | Guided graph tour |
+| [/doctor](commands/doctor.md) | `/sia-doctor` skill | System health check |
+| [/stats](commands/stats.md) | `/sia-stats` skill | Graph size / growth stats |
+| [/status](commands/status.md) | `/sia-status` skill | Capture rate, conflicts dashboard |
+| [/upgrade](commands/upgrade.md) | `/sia-upgrade` skill | Self-update |
+| [/finish](commands/finish.md) | `/sia-finish` skill | Wrap up a branch |
+| [/debug](commands/debug.md) | `/sia-debug-workflow` skill | Temporal root-cause tracing |
+| [/plan](commands/plan.md) | `/sia-plan` skill | Implementation plan with graph context |
+| [/test](commands/test.md) | `/sia-test` skill | Graph-informed TDD |
+| [/verify](commands/verify.md) | `/sia-verify` skill | Area-specific verification gate |
+| [/brainstorm](commands/brainstorm.md) | `/sia-brainstorm` skill | Pre-loaded design dialogue |
+| [/execute](commands/execute.md) | `/sia-execute` skill | Sandboxed code execution |
+| [/execute-plan](commands/execute-plan.md) | `/sia-execute-plan` skill | Plan execution with staleness detection |
+| [/dispatch](commands/dispatch.md) | `/sia-dispatch` skill | Parallel agent dispatch |
+| [/conflicts](commands/conflicts.md) | `/sia-conflicts` skill | List / resolve graph conflicts |
+| [/freshness](commands/freshness.md) | `/sia-freshness` skill | Fresh / stale / rotten scan |
+| [/digest](commands/digest.md) | `/sia-digest` skill | 24-hour knowledge digest |
+| [/workspace](commands/workspace.md) | `/sia-workspace` skill | Multi-repo workspace |
+| [/sync](commands/sync.md) | `/sia-sync` skill | Manual team knowledge push/pull |
+
+### Agent-canonical slash entries
+
+The short alias is kept for the highest-frequency agent dispatches; all other agents are reachable as `@sia-<name>` directly. See the [Agents table](#agents-26) for the full list.
+
+| Command | Dispatches | When to dispatch |
+|---|---|---|
+| [/code-reviewer](commands/code-reviewer.md) | `@sia-code-reviewer` | PR review with historical + convention context |
+| [/pr-writer](commands/pr-writer.md) | `@sia-pr-writer` | Draft a PR body from captured Decisions / Bugs |
+| [/refactor](commands/refactor.md) | `@sia-refactor` | Dependency-graph impact analysis |
+| [/regression](commands/regression.md) | `@sia-regression` | Regression-risk assessment |
+| [/security-audit](commands/security-audit.md) | `@sia-security-audit` | Paranoid-mode security review |
+| [/knowledge-capture](commands/knowledge-capture.md) | `@sia-knowledge-capture` | Systematic session-level knowledge extraction |
+| [/onboarding](commands/onboarding.md) | `@sia-onboarding` | Full multi-topic onboarding session |
+| [/orientation](commands/orientation.md) | `@sia-orientation` | Quick single-answer architecture Q&A |
+| [/explain](commands/explain.md) | `@sia-explain` | Explains SIA itself — entities, tools, skills, agents |
 
 ---
 
