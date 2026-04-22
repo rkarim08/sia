@@ -6,6 +6,33 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-04-21
+
+### Added
+- New `sia-pr-writer` agent (+ `/pr-writer` command) that drafts a PR
+  body from the branch diff plus Decisions/Bugs/Solutions captured on
+  this branch. Closes the most common missing-agent gap identified in
+  the plugin audit.
+- `color:` declared on all 23 agents using a semantic palette
+  (red=regression, green=feature, cyan=review/audit, blue=orient/explain,
+  purple=plan/architecture, yellow=risk/security). Previously only 4
+  agents declared a color.
+
+### Changed
+- Tool grants expanded on 7 agents whose stated purpose structurally
+  required additional MCP tools:
+  - `sia-changelog-writer`: +`sia_at_time`, +`sia_backlinks`
+    (temporal "since last tag" + dependency-aware release notes)
+  - `sia-migration`: +`sia_backlinks`, +`sia_expand`, +`sia_ast_query`,
+    +`sia_impact` (cannot find references to renamed entities
+    without these)
+  - `sia-security-audit`: +`sia_at_time`, +`sia_flag`
+    (temporal security events + flagging)
+  - `sia-pm-risk-advisor`: +`sia_at_time`, +`sia_by_file`
+  - `sia-code-reviewer`: +`sia_at_time`
+  - `sia-convention-enforcer`: +`sia_by_file`
+  - `sia-conflict-resolver`: +`sia_at_time`, +`sia_flag`
+
 ## [1.1.7] - 2026-04-21
 
 ### Added
