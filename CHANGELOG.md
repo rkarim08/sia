@@ -6,6 +6,53 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-21
+
+### Added
+- **Two new agents** bringing the library to 26 agents:
+  - `sia-search-debugger` (blue, diagnostic) — when `sia_search`
+    returns nothing or off-target, diagnoses whether the graph is
+    empty, vocabulary is off, or knowledge was never captured;
+    proposes reformulated queries. Matching `/search-debugger` shim.
+  - `sia-doc-writer` (green, generator) — generates ADRs, README
+    architecture sections, and module docs directly from captured
+    Decisions, Conventions, and community summaries. Cites every
+    claim; never fabricates rationale. Matching `/doc-writer` shim.
+- `commands/README.md`, `agents/README.md`, `skills/README.md`, and
+  `hooks/README.md` — contributor-facing authoring guides covering
+  file shape, frontmatter, the Phase 4 colour palette, the
+  trigger-style description guide, and the hook event matrix. End-user
+  guidance continues to live in `PLUGIN_USAGE.md`.
+- `argument-hint:` on `commands/learn.md` — the only command whose
+  body referenced `$ARGUMENTS` without declaring the hint. Caught
+  during the Phase 7.6 frontmatter sweep.
+
+### Changed
+- **PLUGIN_README.md slimmed from 267 → 98 lines** as a
+  quick-reference card. Prior versions duplicated ~40% of README.md
+  prose and drifted independently (the v1.1.5 and v1.1.10 count-fix
+  patches are the motivating examples). The new PLUGIN_README links
+  to README / CLAUDE / PLUGIN_USAGE / CONTRIBUTING / SECURITY for
+  authoritative content and retains only the 29-row MCP tool table,
+  install command, and hook event pointer.
+- `scripts/count-plugin-components.sh`,
+  `scripts/validate-plugin.sh`, and
+  `scripts/generate-plugin-usage.sh` now exclude `README.md` from
+  agent / command / skill iteration loops so the new component-dir
+  READMEs do not inflate counts.
+
+### Skipped / deferred
+- **Command-palette pruning (7.3)** — the 73 → ~40 goal risks
+  breaking user muscle memory because every skill shim is a shorter
+  alias (`/search` ↔ `/sia-search`) with no clear duplicate-vs-alias
+  cut line. Deferred to Phase 8 where a principled rule can be
+  drafted.
+- **Inline `mcpServers` in `plugin.json` (7.5)** — the repo's
+  `.mcp.json` at root is auto-discovered by Claude Code and verified
+  working; inlining is a newer idiom that was not verified in this
+  phase. Leaving `.mcp.json` in place; deferred to a dedicated
+  manifest-migration patch.
+
 ## [1.1.10] - 2026-04-21
 
 ### Added
