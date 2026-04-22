@@ -16,7 +16,7 @@ whenToUse: |
   user: "What's our convention for error handling in API routes?"
   assistant: "Let me use the sia-convention-enforcer to look up the relevant conventions."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_note, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_note, mcp__sia__sia_search, mcp__sia__sia_by_file
 ---
 
 # SIA Convention Enforcer — Convention Compliance Agent

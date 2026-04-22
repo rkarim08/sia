@@ -16,7 +16,7 @@ whenToUse: |
   user: "Can you quantify the technical debt so I can make a case for cleanup?"
   assistant: "Let me use the sia-pm-risk-advisor to build a risk assessment with business impact."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_community, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_community, mcp__sia__sia_search, mcp__sia__sia_at_time, mcp__sia__sia_by_file
 ---
 
 # SIA PM Risk Advisor — Technical Risk Assessment

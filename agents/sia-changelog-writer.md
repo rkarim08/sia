@@ -16,7 +16,7 @@ whenToUse: |
   user: "What's changed since v2.0?"
   assistant: "Let me use the sia-changelog-writer to compile all changes from the graph."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_search, mcp__sia__sia_at_time, mcp__sia__sia_backlinks
 ---
 
 # SIA Changelog Writer — Graph-Powered Release Notes

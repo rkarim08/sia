@@ -16,7 +16,7 @@ whenToUse: |
   user: "After sync, there are conflicts in the auth module decisions."
   assistant: "Let me use the sia-conflict-resolver to review and resolve them."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search, mcp__sia__sia_at_time, mcp__sia__sia_flag
 ---
 
 # SIA Conflict Resolver — Knowledge Conflict Resolution
