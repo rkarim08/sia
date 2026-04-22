@@ -7,6 +7,26 @@ description: Manages SIA team sync — joining servers, checking status, or leav
 
 Manage team-based knowledge graph synchronization. SIA syncs knowledge between team members via a self-hosted sqld (libSQL) server managed by your DevOps team.
 
+## Usage
+
+**When to invoke:**
+- First-time onboarding to a team sync server
+- Sync health check ("is my knowledge reaching the team?")
+- Leaving a project or rotating to a new team
+
+**Inputs:** Varies by subcommand — `join`, `status`, `leave`. See sections below.
+
+**Worked example:**
+
+```bash
+$ /sia-team join https://sia-sync.acme.corp eyJhbGciOi...
+[team] Token stored in keychain
+[team] Dev ID generated: dev-4f2c1b8a
+[team] Server reachable · libSQL replication enabled
+$ /sia-sync
+[sync] Pulled 142 entities, 318 edges from team server
+```
+
 ## Prerequisites
 
 Your DevOps team must have deployed a sqld sync server. You need:
