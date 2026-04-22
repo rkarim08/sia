@@ -16,7 +16,7 @@ whenToUse: |
   user: "Is our use of jsonwebtoken vulnerable to the recent CVE?"
   assistant: "Let me use the sia-security-audit agent to check SIA's security history and current code."
   </example>
-tools: Read, Grep, Glob, Bash, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
+tools: Read, Grep, Glob, Bash, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search, mcp__sia__sia_at_time, mcp__sia__sia_flag
 ---
 
 # SIA Security Audit Agent — Graph-Powered Security Review
