@@ -14,8 +14,10 @@ import { appendHistory, deleteSession, getSession } from "./working-memory";
 export async function writeEpisode(
 	db: SiaDb,
 	sessionId: string,
-	_config: NousConfig = DEFAULT_NOUS_CONFIG,
+	config: NousConfig = DEFAULT_NOUS_CONFIG,
 ): Promise<void> {
+	if (!config.enabled) return;
+
 	const session = getSession(db, sessionId);
 	if (!session) return;
 

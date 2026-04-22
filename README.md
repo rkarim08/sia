@@ -512,6 +512,8 @@ Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-d
 
 Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify` — mirror these tools with sensible defaults. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for the authoritative semantics and anti-sycophancy rules.
 
+**Disabling Nous.** Set `nous.enabled = false` in your Sia config (defaults to `true`). When disabled, all four hooks become no-ops — no session rows, no signals, no episodes — and the MCP tools remain callable but operate against an empty working memory. Useful for debugging, tightly-scoped agent sessions, or users who prefer retrieval-only Sia.
+
 ---
 
 ## Skills (46)
