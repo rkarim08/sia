@@ -21,7 +21,7 @@ fi
 
 echo "sia: rebuilding tree-sitter native binding with C++20..."
 cd "$TS_DIR"
-if CXXFLAGS="-std=c++20" npx node-gyp rebuild 2>/dev/null; then
+if CXXFLAGS="-std=c++20" npx node-gyp rebuild; then
     echo "sia: native tree-sitter built successfully"
 else
     echo "sia: native tree-sitter build failed — WASM fallback will be used"
