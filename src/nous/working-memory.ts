@@ -70,6 +70,28 @@ export function deleteSession(db: SiaDb, sessionId: string): void {
 	raw(db).prepare("DELETE FROM nous_sessions WHERE session_id = ?").run(sessionId);
 }
 
+/**
+ * Mark a session as ended by setting `nous_sessions.ended_at = now`.
+ *
+ * Returns `true` when the row existed and was updated, `false` when no row
+ * matched `session_id` (safe no-op — the row may have already been pruned
+ * by `cleanStaleSessions`, deleted by the Stop hook's `writeEpisode`, or
+ * never written if Nous was disabled).
+ *
+ * Stored as unix-seconds to match `created_at` / `updated_at`. The column
+ * is added by migration `013_nous_session_ended_at.sql`.
+ */
+export function markSessionEnded(
+	db: SiaDb,
+	sessionId: string,
+	now: number = Math.floor(Date.now() / 1000),
+): boolean {
+	const result = raw(db)
+		.prepare("UPDATE nous_sessions SET ended_at = ?, updated_at = ? WHERE session_id = ?")
+		.run(now, now, sessionId);
+	return (result.changes ?? 0) > 0;
+}
+
 /** Remove sessions whose last update is older than one hour. */
 export function cleanStaleSessions(db: SiaDb): void {
 	const cutoff = Math.floor(Date.now() / 1000) - 3600;

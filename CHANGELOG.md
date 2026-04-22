@@ -22,6 +22,7 @@ All notable changes to Sia are documented here. This project adheres to
   `verification-before-completion` discipline with Sia's graph-powered
   past-failure lookup.
 - PreCompact hook now (a) promotes staged entities via `src/graph/staging.ts::promoteStagedEntities()` and (b) emits a `systemMessage` with the top-5 Preferences + top-3 Episodes so the summariser preserves them verbatim. Closes Phase 4 §PreCompact gap. Staging helper is a safe no-op when the schema lacks staging columns (documented in-source).
+- SessionEnd hook performs final staging promotion, aggregates session Signals into EpisodeSummary when ≥ 3 signals fired, and marks `nous_sessions.ended_at`. Closes Phase 4 §SessionEnd gap.
 
 ### Changed
 
