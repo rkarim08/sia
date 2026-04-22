@@ -2,7 +2,7 @@
 name: sia-search-debugger
 description: Diagnoses why `sia_search` returned no results or the wrong results — inspects the query terms against the actual graph, checks file-path shape, and proposes reformulated queries. Use when a search comes back empty on a codebase the user expected to have matching entities, or when results look off-target.
 model: sonnet
-color: blue
+color: red
 tools: Read, Grep, Glob, Bash, mcp__sia__sia_search, mcp__sia__sia_by_file, mcp__sia__sia_stats, mcp__sia__sia_community
 whenToUse: |
   Use when a search against Sia's graph returns nothing, too few, or the wrong results — and the user wants to know whether the graph is empty, the query is off, or the wanted knowledge was never captured.
