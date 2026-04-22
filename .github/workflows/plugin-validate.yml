@@ -3,21 +3,15 @@ on:
   pull_request:
   push:
     branches: [main]
+concurrency:
+  group: plugin-validate-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - name: Install deps
-        run: bun install --frozen-lockfile
       - name: Plugin validator
         run: bash scripts/validate-plugin.sh
-      - name: Tests
-        run: bun run test
-      - name: Type check
-        run: bunx tsc --noEmit
-      - name: Lint
-        run: bunx @biomejs/biome check .
+# Note: test / tsc / lint run under the sibling `ci.yaml` workflow.
+# The validator only needs bash + jq (no bun install) so it stays lean.
