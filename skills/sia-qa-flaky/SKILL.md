@@ -10,6 +10,25 @@ Identify flaky tests by mining SIA's bug history for patterns:
 - Tests where Bug → Solution → Bug again (fixed then broke again)
 - Areas with high Bug creation + invalidation churn
 
+## Usage
+
+**When to invoke:**
+- Triaging a CI that fails intermittently
+- "Which tests should we quarantine?" decisions
+- Post-release retro on test reliability
+
+**Inputs:** No arguments.
+
+**Worked example:**
+
+```
+$ /sia-qa-flaky
+[flaky] Top candidates (re-surfaced Bug entities):
+  · test/api/rate-limit.spec.ts → 4 Bugs across 3 months (fix → regression → fix → ...)
+  · test/orders/checkout.spec.ts → 2 Bugs, same assertion
+[flaky] Suggestion: quarantine rate-limit.spec.ts and re-investigate root cause.
+```
+
 ## How It Works
 
 ```

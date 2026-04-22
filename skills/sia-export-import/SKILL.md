@@ -7,6 +7,26 @@ description: Exports and imports SIA knowledge graphs as portable JSON for backu
 
 Export the knowledge graph to portable JSON or import from a previous export.
 
+## Usage
+
+**When to invoke:**
+- Backup before a destructive operation (prune, mass invalidation)
+- Migrating SIA between machines
+- Sharing a snapshot with a teammate who isn't on team-sync
+
+**Inputs:**
+- Export: `--output <path>` (default `graph-export.json`)
+- Import: `--input <path>` (required), `--mode merge|replace` (default `merge`)
+
+**Worked example:**
+
+```
+$ /sia-export-import export --output ~/backups/sia-2026-04-21.json
+[export] Wrote 2,431 entities, 6,104 edges, 6 communities (3.8MB)
+$ /sia-export-import import --input ~/backups/sia-2026-04-21.json --mode merge
+[import] Consolidated 2,431 entities (14 merged into existing, 2,417 new)
+```
+
 ## Export
 
 Serialize the active graph (entities, edges, communities, cross-repo edges) to JSON:

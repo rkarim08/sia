@@ -44,3 +44,12 @@ Each entry includes: date captured, trust tier (verified/code-derived/inferred/e
 - **External sharing** — generate a knowledge summary for stakeholders
 - **Backup** — human-readable export of the knowledge graph
 - **Documentation** — commit as living documentation alongside code
+
+## Worked Example
+
+```
+$ /sia-export-knowledge --output docs/project-knowledge.md --name "Acme Platform"
+[export-knowledge] Wrote docs/project-knowledge.md
+  · 24 Decisions · 18 Conventions · 12 Bugs · 10 Solutions · 6 Concepts
+  · Architecture section covers 6 communities
+```

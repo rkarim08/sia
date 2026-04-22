@@ -7,6 +7,24 @@ description: Analyzes test coverage gaps using SIA's knowledge graph — finds b
 
 Identify areas that need more test coverage based on bug history and code changes.
 
+## Usage
+
+**When to invoke:**
+- Planning test-improvement sprint
+- Pre-release coverage audit
+- User asks "where are we under-tested?"
+
+**Inputs:** No arguments. Optionally scope via `--module <path>`.
+
+**Worked example:**
+
+```
+$ /sia-qa-coverage --module src/orders
+[coverage] 14 CodeEntities · 3 Bug entities · 1 dedicated test file
+[coverage] GAP: src/orders/refund.ts — 2 Bugs captured, no test entity
+[coverage] GAP: src/orders/checkout.ts — 1 Bug, partial test coverage
+```
+
 ## How It Works
 
 SIA cross-references:
