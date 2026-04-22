@@ -1,8 +1,19 @@
 // Module: staging — CRUD for the memory_staging table (Tier 4 security staging area)
+//
+// Also exposes `promoteStagedEntities()`, a lightweight promotion entry point
+// used by hook handlers (PreCompact, SessionEnd) where no LLM / embedder is
+// available. This helper runs TTL expiry + a confidence-gated, injection-safe
+// promotion pass that upgrades provisional Tier-4 staging rows into the graph
+// via `consolidate()`. The full four-check pipeline (with embedder + Rule of
+// Two) lives in `src/security/staging-promoter.ts::promoteStagedFacts()`; this
+// helper is its hook-friendly, LLM-free counterpart.
 
 import { randomUUID } from "node:crypto";
+import { consolidate } from "@/capture/consolidate";
+import type { CandidateFact, EntityType } from "@/capture/types";
 import { writeAuditEntry } from "@/graph/audit";
 import type { SiaDb } from "@/graph/db-interface";
+import { detectInjection } from "@/security/pattern-detector";
 
 /** Row shape matching all columns of the `memory_staging` table. */
 export interface StagedFact {
@@ -118,6 +129,149 @@ export async function updateStagingStatus(
 
 	if (status === "rejected" || status === "quarantined") {
 		await writeAuditEntry(db, "QUARANTINE", { entity_id: id });
+	}
+}
+
+/** Result of a single `promoteStagedEntities` pass. */
+export interface PromoteStagedResult {
+	/** Staged rows that passed all checks and were promoted via `consolidate()`. */
+	promoted: number;
+	/** Staged rows that stayed `'pending'` — below confidence threshold but not unsafe. */
+	kept: number;
+	/**
+	 * Staged rows rejected this pass — sum of pattern-injection quarantines and
+	 * TTL expirations processed in the same call.
+	 */
+	rejected: number;
+}
+
+/** Confidence gate for Tier-4 staged facts. Below this → keep pending. */
+const TIER4_CONFIDENCE_THRESHOLD = 0.85;
+/** Confidence gate for Tier 1–3 staged facts. */
+const TIER_LOW_CONFIDENCE_THRESHOLD = 0.7;
+/** Per-call cap so a flood of staged facts cannot stall a hook. */
+const MAX_STAGED_PER_CALL = 50;
+
+/**
+ * Promote staged provisional entities that have acquired enough confirmatory
+ * signals during the session. Hook-friendly (PreCompact / SessionEnd) — runs
+ * without LLM or embedder dependencies.
+ *
+ * Pipeline per pending row:
+ *   1. Expire stale rows (TTL past) → counted in `rejected`.
+ *   2. Pattern-injection detection → quarantine → counted in `rejected`.
+ *   3. Confidence gate (Tier 4: ≥ 0.85, else ≥ 0.70).
+ *      - Fail → leave `'pending'` → counted in `kept`.
+ *      - Pass → `consolidate()` + mark `'passed'` → counted in `promoted`.
+ *
+ * Safe no-op: if the `memory_staging` table is missing, returns
+ * `{ promoted: 0, kept: 0, rejected: 0 }` without throwing. This is the
+ * documented "schema lacks staging columns" fallback called out in the plan.
+ *
+ * @param opts.dry — if true, only compute classifications; do not write.
+ */
+export async function promoteStagedEntities(
+	db: SiaDb,
+	opts?: { dry?: boolean },
+): Promise<PromoteStagedResult> {
+	const dry = opts?.dry ?? false;
+	const result: PromoteStagedResult = { promoted: 0, kept: 0, rejected: 0 };
+
+	// Step 1: expire stale rows (counted against `rejected`).
+	let expiredCount = 0;
+	try {
+		if (!dry) {
+			expiredCount = await expireStaleStagedFacts(db);
+		}
+	} catch (err) {
+		// Only a missing `memory_staging` table is a legitimate silent no-op (the
+		// documented schema fallback). Anything else — locked DB, corrupt row,
+		// I/O error — must be surfaced to stderr so the failure is debuggable.
+		// We still return the zeroed result so the hook does not break the
+		// surrounding PreCompact / SessionEnd flow.
+		const msg = err instanceof Error ? err.message : String(err);
+		const isNoTable = /no such table/i.test(msg);
+		if (!isNoTable) {
+			process.stderr.write(`[sia:staging] expireStaleStagedFacts failed: ${msg}\n`);
+		}
+		return result;
+	}
+	result.rejected += expiredCount;
+
+	// Step 2: fetch pending rows (capped).
+	let pending: StagedFact[];
+	try {
+		pending = await getPendingStagedFacts(db, MAX_STAGED_PER_CALL);
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		const isNoTable = /no such table/i.test(msg);
+		if (!isNoTable) {
+			process.stderr.write(`[sia:staging] getPendingStagedFacts failed: ${msg}\n`);
+		}
+		return result;
+	}
+
+	// Step 3: classify + (unless dry) write.
+	for (const fact of pending) {
+		const injection = detectInjection(fact.proposed_content);
+		if (injection.flagged) {
+			if (!dry) {
+				await updateStagingStatus(
+					db,
+					fact.id,
+					"quarantined",
+					`pattern_injection: ${injection.reason ?? "detected"}`,
+				);
+			}
+			result.rejected++;
+			continue;
+		}
+
+		// Null/undefined trust_tier = unknown provenance = highest scrutiny.
+		// `null >= 4` is false in JS, which would wrongly drop such rows into
+		// the lower 0.70 gate. Default to Tier 4 so unknown-tier facts get the
+		// strict 0.85 threshold.
+		const tier = fact.trust_tier ?? 4;
+		const threshold = tier >= 4 ? TIER4_CONFIDENCE_THRESHOLD : TIER_LOW_CONFIDENCE_THRESHOLD;
+		if (fact.raw_confidence < threshold) {
+			// Below threshold → keep pending; future sessions may raise confidence.
+			result.kept++;
+			continue;
+		}
+
+		if (dry) {
+			result.promoted++;
+			continue;
+		}
+
+		const candidate: CandidateFact = {
+			type: fact.proposed_type as EntityType,
+			name: fact.proposed_name,
+			content: fact.proposed_content,
+			summary: fact.proposed_content.slice(0, 80),
+			tags: safeParseStringArray(fact.proposed_tags),
+			file_paths: safeParseStringArray(fact.proposed_file_paths),
+			trust_tier: fact.trust_tier as 1 | 2 | 3 | 4,
+			confidence: fact.raw_confidence,
+			extraction_method: "staging:promoteStagedEntities",
+		};
+
+		await consolidate(db, [candidate]);
+		await updateStagingStatus(db, fact.id, "passed");
+		await writeAuditEntry(db, "PROMOTE", { entity_id: fact.id });
+		result.promoted++;
+	}
+
+	return result;
+}
+
+/** Best-effort JSON-array-of-strings parser. Returns `[]` on any failure. */
+function safeParseStringArray(raw: string): string[] {
+	try {
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+	} catch {
+		return [];
 	}
 }
 
