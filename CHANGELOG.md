@@ -12,6 +12,11 @@ All notable changes to Sia are documented here. This project adheres to
   embedder upgrade via multi-model support, embedding cache extended for
   model-keyed lookups, config fields for model tier, `@/models/*` tsconfig
   path alias. Unblocks Phase 2 cross-encoder reranker.
+- Transformer Phase 2: cross-encoder reranker (`src/retrieval/cross-encoder.ts`) wired into `hybridSearch` as Stage 3 with a 50ms timeout fallback. `ms-marco-MiniLM-L-6-v2` for T0-T2; `mxbai-rerank-base-v1` for T3. Unblocks `src/nous/surprise-router.ts` to move from stub to full implementation (separate follow-up).
+- Transformer Phase 3: attention fusion head (Stage 4) — Time2Vec encoding (`src/retrieval/time2vec.ts`, 16d), Query Router (`src/retrieval/query-router.ts`), Attention Fusion (`src/retrieval/attention-fusion.ts`, 405d T0 / 406d T1 feature vectors), Landmark graph distance cache (`src/retrieval/graph-distance.ts` + migration 009). RRF fallback when T1 ONNX model unavailable.
+- Transformer Phase 4: dual embeddings schema — migration 010 adds nullable `embedding_code BLOB` column to graph_nodes + current_nodes for T1+ code-aware retrieval; `src/retrieval/vector-search.ts` gains `embeddingColumn` parameter. Feedback schema (migration 011, feedback_events table), `src/feedback/types.ts` (SIGNAL_STRENGTHS visualizer/agent/CLI), `src/feedback/collector.ts` for event capture.
+- Transformer Phase 5: GLiNER zero-shot NER (`src/capture/gliner-extractor.ts`, 10 SIA labels, per-label confidence thresholds 0.6–0.85); Entity Reconciler (`src/capture/entity-reconciler.ts`, text::label dedup, accept/confirm/reject classification).
+- Transformer Phase 6: `sia_models` MCP tool (reports manifest tier, models, attention head phase, disk usage); `useFeedback` React hook (visualizer tracks click/expand/dwell/skip events and flushes to /api/feedback); module index exports extended to surface new Phase 2–5 modules for library consumers.
 - UserPromptSubmit hook now classifies task type and injects top-k memory
   retrieval + open-Concern matches as `additionalContext`. Prompts < 20
   chars skipped. Per-turn memoized; 200 ms hard timeout with graceful
