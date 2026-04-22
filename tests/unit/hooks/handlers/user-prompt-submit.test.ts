@@ -61,6 +61,8 @@ describe("handleUserPromptSubmit", () => {
 			{} as never,
 		);
 		expect(result.nodesCreated).toBe(1);
+		// Trivial/short classifier result is still returned.
+		expect(result.taskType).toBeDefined();
 
 		const entities = await getActiveEntities(db);
 		expect(entities).toHaveLength(1);
