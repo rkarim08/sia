@@ -65,6 +65,8 @@ Collect all entities captured during this branch's lifetime. These become the PR
 
 ### Step 1 — Verify Tests (same as standard)
 
+Always invoke `/sia-verify-before-completion` first.
+
 Hard gate — tests must pass.
 
 ### Step 2-3 — Determine Base Branch + Present Options (same as standard)

@@ -54,10 +54,10 @@ For local development (project-scoped): `claude --plugin-dir /path/to/sia`.
 | `nous_concern` | Surface open Concerns weighted by active Preferences |
 | `nous_modify` | Create / update / deprecate Preference nodes (gated, `reason` required) |
 
-## Skills (47)
+## Skills (48)
 
 Skills are slash-invocable workflows that Claude Code can load on demand. For the full table with trigger descriptions and invocation guidance, see
-[PLUGIN_USAGE.md → Skills](PLUGIN_USAGE.md#skills-47).
+[PLUGIN_USAGE.md → Skills](PLUGIN_USAGE.md#skills-48).
 
 Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working. Sia captures automatically afterwards.
 

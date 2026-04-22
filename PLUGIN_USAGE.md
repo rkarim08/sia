@@ -23,7 +23,7 @@ See also: [README.md](README.md) (product overview), [CLAUDE.md](CLAUDE.md) (age
 
 Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working normally. Sia captures automatically; you only call skills when you want a targeted action.
 
-## Skills (47)
+## Skills (48)
 
 ### Core
 
@@ -68,6 +68,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 | [sia-debug-workflow](skills/sia-debug-workflow/SKILL.md) | Temporal debug workflow | Bug / test failure / regression |
 | [sia-test](skills/sia-test/SKILL.md) | Graph-informed TDD | Implementing with TDD; adding regression tests |
 | [sia-verify](skills/sia-verify/SKILL.md) | Verification gate with area-specific checks | Before claiming "done" |
+| [sia-verify-before-completion](skills/sia-verify-before-completion/SKILL.md) | Verify-then-claim discipline with past-failure lookup | Pre-commit / pre-PR / pre-deploy |
 | [sia-review-respond](skills/sia-review-respond/SKILL.md) | Graph-backed code-review responses | PR comments arrive |
 | [sia-finish](skills/sia-finish/SKILL.md) | Branch finishing with semantic PR summaries | Branch ready to merge |
 | [sia-impact](skills/sia-impact/SKILL.md) | Pre-refactor impact analysis | Before rename / signature change |
