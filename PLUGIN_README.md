@@ -1,262 +1,91 @@
-# SIA — Claude Code Plugin
+# SIA — Claude Code Plugin (Quick Reference)
 
 Persistent graph memory for AI coding agents. SIA gives Claude Code cross-session memory via a bi-temporal knowledge graph.
 
-## Installation
+This is a **quick-reference card**. For product overview, architecture, and full usage guides, see:
+
+- [README.md](README.md) — product overview, differentiators, quick start
+- [CLAUDE.md](CLAUDE.md) — agent behavioural contract loaded every session
+- [PLUGIN_USAGE.md](PLUGIN_USAGE.md) — per-skill, per-agent, per-command usage guides
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute, tests, pre-commit
+- [SECURITY.md](SECURITY.md) — vulnerability reporting
+
+## Install
 
 ```bash
-# From marketplace (installs at user scope — available in all projects)
+# Marketplace (installs at user scope — available in all projects)
+/plugin marketplace add rkarim08/sia
 /plugin install sia@sia-plugins
 ```
 
-Or for local development (project-scoped by design):
+For local development (project-scoped): `claude --plugin-dir /path/to/sia`.
 
-```bash
-claude --plugin-dir /path/to/sia
-```
-
-> **Note:** Local development mode (`--plugin-dir`) is project-scoped.
-> For cross-project usage, install from the marketplace.
-
-### Full component usage
-
-See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usage guides with invocation triggers and worked examples.
-
-## Features
-
-### MCP Tools (always available)
-
-#### Search & Retrieval
+## MCP Tools (29)
 
 | Tool | Description |
 |---|---|
-| `sia_search` | Semantic search across the knowledge graph |
-| `sia_by_file` | Look up knowledge for a specific file |
-| `sia_expand` | Explore entity neighborhoods (1-3 hops) |
-| `sia_community` | Get community-level summaries |
-| `sia_at_time` | Query the graph at a historical point |
-| `sia_backlinks` | Find incoming edges to a node |
-
-#### Knowledge Capture
-
-| Tool | Description |
-|---|---|
-| `sia_note` | Record a Decision, Convention, Bug, Solution, or Concept |
+| `sia_models` | Check transformer model tier status, installed models, and attention head training phase |
+| `sia_search` | Semantic search across the Sia knowledge graph |
+| `sia_by_file` | Retrieve knowledge graph nodes associated with a file |
+| `sia_expand` | Expand an entity's neighbourhood in the knowledge graph |
+| `sia_community` | Retrieve community-level summaries from the knowledge graph |
+| `sia_at_time` | Query the knowledge graph at a point in time |
 | `sia_flag` | Flag current session for human review (writes to session_flags only) |
-| `sia_index` | Index markdown/text content by chunking and scanning for entity references |
-| `sia_fetch_and_index` | Fetch a URL, convert to markdown, and index |
-
-#### Sandbox Execution
-
-| Tool | Description |
-|---|---|
+| `sia_backlinks` | Find all incoming edges (backlinks) to a knowledge graph node |
+| `sia_note` | Create a developer-authored knowledge entry in the graph |
 | `sia_execute` | Execute code in an isolated sandbox |
 | `sia_execute_file` | Execute an existing file in a sandbox subprocess |
+| `sia_index` | Index markdown/text content by chunking and scanning for entity references |
 | `sia_batch_execute` | Execute multiple operations in one call with precedes edges |
-
-#### AST & Code Analysis
-
-| Tool | Description |
-|---|---|
-| `sia_ast_query` | Run tree-sitter queries against source files for structural code analysis |
-
-#### Branch Snapshots
-
-| Tool | Description |
-|---|---|
-| `sia_snapshot_list` | List branch snapshots with timestamps and entity counts |
-| `sia_snapshot_restore` | Restore graph state from a branch snapshot |
-| `sia_snapshot_prune` | Remove snapshots for deleted or merged branches |
-
-#### Diagnostics & Maintenance
-
-| Tool | Description |
-|---|---|
-| `sia_stats` | Graph metrics — node/edge counts by type, optional session stats |
-| `sia_doctor` | Run diagnostic checks on the installation |
-| `sia_upgrade` | Self-update SIA to the latest version |
+| `sia_fetch_and_index` | Fetch a URL, convert to markdown, and index |
+| `sia_stats` | Return graph metrics: node/edge counts by type, optional session stats |
+| `sia_doctor` | Run diagnostic checks on the Sia installation |
+| `sia_upgrade` | Self-update Sia to the latest version |
 | `sia_sync_status` | Check team sync configuration and connection status |
-
-### Skills (47 slash commands)
-
-#### Core
-
-| Skill | Description |
-|---|---|
-| `/sia-install` | Initialize SIA in current project |
-| `/sia-search` | Guided search with examples |
-| `/sia-stats` | Graph statistics |
-| `/sia-status` | Knowledge graph health dashboard |
-| `/sia-reindex` | Re-index repository code |
-| `/sia-learn` | Build or refresh the complete knowledge graph |
-| `/sia-playbooks` | Load task-specific playbooks (regression, feature, review, orientation) |
-
-#### Knowledge Management
-
-| Skill | Description |
-|---|---|
-| `/sia-capture` | Guided knowledge capture — decisions, conventions, bugs, solutions |
-| `/sia-execute` | Run code in sandbox with knowledge capture |
-| `/sia-index` | Index external content (text, URLs) |
-| `/sia-workspace` | Manage cross-repo workspaces |
-| `/sia-export-import` | Export/import graphs as portable JSON |
-| `/sia-export-knowledge` | Export graph as human-readable KNOWLEDGE.md |
-| `/sia-history` | Explore temporal knowledge evolution |
-| `/sia-impact` | Analyze impact of planned code changes |
-| `/sia-compare` | Compare graph state between two time points |
-
-#### Development Workflow
-
-| Skill | Description |
-|---|---|
-| `/sia-brainstorm` | Brainstorm features using graph context |
-| `/sia-plan` | Write implementation plans with graph topology |
-| `/sia-execute-plan` | Execute plans with staleness detection and convention checks |
-| `/sia-dispatch` | Dispatch parallel agents with community-based independence verification |
-| `/sia-test` | TDD guided by known edge cases and test conventions |
-| `/sia-verify` | Verify work completeness against area-specific requirements |
-| `/sia-debug-workflow` | Systematic debugging with temporal root-cause tracing |
-| `/sia-finish` | Finish branches — semantic PR summaries from graph entities |
-| `/sia-review-respond` | Respond to code review feedback with graph-backed evidence |
-
-#### Maintenance
-
-| Skill | Description |
-|---|---|
-| `/sia-doctor` | System health diagnostics |
-| `/sia-digest` | Daily knowledge summary |
-| `/sia-visualize` | Generate HTML graph visualization |
-| `/sia-visualize-live` | Launch interactive browser-based graph visualizer |
-| `/sia-freshness` | Graph freshness report |
-| `/sia-conflicts` | List and resolve knowledge conflicts |
-| `/sia-prune` | Remove archived entities |
-| `/sia-upgrade` | Self-update SIA |
-
-#### Onboarding
-
-| Skill | Description |
-|---|---|
-| `/sia-setup` | Guided first-time setup with checklist |
-| `/sia-tour` | Interactive guided tour of the knowledge graph |
-
-#### Team Sync
-
-| Skill | Description |
-|---|---|
-| `/sia-team` | Join, leave, or check team sync status |
-| `/sia-sync` | Manual push/pull to/from team server |
-
-#### QA & Testing Intelligence
-
-| Skill | Description |
-|---|---|
-| `/sia-qa-report` | QA-focused report — risky areas, test priorities |
-| `/sia-qa-coverage` | Test coverage gap analysis from the knowledge graph |
-| `/sia-qa-flaky` | Track flaky test patterns and recurring failures |
-
-#### Project Management Intelligence
-
-| Skill | Description |
-|---|---|
-| `/sia-pm-sprint-summary` | Sprint summary in plain language for PMs |
-| `/sia-pm-decision-log` | Chronological decision log with rationale |
-| `/sia-pm-risk-dashboard` | Technical risk dashboard scored by impact |
-
-### Subagents (26 agents)
-
-| Agent | Purpose | Category |
-|---|---|---|
-| **Before Coding** | | |
-| `sia-orientation` | Quick architecture Q&A — single focused answers | Onboarding |
-| `sia-onboarding` | Comprehensive multi-topic onboarding session | Onboarding |
-| `sia-decision-reviewer` | Decision archaeology — past choices and rejected alternatives | Planning |
-| `sia-explain` | Explains SIA's tools, graph structure, and workflows | Meta |
-| `sia-search-debugger` | Diagnoses empty / off-target `sia_search` results | Diagnostic |
-| `sia-doc-writer` | Generates ADRs / README sections from Decisions + Conventions | Documentation |
-| **During Coding** | | |
-| `sia-feature` | Feature dev with convention awareness and dependency context | Development |
-| `sia-refactor` | Impact analysis via dependency graph before structural changes | Development |
-| `sia-convention-enforcer` | Convention compliance check against known standards | Quality |
-| `sia-test-advisor` | Test strategy from past failures and known edge cases | Testing |
-| `sia-dependency-tracker` | Cross-repo dependency monitoring and API contract tracking | Architecture |
-| **During Debugging** | | |
-| `sia-debug-specialist` | Active bug investigation with temporal root-cause tracing | Debugging |
-| `sia-regression` | Proactive regression risk analysis for code changes | Prevention |
-| **During Review** | | |
-| `sia-code-reviewer` | Code review with historical context and convention enforcement | Review |
-| `sia-security-audit` | Security review with paranoid mode and Tier 4 exposure tracking | Security |
-| `sia-conflict-resolver` | Resolve contradicting knowledge entities | Quality |
-| **After Coding** | | |
-| `sia-knowledge-capture` | Systematic session capture — decisions, conventions, bugs, solutions | Capture |
-| `sia-changelog-writer` | Graph-powered changelogs and release notes | Documentation |
-| `sia-migration` | Graph maintenance during major refactors | Maintenance |
-| **QA & Testing** | | |
-| `sia-qa-analyst` | QA intelligence — regression risks, coverage gaps, test recommendations | QA |
-| `sia-qa-regression-map` | Scored regression risk map (0-100) per module for test prioritization | QA |
-| **Project Management** | | |
-| `sia-pm-briefing` | Plain-language project briefings for PMs | PM |
-| `sia-pm-risk-advisor` | Technical risk advisor — debt, fragile modules, dependency risks | PM |
-| **Tech Lead** | | |
-| `sia-lead-architecture-advisor` | Architecture drift detection against captured decisions | Leadership |
-| `sia-lead-team-health` | Team knowledge health — coverage gaps, bus-factor risks | Leadership |
-
-All subagents primarily retrieve from the knowledge graph and can run simultaneously.
-The feature agent may flag decisions via `sia_flag` when flagging is enabled.
-The knowledge-capture agent is designed for end-of-session use rather than parallel execution.
-Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
-
-### Automatic Hooks
-
-| Hook | Trigger | Purpose |
-|---|---|---|
-| **PostToolUse** | Write/Edit | Captures knowledge from file changes |
-| **PostToolUse** | Bash | Detects branch switches and saves/restores graph snapshots |
-| **Stop** | Session stop | Detects uncaptured knowledge patterns |
-| **SessionStart** | Session begin | Injects recent decisions/conventions as context |
-| **PreCompact** | Before compaction | Scans transcript tail for unextracted knowledge before context compaction |
-| **PostCompact** | After compaction | Logs compaction coverage for observability |
-| **SessionEnd** | Session exit | Records session statistics and entity counts |
-| **UserPromptSubmit** | User prompt | Captures user prompts and detects correction/preference patterns |
-
-## Nous Cognitive Layer
-
-Nous is Sia's cognitive layer — drift monitoring, self-reflection, and anti-sycophancy guardrails. Four always-active hooks (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode) run alongside Sia's capture path. Five MCP tools are available for explicit invocation:
-
-| Tool | Purpose |
-|---|---|
+| `sia_ast_query` | Parse a file with tree-sitter and extract symbols, imports, or call relationships |
+| `sia_impact` | Analyze the blast radius of a change to a knowledge graph entity |
+| `sia_detect_changes` | Detect changed files from git diff and map to knowledge graph entities |
+| `sia_snapshot_list` | List all branch-keyed graph snapshots |
+| `sia_snapshot_restore` | Restore the knowledge graph from a branch snapshot |
+| `sia_snapshot_prune` | Remove branch snapshots for specified branches |
 | `nous_state` | Read drift score, active Preferences, recent signals |
-| `nous_reflect` | Self-monitor pass — per-preference alignment + recommended action |
+| `nous_reflect` | Per-preference alignment breakdown + recommended action |
 | `nous_curiosity` | Explore under-retrieved, high-trust entities; writes Concerns |
 | `nous_concern` | Surface open Concerns weighted by active Preferences |
-| `nous_modify` | Create, update, or deprecate Preference nodes (gated, reason required) |
+| `nous_modify` | Create / update / deprecate Preference nodes (gated, `reason` required) |
 
-Each tool has a matching slash command — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify`. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for authoritative semantics and anti-sycophancy rules.
+## Skills (47)
 
-## Team Sync
+Skills are slash-invocable workflows that Claude Code can load on demand. For the full table with trigger descriptions and invocation guidance, see
+[PLUGIN_USAGE.md → Skills](PLUGIN_USAGE.md#skills-47).
 
-SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server.
+Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working. Sia captures automatically afterwards.
 
-### Setup
+## Agents (26)
 
-1. DevOps deploys a sqld server (see `TEAM-SYNC-DEPLOYMENT.md`)
-2. DevOps provides a server URL and auth token
-3. Developer runs: `/sia-team` → follow setup instructions
+Subagents are dispatched via `@sia-<name>`. They run as sub-sessions with their own tool grants. For the full table with *when to dispatch* and categorisation, see
+[PLUGIN_USAGE.md → Agents](PLUGIN_USAGE.md#agents-26).
 
-### Automatic Sync
+Color palette: **blue** (orient / explain), **green** (generate), **red** (debug / incident), **cyan** (quality / review), **purple** (plan / advise).
 
-| Event | Action |
+## Commands (74)
+
+Most commands are thin shims that forward to a skill or dispatch an agent. Direct MCP wrappers (e.g. `/at-time`, `/community`, `/freshness`) and the five `/nous-*` cognitive-layer commands have substantive bodies worth reading. See
+[PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-non-shim).
+
+## Hooks (9 entries across 7 events)
+
+| Event | Purpose |
 |---|---|
-| Session start | Auto-pulls latest team knowledge |
-| Session end | Auto-pushes locally captured knowledge |
-| `/sia-sync` | Manual push/pull on demand |
+| PreToolUse | Augment tool calls with graph context; Nous significance signal |
+| PostToolUse | Capture knowledge from file changes; branch-switch snapshots |
+| Stop | Detect uncaptured knowledge patterns |
+| SessionStart | Inject recent decisions + conventions |
+| PreCompact | Extract knowledge before context compaction |
+| SessionEnd | Record session statistics |
+| UserPromptSubmit | Capture prompts and detect correction/preference patterns |
 
-### Skills & Tools
-
-| Component | Purpose |
-|---|---|
-| `/sia-team` | Join, leave, or check team status (see Skills section above) |
-| `/sia-sync` | Manual push/pull operations (see Skills section above) |
-| `sia_sync_status` MCP tool | Programmatic sync status check |
+Full event matrix and authoring guidance in [hooks/README.md](hooks/README.md).
 
 ## Requirements
 
