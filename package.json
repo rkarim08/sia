@@ -103,7 +103,6 @@
 	},
 	"files": [
 		"src/",
-		"!src/visualization/frontend/",
 		"!**/node_modules/",
 		"!**/*.test.ts",
 		"!**/*.spec.ts",
