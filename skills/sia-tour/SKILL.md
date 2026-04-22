@@ -1,6 +1,6 @@
 ---
 name: sia-tour
-description: Provides an interactive guided tour of the knowledge graph — architecture, decisions, conventions, and known issues. Use for onboarding, exploring what SIA knows, or getting oriented in a new project.
+description: Use when onboarding a new teammate or when you yourself have been away from the repo for weeks — interactive architectural tour that walks module clusters, key decisions, conventions, and known bugs drawn from the graph.
 ---
 
 # SIA Graph Tour

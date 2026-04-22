@@ -1,6 +1,6 @@
 ---
 name: sia-sync
-description: Pushes or pulls SIA knowledge to/from the team sync server. Use when sharing knowledge with teammates, syncing after a long offline period, or receiving others' captured knowledge.
+description: Use when pushing/pulling team graph diffs mid-session — handles conflict detection and merges via `conflict_group_id`. Normal sync happens on session start/end; reach for this skill only when you need to cross the boundary manually.
 ---
 
 # SIA Manual Sync

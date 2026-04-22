@@ -1,6 +1,6 @@
 ---
 name: sia-digest
-description: Generates a daily knowledge digest summarizing recent decisions, bugs, conventions, and changes captured by SIA. Use at the start of a session, for daily standups, or when the user asks what changed recently.
+description: Use at daily standup, at sprint close, or on Monday morning to catch up on the weekend's captured decisions, bugs, and conventions. Summarises a rolling 24-hour window by default.
 ---
 
 # SIA Digest

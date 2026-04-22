@@ -1,6 +1,6 @@
 ---
 name: sia-freshness
-description: Generates a freshness report for the SIA knowledge graph — identifies stale, rotten, and fresh entities. Use when checking knowledge quality, before pruning, or when results seem outdated.
+description: Use before release planning, after a major refactor, or before `/sia-prune` — reports the fresh/stale/rotten entity breakdown with confidence scores so you know what the graph still trusts.
 ---
 
 # SIA Freshness

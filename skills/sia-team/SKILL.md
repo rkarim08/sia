@@ -1,6 +1,6 @@
 ---
 name: sia-team
-description: Manages SIA team sync — joining servers, checking status, or leaving teams. Use when setting up team knowledge sharing, checking sync health, or managing team membership.
+description: Use when joining a new team sync server, checking sync health, or leaving a team — manages the team-collaboration surface (`join`, `status`, `leave`). Start here before `/sia-sync`; this skill owns credentials, that skill owns the transfer.
 ---
 
 # SIA Team Sync Management

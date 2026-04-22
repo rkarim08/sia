@@ -1,6 +1,6 @@
 ---
 name: sia-index
-description: Indexes external content into SIA's knowledge graph — markdown, URLs, and documents with automatic chunking. Use when adding documentation, design docs, or external references to the graph.
+description: Use when external markdown, URLs, or design docs need to flow into the graph as citeable evidence — batch-indexes content into `ContentChunk` nodes with automatic chunking so future `sia_search` calls can surface them.
 ---
 
 # SIA Index

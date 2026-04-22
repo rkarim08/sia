@@ -1,6 +1,6 @@
 ---
 name: sia-upgrade
-description: Self-updates SIA to the latest version via npm, git, or binary strategies. Use when a new SIA version is available or when the user asks to upgrade.
+description: Use when a newer Sia version is available or CHANGELOG shows a needed fix — self-updates via npm/git/binary with rollback if a migration fails. Follow with `/sia-doctor` to confirm the new version is healthy.
 ---
 
 # SIA Upgrade

@@ -30,6 +30,7 @@ All notable changes to Sia are documented here. This project adheres to
   "You MUST use this before any creative work…". Body unchanged.
 - augment-hook PreToolUse subscriber gains an LRU(32) cache + <3-char query skip (Phase 4 §4.4 cost mitigation). post-tool-use-handler skips TrackA for files >500 KB or binary content. preference-seeder folded into self-monitor as an internal step; SessionStart subscriber count drops 15 → 14 at the design level.
 - Consolidated 10 narrow skills into 4 merged skills with subcommand flags: `sia-pm` (sprint-summary/risk-dashboard/decision-log), `sia-export` (json/markdown/import), `sia-qa` (coverage/flaky/full), `sia-health` (stats+status). Skills 48 → 42; commands 40 → 42 (only `stats.md` + `status.md` existed as command shims among the targeted set, per the 1.2.1 pruning rule). Playbooks + docs updated.
+- Rewrote 15 utility-cluster skill descriptions with superpowers-style "Use when X / before Y" triggers (`sia-augment`, `sia-compare`, `sia-digest`, `sia-doctor`, `sia-freshness`, `sia-history`, `sia-index`, `sia-prune`, `sia-reindex`, `sia-sync`, `sia-team`, `sia-tour`, `sia-upgrade`, `sia-visualize-live`, `sia-workspace`). Added PostToolUse `Bash` subscriber that emits a knowledge-capture hint on successful `git commit`.
 
 ### Fixed
 
