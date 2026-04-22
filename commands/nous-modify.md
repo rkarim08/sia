@@ -17,3 +17,22 @@ nous_modify({ action: "create" | "update" | "deprecate", preference: { ... }, re
 - Blocked for subagents and when drift > 0.90.
 
 If the developer has not supplied a clear reason, ask them for one before calling the tool.
+
+### Worked example
+
+During a session the user says: "From now on we never mock the database in integration tests — we got burned last quarter when a mock hid a broken migration."
+
+```
+nous_modify({
+  action: "create",
+  preference: {
+    kind: "Convention",
+    name: "Never mock database in integration tests",
+    tier: 1
+  },
+  reason: "User 2026-04-21: prior incident where mock/prod divergence masked a broken migration in Q1. Persist across all future sessions."
+})
+// → { confirmationRequired: true, preference_id: "pref-4f2c" }
+```
+
+Tier 1 preferences require explicit developer confirmation; present the draft and wait for approval before re-calling with `confirm: true`.
