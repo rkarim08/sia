@@ -46,7 +46,7 @@
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.58",
 		"@ai-sdk/openai": "^3.0.41",
-		"@anthropic-ai/sdk": "^0.79.0",
+		"@anthropic-ai/sdk": "^0.81.0",
 		"@davisvaughan/tree-sitter-r": "^1.2.0",
 		"@libsql/client": "^0.10.0",
 		"@modelcontextprotocol/sdk": "^1.27.1",
