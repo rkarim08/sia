@@ -1,6 +1,6 @@
 ---
 name: sia-status
-description: Shows SIA knowledge graph health — entity counts by type and tier, conflicts, and capture rate. Use for quick health checks, monitoring, or when the user asks about SIA status.
+description: Use before running `/sia-setup` on an existing graph to check for incomplete indexing; use after a major refactor to verify capture rate.
 ---
 
 # SIA Status

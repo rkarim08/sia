@@ -1,6 +1,6 @@
 ---
 name: sia-pm-risk-dashboard
-description: Generates a technical risk dashboard from SIA — recurring bugs, conflicting decisions, fragile modules, scored by impact. Use for risk assessments, sprint planning, or identifying areas needing attention.
+description: **Use before release readiness review, before approving a major merge, or on-demand when the team is debating whether to ship.** Generates a technical risk dashboard with open bugs, conflict clusters, fragile modules (high churn + low test coverage), and impact-scored pending changes. Read alongside `/sia-freshness` for a full go/no-go signal.
 ---
 
 # SIA Risk Dashboard

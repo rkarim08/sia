@@ -7,6 +7,7 @@
 import type { SQLQueryBindings } from "bun:sqlite";
 import { v4 as uuid } from "uuid";
 import type { SiaDb } from "@/graph/db-interface";
+import { NOUS_BOOKKEEPING_KINDS } from "@/nous/types";
 
 export interface CuriosityInput {
 	topic?: string;
@@ -28,7 +29,7 @@ export interface CuriosityResult {
 }
 
 const MIN_TRUST_TIER = 2; // Only high-trust entities
-const MAX_ACCESS_COUNT = 3; // Never or rarely retrieved
+export const MAX_ACCESS_COUNT = 3; // Never or rarely retrieved
 const CLUSTER_LIMIT = 10;
 
 export async function handleNousCuriosity(
@@ -41,6 +42,7 @@ export async function handleNousCuriosity(
 
 	const limit = CLUSTER_LIMIT * (input.depth ?? 1);
 
+	const bookkeepingPlaceholders = NOUS_BOOKKEEPING_KINDS.map(() => "?").join(", ");
 	let query = `
 		SELECT id, name, type, trust_tier, access_count, summary
 		FROM graph_nodes
@@ -48,9 +50,9 @@ export async function handleNousCuriosity(
 			AND access_count <= ?
 			AND t_valid_until IS NULL
 			AND archived_at IS NULL
-			AND (kind IS NULL OR kind NOT IN ('Episode', 'Signal', 'Concern', 'Preference'))
+			AND (kind IS NULL OR kind NOT IN (${bookkeepingPlaceholders}))
 	`;
-	const params: SQLQueryBindings[] = [MIN_TRUST_TIER, MAX_ACCESS_COUNT];
+	const params: SQLQueryBindings[] = [MIN_TRUST_TIER, MAX_ACCESS_COUNT, ...NOUS_BOOKKEEPING_KINDS];
 
 	if (input.topic) {
 		query += " AND (name LIKE ? OR summary LIKE ?)";

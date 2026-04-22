@@ -1,6 +1,6 @@
 ---
 name: sia-pm-decision-log
-description: Generates a chronological decision log from SIA with dates, rationale, and alternatives considered. Use for stakeholder reviews, project documentation, or tracking architectural decision history.
+description: Use before quarterly planning, before a new teammate onboards, or when a stakeholder asks 'why did we choose X'.
 ---
 
 # SIA Decision Log

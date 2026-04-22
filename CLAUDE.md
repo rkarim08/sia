@@ -72,8 +72,7 @@ Omit `task_type` for trivial edits (typo, rename, comment) or ambiguous requests
 
 ### Load the Contextual Playbook Now
 
-After classifying, immediately invoke the `/sia-playbooks` skill to load the matching
-playbook before calling any Sia tool:
+After classifying, **you MUST invoke `/sia-playbooks` to load the matching playbook before calling any Sia tool**. Do not attempt to recall the playbook's content from memory. If loading fails, state that explicitly and use the condensed guidance in Step 1 as a fallback — never proceed without either the loaded playbook or the explicit fallback acknowledgement.
 
 - `bug-fix` (regression): load `reference-regression.md`
 - `feature`: load `reference-feature.md`
@@ -237,7 +236,7 @@ Nous is Sia's cognitive layer. Five MCP tools are available. Call them as specif
 
 **`nous_reflect`** — Call immediately when a `[Nous] Drift warning` appears in session context, or when a Discomfort Signal flag is injected. Also call before major architectural decisions. Returns per-preference alignment scores and recommended action.
 
-**`nous_curiosity`** — Call when a task completes and the session has remaining capacity, or when retrieval results reveal a knowledge gap. Explores the graph for high-trust entities that have never been retrieved.
+**`nous_curiosity`** — **Call after any long-form task completes — before ending your turn — if the session has remaining capacity.** Returns high-trust entities from the graph you have not yet retrieved in this session. The returned Concerns seed the next interaction. If the session is already ≥90% through its budget, skip.
 
 **`nous_concern`** — Call before responding to any open-ended "what should I look at?" or "what am I missing?" question. Returns prioritised insights from open Concern nodes.
 

@@ -1,6 +1,6 @@
 ---
 name: sia-execute
-description: Executes code in SIA's isolated sandbox environment with automatic knowledge capture. Use when running code snippets, testing expressions, or executing scripts with SIA context.
+description: Use when validating a snippet before committing, or reproducing a bug in isolation; preferred over ad-hoc Bash when output should flow into the graph.
 ---
 
 # SIA Execute
