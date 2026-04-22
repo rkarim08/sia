@@ -54,10 +54,10 @@ For local development (project-scoped): `claude --plugin-dir /path/to/sia`.
 | `nous_concern` | Surface open Concerns weighted by active Preferences |
 | `nous_modify` | Create / update / deprecate Preference nodes (gated, `reason` required) |
 
-## Skills (48)
+## Skills (42)
 
 Skills are slash-invocable workflows that Claude Code can load on demand. For the full table with trigger descriptions and invocation guidance, see
-[PLUGIN_USAGE.md → Skills](PLUGIN_USAGE.md#skills-48).
+[PLUGIN_USAGE.md → Skills](PLUGIN_USAGE.md#skills-42).
 
 Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working. Sia captures automatically afterwards.
 
@@ -68,10 +68,10 @@ Subagents are dispatched via `@sia-<name>`. They run as sub-sessions with their 
 
 Color palette: **blue** (orient / explain), **green** (generate), **red** (debug / incident), **cyan** (quality / review), **purple** (plan / advise).
 
-## Commands (40)
+## Commands (42)
 
-Pruned from 74 in 1.2.1. Kept: direct MCP wrappers (`/at-time`, `/community`), the five `/nous-*` cognitive-layer commands, args-bearing shims (`/search`, `/learn`), and high-frequency short aliases (`/setup`, `/doctor`, `/capture`, `/debug`, etc.). All other skills and agents remain reachable as `/sia-<name>` and `@sia-<name>`. See
-[PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-40) and the 1.2.1 CHANGELOG entry for the full pruning rule.
+Pruned from 74 in 1.2.1. Kept: direct MCP wrappers (`/at-time`, `/community`), the five `/nous-*` cognitive-layer commands, args-bearing shims (`/search`, `/learn`), and high-frequency short aliases (`/setup`, `/doctor`, `/capture`, `/debug`, etc.). All other skills and agents remain reachable as `/sia-<name>` and `@sia-<name>`. Phase C1 (Unreleased) folded `/stats`+`/status` into `/health` and added `/pm`, `/qa`, `/export` short aliases for the consolidated skills. See
+[PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-42) and the 1.2.1 CHANGELOG entry for the full pruning rule.
 
 ## Hooks (9 entries across 7 events)
 

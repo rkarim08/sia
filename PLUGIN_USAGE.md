@@ -15,7 +15,7 @@ See also: [README.md](README.md) (product overview), [CLAUDE.md](CLAUDE.md) (age
 | Visualize the graph interactively  | `/sia-visualize-live`               |
 | Check plugin health                | `/sia-doctor`                       |
 | Capture a decision manually        | `/sia-capture`                      |
-| Review knowledge graph state       | `/sia-status` · `/sia-stats`        |
+| Review knowledge graph state       | `/sia-health`                       |
 | Understand the current session     | `/nous-state`                       |
 | Debug a regression                 | `/sia-debug-workflow`               |
 | Plan a feature                     | `/sia-plan`                         |
@@ -23,7 +23,7 @@ See also: [README.md](README.md) (product overview), [CLAUDE.md](CLAUDE.md) (age
 
 Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working normally. Sia captures automatically; you only call skills when you want a targeted action.
 
-## Skills (48)
+## Skills (42)
 
 ### Core
 
@@ -53,8 +53,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 | [sia-prune](skills/sia-prune/SKILL.md) | Hard-delete archived entities | DB size grows; after freshness scan |
 | [sia-reindex](skills/sia-reindex/SKILL.md) | Full tree-sitter re-walk | Large refactor; rename-heavy commits |
 | [sia-index](skills/sia-index/SKILL.md) | Index external content (markdown / URL) | Add docs, ADRs, meeting notes to the graph |
-| [sia-export-knowledge](skills/sia-export-knowledge/SKILL.md) | Human-readable KNOWLEDGE.md export | Team onboarding; stakeholder share |
-| [sia-export-import](skills/sia-export-import/SKILL.md) | Portable JSON export/import | Backup; migrate machine |
+| [sia-export](skills/sia-export/SKILL.md) | Export/import — `--format json` (portable), `--format markdown` (KNOWLEDGE.md), `--import <path>` | Backup; migration; onboarding; stakeholder share |
 
 ### Development workflow
 
@@ -81,8 +80,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 | [sia-visualize](skills/sia-visualize/SKILL.md) | Static HTML D3 graph | Shareable snapshot |
 | [sia-visualize-live](skills/sia-visualize-live/SKILL.md) | Live updating graph with filters | Interactive exploration |
 | [sia-doctor](skills/sia-doctor/SKILL.md) | System health diagnostics | Any MCP error; empty graph; post-upgrade |
-| [sia-stats](skills/sia-stats/SKILL.md) | Graph capacity / growth stats | Quick size check |
-| [sia-status](skills/sia-status/SKILL.md) | Health dashboard (capture rate, conflicts) | "Is SIA healthy?" |
+| [sia-health](skills/sia-health/SKILL.md) | Graph health + stats dashboard (entity counts, conflicts, capture rate, tier breakdown) | "Is SIA healthy?"; quick size check |
 | [sia-upgrade](skills/sia-upgrade/SKILL.md) | Self-update via npm / git / binary | New release available |
 | [sia-workspace](skills/sia-workspace/SKILL.md) | Multi-repo workspace management | Cross-repo knowledge |
 | [sia-team](skills/sia-team/SKILL.md) | Team sync server join / leave / status | Team-sync configuration |
@@ -92,17 +90,13 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 
 | Skill | What it does | When to invoke |
 |---|---|---|
-| [sia-pm-decision-log](skills/sia-pm-decision-log/SKILL.md) | Formal decision log | Stakeholder review; audit |
-| [sia-pm-risk-dashboard](skills/sia-pm-risk-dashboard/SKILL.md) | Technical risk assessment | Sprint planning; pre-release |
-| [sia-pm-sprint-summary](skills/sia-pm-sprint-summary/SKILL.md) | PM-ready sprint summary | Sprint review; retro |
+| [sia-pm](skills/sia-pm/SKILL.md) | PM reports — `--type sprint-summary` / `risk-dashboard` / `decision-log` | Sprint close; pre-release risk review; stakeholder audit |
 
 ### QA
 
 | Skill | What it does | When to invoke |
 |---|---|---|
-| [sia-qa-coverage](skills/sia-qa-coverage/SKILL.md) | Coverage-gap analysis | Pre-release; test-improvement sprint |
-| [sia-qa-flaky](skills/sia-qa-flaky/SKILL.md) | Flaky test pattern miner | CI flake triage |
-| [sia-qa-report](skills/sia-qa-report/SKILL.md) | Risk-based QA report | QA cycle kickoff |
+| [sia-qa](skills/sia-qa/SKILL.md) | QA reports — `--mode coverage` / `flaky` / `full` | Pre-release; flake triage; QA cycle kickoff |
 
 ## Agents (26)
 
@@ -137,9 +131,9 @@ Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command
 | [sia-security-audit](agents/sia-security-audit.md) | Security review with paranoid mode and Tier 4 exposure | Security review |
 | [sia-test-advisor](agents/sia-test-advisor.md) | Test strategy from past failures + edge cases | Test-planning session |
 
-## Commands (40)
+## Commands (42)
 
-The command palette was pruned in 1.2.1 from 74 → 40 under a principled rule: keep a command if it takes arguments, wraps an MCP tool directly, is part of the Nous cognitive layer, or is a high-frequency daily-workflow short alias. Otherwise the canonical `/sia-<name>` skill or `@sia-<name>` agent is the entry point (both autocomplete from the palette). See [CHANGELOG.md](CHANGELOG.md#121---2026-04-21) for the rule in full and the cut list.
+The command palette was pruned in 1.2.1 from 74 → 40 under a principled rule: keep a command if it takes arguments, wraps an MCP tool directly, is part of the Nous cognitive layer, or is a high-frequency daily-workflow short alias. Otherwise the canonical `/sia-<name>` skill or `@sia-<name>` agent is the entry point (both autocomplete from the palette). See [CHANGELOG.md](CHANGELOG.md#121---2026-04-21) for the rule in full and the cut list. In the Unreleased Phase C1 round, `/stats`+`/status` merged into `/health`, and `/pm`, `/qa`, `/export` were added as short aliases for the new consolidated skills.
 
 ### Direct MCP wrappers
 
@@ -171,8 +165,10 @@ Every command below is a 2-line shim forwarding to the matching `/sia-<name>` sk
 | [/capture](commands/capture.md) | `/sia-capture` skill | End-of-session knowledge capture |
 | [/tour](commands/tour.md) | `/sia-tour` skill | Guided graph tour |
 | [/doctor](commands/doctor.md) | `/sia-doctor` skill | System health check |
-| [/stats](commands/stats.md) | `/sia-stats` skill | Graph size / growth stats |
-| [/status](commands/status.md) | `/sia-status` skill | Capture rate, conflicts dashboard |
+| [/health](commands/health.md) | `/sia-health` skill | Graph health dashboard (entity counts, conflicts, capture rate, tier breakdown) |
+| [/pm](commands/pm.md) | `/sia-pm` skill | PM reports — `--type sprint-summary \| risk-dashboard \| decision-log` |
+| [/qa](commands/qa.md) | `/sia-qa` skill | QA reports — `--mode coverage \| flaky \| full` |
+| [/export](commands/export.md) | `/sia-export` skill | Export/import — `--format json \| markdown`, `--import <path>` |
 | [/upgrade](commands/upgrade.md) | `/sia-upgrade` skill | Self-update |
 | [/finish](commands/finish.md) | `/sia-finish` skill | Wrap up a branch |
 | [/debug](commands/debug.md) | `/sia-debug-workflow` skill | Temporal root-cause tracing |

@@ -66,7 +66,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 /plugin install sia@sia-plugins
 ```
 
-This registers all 29 MCP tools, 48 skills, 26 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
+This registers all 29 MCP tools, 42 skills, 26 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
 
 > **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
@@ -536,7 +536,7 @@ Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `
 
 ---
 
-## Skills (48)
+## Skills (42)
 
 Skills are slash commands providing structured workflows. Invoke them in Claude Code with `/sia-<name>`.
 
@@ -548,8 +548,7 @@ Skills are slash commands providing structured workflows. Invoke them in Claude 
 | `/sia-setup` | First-time setup wizard (detect project, configure, learn, tour) |
 | `/sia-install` | Initialize SIA databases and register the repo |
 | `/sia-search` | Guided search with examples |
-| `/sia-stats` | Graph statistics |
-| `/sia-status` | Knowledge graph health dashboard |
+| `/sia-health` | Graph health dashboard — entity counts, conflicts, capture rate, tier breakdown |
 | `/sia-doctor` | System health diagnostics |
 | `/sia-reindex` | Re-parse repository with Tree-sitter |
 | `/sia-playbooks` | Load task-specific playbooks (regression, feature, review, orientation) |
@@ -562,8 +561,7 @@ Skills are slash commands providing structured workflows. Invoke them in Claude 
 | `/sia-execute` | Run code in sandbox with knowledge capture |
 | `/sia-index` | Index external content (text, URLs) |
 | `/sia-workspace` | Manage cross-repo workspaces |
-| `/sia-export-import` | Export/import graphs as portable JSON |
-| `/sia-export-knowledge` | Export graph as human-readable KNOWLEDGE.md |
+| `/sia-export` | Export/import graph — `--format json` (portable JSON), `--format markdown` (KNOWLEDGE.md), `--import <path>` |
 | `/sia-history` | Explore temporal knowledge evolution |
 | `/sia-impact` | Analyze impact of planned code changes |
 | `/sia-compare` | Compare graph state between two time points |
@@ -608,12 +606,12 @@ These nine skills augment standard development workflows with graph intelligence
 
 | Skill | Audience | What It Produces |
 |---|---|---|
-| `/sia-qa-report` | QA | Changes since last test cycle, risky areas, test priorities |
-| `/sia-qa-coverage` | QA | Test coverage gaps, buggy areas without tests |
-| `/sia-qa-flaky` | QA | Flaky test patterns, recurring failures |
-| `/sia-pm-sprint-summary` | PM | Plain-language progress, decisions, features delivered |
-| `/sia-pm-decision-log` | PM | Chronological decisions with rationale and alternatives |
-| `/sia-pm-risk-dashboard` | PM | Recurring bugs, conflicting decisions, fragile modules |
+| `/sia-qa --mode full` | QA | Changes since last test cycle, risky areas, test priorities |
+| `/sia-qa --mode coverage` | QA | Test coverage gaps, buggy areas without tests |
+| `/sia-qa --mode flaky` | QA | Flaky test patterns, recurring failures |
+| `/sia-pm --type sprint-summary` | PM | Plain-language progress, decisions, features delivered |
+| `/sia-pm --type decision-log` | PM | Chronological decisions with rationale and alternatives |
+| `/sia-pm --type risk-dashboard` | PM | Recurring bugs, conflicting decisions, fragile modules |
 
 ---
 
@@ -1077,7 +1075,7 @@ Auto-detected from `pnpm-workspace.yaml`, `package.json` workspaces, `nx.json`, 
 
 **`/sia-tour`** -- Interactive guided tour covering architecture, decisions, conventions, and known issues.
 
-**`/sia-export-knowledge`** -- Exports the graph as a human-readable `KNOWLEDGE.md` for team onboarding, sharing outside SIA, or generating project documentation.
+**`/sia-export --format markdown`** -- Exports the graph as a human-readable `KNOWLEDGE.md` for team onboarding, sharing outside SIA, or generating project documentation.
 
 ---
 

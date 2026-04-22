@@ -133,7 +133,7 @@ export function formatTour(tour: TourResult): string {
 	lines.push("--- Next Steps ---");
 	lines.push("- Ask any question — SIA tools activate automatically");
 	lines.push("- /sia-search — search the knowledge graph");
-	lines.push("- /sia-status — detailed graph health");
+	lines.push("- /sia-health — detailed graph health");
 	lines.push("- /sia-visualize-live — interactive browser visualization");
 
 	return lines.join("\n");
