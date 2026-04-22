@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEdge } from "@/graph/edges";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import { headingChunker } from "@/sandbox/context-mode";
 
 // ---------------------------------------------------------------------------
@@ -21,6 +22,7 @@ export interface SiaIndexResult {
 	indexed: number;
 	references: number;
 	chunkIds: string[];
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -103,9 +105,12 @@ export async function handleSiaIndex(
 		}
 	}
 
-	return {
+	const nextSteps = buildNextSteps("sia_index", { resultCount: chunkIds.length });
+	const response: SiaIndexResult = {
 		indexed: chunkIds.length,
 		references: referenceCount,
 		chunkIds,
 	};
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

@@ -7,6 +7,7 @@ import { v4 as uuid } from "uuid";
 import type { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaFlagInput as SiaFlagInputSchema } from "@/mcp/server";
 
 export type SiaFlagInput = z.infer<typeof SiaFlagInputSchema>;
@@ -20,6 +21,7 @@ export interface SiaFlagResult {
 	flagged?: boolean;
 	id?: string;
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 /**
@@ -139,5 +141,8 @@ export async function handleSiaFlag(
 		}
 	}
 
-	return { flagged: true, id };
+	const nextSteps = buildNextSteps("sia_flag", { hasFailure: false });
+	return nextSteps.length > 0
+		? { flagged: true, id, next_steps: nextSteps }
+		: { flagged: true, id };
 }

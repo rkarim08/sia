@@ -17,6 +17,15 @@ All notable changes to Sia are documented here. This project adheres to
   (leading `#` stripped, triple-backticks downgraded to single) so the
   downstream compactor sees well-formed markdown. Closes Phase 4
   §UserPromptSubmit gap; pushes concern surfacing from pull to push.
+- Shared `next_steps` hint helper at `src/mcp/next-steps.ts`; applied to 18 MCP tools (16 weak-trigger + 3 snapshot). Every response now chains to the next natural tool call. Closes Phase 5 §5.7 trigger-weakness gap.
+- New skill `sia-verify-before-completion` ports the superpowers
+  `verification-before-completion` discipline with Sia's graph-powered
+  past-failure lookup.
+
+### Changed
+
+- `sia-brainstorm` frontmatter rewritten to superpowers-style mandate:
+  "You MUST use this before any creative work…". Body unchanged.
 
 ## [1.3.3] — 2026-04-22
 

@@ -273,4 +273,59 @@ describe("sia_note tool", () => {
 			}),
 		).rejects.toThrow("Referenced entities not found: nonexistent-entity-id-99999");
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated for Decision (includes sia_flag hint)
+	// ---------------------------------------------------------------
+
+	it("populates next_steps with sia_flag hint for Decision kind", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("note-next-steps-decision", tmpDir);
+
+		const target = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Module",
+			content: "",
+			summary: "",
+		});
+
+		const result = await handleSiaNote(db, {
+			kind: "Decision",
+			name: "Pick X",
+			content: "Picked X for reasons",
+			relates_to: [target.id],
+		});
+
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		const tools = result.next_steps?.map((s) => s.tool) ?? [];
+		expect(tools).toContain("sia_search");
+		expect(tools).toContain("sia_flag");
+	});
+
+	// ---------------------------------------------------------------
+	// next_steps populated for non-Decision (no sia_flag hint)
+	// ---------------------------------------------------------------
+
+	it("populates next_steps without sia_flag hint for non-Decision kinds", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("note-next-steps-convention", tmpDir);
+
+		const target = await insertEntity(db, {
+			type: "CodeEntity",
+			name: "Module2",
+			content: "",
+			summary: "",
+		});
+
+		const result = await handleSiaNote(db, {
+			kind: "Convention",
+			name: "Use foo",
+			content: "Always use foo",
+			relates_to: [target.id],
+		});
+
+		const tools = result.next_steps?.map((s) => s.tool) ?? [];
+		expect(tools).toContain("sia_search");
+		expect(tools).not.toContain("sia_flag");
+	});
 });

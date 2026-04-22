@@ -1,6 +1,7 @@
 // Module: sia-models — MCP tool for model tier status inspection
 
 import { z } from "zod";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { ModelManager } from "@/models/manager";
 
 export const SiaModelsInput = z.object({
@@ -10,19 +11,34 @@ export const SiaModelsInput = z.object({
 export type SiaModelsInputType = z.infer<typeof SiaModelsInput>;
 
 /**
+ * Structured response for `sia_models`.
+ *
+ * Historically the handler returned a bare string. With Phase A2 we return
+ * a small envelope so the MCP response can carry both the formatted text
+ * and a `next_steps` array. Existing behaviour is preserved via the `text`
+ * field — consumers that previously read the string should read `text`.
+ */
+export interface SiaModelsResult {
+	text: string;
+	next_steps?: NextStep[];
+}
+
+/**
  * Handle the sia_models MCP tool.
  *
  * Returns a human-readable summary of the installed model tier, individual
- * model entries, attention head training phase, and total disk usage.
+ * model entries, attention head training phase, and total disk usage, plus
+ * a `next_steps` hint array.
  */
 export function handleSiaModels(
 	input: SiaModelsInputType,
 	modelManager: ModelManager | null,
-): string {
+): SiaModelsResult {
 	if (!modelManager) {
-		return "Model manager not available. Run `sia setup` to initialize.";
+		return { text: "Model manager not available. Run `sia setup` to initialize." };
 	}
 
+	let text: string;
 	if (input.action === "status") {
 		const manifest = modelManager.getManifest();
 
@@ -35,7 +51,7 @@ export function handleSiaModels(
 
 		const totalSize = Object.values(manifest.models).reduce((sum, e) => sum + e.sizeBytes, 0);
 
-		return [
+		text = [
 			`Installed tier: ${manifest.installedTier}`,
 			`Models:`,
 			modelLines || "  (none installed)",
@@ -43,7 +59,10 @@ export function handleSiaModels(
 			`Attention head: ${manifest.attentionHead.trainingPhase} (${manifest.attentionHead.feedbackEvents} feedback events)`,
 			`Total disk usage: ${(totalSize / 1_048_576).toFixed(0)} MB`,
 		].join("\n");
+	} else {
+		text = `Unknown action: ${input.action}`;
 	}
 
-	return `Unknown action: ${input.action}`;
+	const nextSteps = buildNextSteps("sia_models", {});
+	return nextSteps.length > 0 ? { text, next_steps: nextSteps } : { text };
 }

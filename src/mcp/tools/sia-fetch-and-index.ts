@@ -6,6 +6,7 @@ import TurndownService from "turndown";
 import { z } from "zod";
 import type { Embedder } from "@/capture/embedder";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import { contentTypeChunker } from "@/sandbox/context-mode";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +25,7 @@ export interface SiaFetchAndIndexResult {
 	sourceUrl?: string;
 	externalRefId?: string;
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -232,10 +234,13 @@ export async function handleSiaFetchAndIndex(
 	);
 
 	// 9. Return result
-	return {
+	const nextSteps = buildNextSteps("sia_fetch_and_index", { hasFailure: false });
+	const result: SiaFetchAndIndexResult = {
 		indexed: chunkIds.length,
 		contentType,
 		sourceUrl: url,
 		externalRefId,
 	};
+	if (nextSteps.length > 0) result.next_steps = nextSteps;
+	return result;
 }

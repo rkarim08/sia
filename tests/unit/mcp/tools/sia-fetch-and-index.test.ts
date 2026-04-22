@@ -54,4 +54,35 @@ describe("handleSiaFetchAndIndex", () => {
 		expect(result.error).toBeDefined();
 		expect(result.error).toMatch(/HTTP/i);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps omitted on failure (error response)
+	// ---------------------------------------------------------------
+
+	it("omits next_steps when fetch fails", async () => {
+		const mockDb = {
+			execute: async () => ({ rows: [] }),
+			executeMany: async () => {},
+			transaction: async (fn: (db: unknown) => Promise<void>) => fn(mockDb),
+			close: async () => {},
+			rawSqlite: () => null,
+		};
+
+		const mockEmbedder = {
+			embed: async () => new Float32Array(384),
+			embedBatch: async (texts: string[]) => texts.map(() => new Float32Array(384)),
+			close: () => {},
+		};
+
+		const result = await handleSiaFetchAndIndex(
+			mockDb as unknown as import("@/graph/db-interface").SiaDb,
+			{ url: "file:///etc/passwd" },
+			mockEmbedder,
+			"session-test",
+		);
+
+		expect(result.error).toBeDefined();
+		// On failure the handler returns early, before next_steps is attached.
+		expect(result.next_steps).toBeUndefined();
+	});
 });

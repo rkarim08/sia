@@ -44,10 +44,8 @@ describe("sia_snapshot_prune tool", () => {
 			branch_names: ["feature/one", "feature/two"],
 		});
 
-		expect(result).toEqual({
-			pruned: 2,
-			branch_names: ["feature/one", "feature/two"],
-		});
+		expect(result.pruned).toBe(2);
+		expect(result.branch_names).toEqual(["feature/one", "feature/two"]);
 
 		// feature/three is untouched.
 		const { rows } = await db.execute("SELECT branch_name FROM branch_snapshots");
@@ -66,10 +64,8 @@ describe("sia_snapshot_prune tool", () => {
 			branch_names: ["ghost-branch-a", "ghost-branch-b"],
 		});
 
-		expect(result).toEqual({
-			pruned: 0,
-			branch_names: ["ghost-branch-a", "ghost-branch-b"],
-		});
+		expect(result.pruned).toBe(0);
+		expect(result.branch_names).toEqual(["ghost-branch-a", "ghost-branch-b"]);
 	});
 
 	// ---------------------------------------------------------------
@@ -84,7 +80,8 @@ describe("sia_snapshot_prune tool", () => {
 
 		const result = await handleSiaSnapshotPrune(db, { branch_names: [] });
 
-		expect(result).toEqual({ pruned: 0, branch_names: [] });
+		expect(result.pruned).toBe(0);
+		expect(result.branch_names).toEqual([]);
 
 		const { rows } = await db.execute("SELECT COUNT(*) AS cnt FROM branch_snapshots");
 		expect(Number(rows[0].cnt)).toBe(1);
@@ -107,5 +104,18 @@ describe("sia_snapshot_prune tool", () => {
 		// No rows were deleted — validation runs before the DB touch.
 		const { rows } = await db.execute("SELECT COUNT(*) AS cnt FROM branch_snapshots");
 		expect(Number(rows[0].cnt)).toBe(1);
+	});
+
+	// ---------------------------------------------------------------
+	// next_steps: always suggests sia_snapshot_list to confirm
+	// ---------------------------------------------------------------
+
+	it("populates next_steps with sia_snapshot_list to confirm", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		const result = await handleSiaSnapshotPrune(db, { branch_names: [] });
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_snapshot_list");
 	});
 });

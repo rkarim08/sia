@@ -1,6 +1,7 @@
 // Module: sia-backlinks — Backlink traversal for knowledge graph nodes
 
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 
 export interface SiaBacklinksInput {
 	node_id: string;
@@ -20,6 +21,7 @@ export interface SiaBacklinksResult {
 	target_id: string;
 	backlinks: Record<string, BacklinkEntry[]>; // grouped by edge_type
 	total_count: number;
+	next_steps?: NextStep[];
 }
 
 /**
@@ -79,9 +81,26 @@ export async function handleSiaBacklinks(
 		totalCount++;
 	}
 
-	return {
+	// Grab the most-important caller (first entry across all groups) for
+	// the hint's `entity_id` arg, if one exists.
+	let topCallerId: string | undefined;
+	for (const group of Object.values(backlinks)) {
+		if (group.length > 0) {
+			topCallerId = group[0].id;
+			break;
+		}
+	}
+
+	const nextSteps = buildNextSteps("sia_backlinks", {
+		resultCount: totalCount,
+		topEntityId: topCallerId,
+	});
+
+	const response: SiaBacklinksResult = {
 		target_id: input.node_id,
 		backlinks,
 		total_count: totalCount,
 	};
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

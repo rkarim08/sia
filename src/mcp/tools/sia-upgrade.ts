@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { z } from "zod";
 import type { SiaDb } from "@/graph/db-interface";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaUpgradeInput } from "@/mcp/server";
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,7 @@ export interface SiaUpgradeResult {
 	vssRebuilt?: boolean;
 	dryRun?: boolean;
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 // ---------------------------------------------------------------------------
@@ -202,16 +204,22 @@ export async function handleSiaUpgrade(
 
 	// 3. If dry_run → return early
 	if (dryRun) {
-		return { previousVersion, strategy: type, dryRun: true };
+		const dryNext = buildNextSteps("sia_upgrade", { hasFailure: false });
+		const dryResp: SiaUpgradeResult = { previousVersion, strategy: type, dryRun: true };
+		if (dryNext.length > 0) dryResp.next_steps = dryNext;
+		return dryResp;
 	}
 
 	// Guard: if version is unknown, rollback would be impossible
 	if (previousVersion === "unknown") {
-		return {
+		const unknownNext = buildNextSteps("sia_upgrade", { hasFailure: true });
+		const unknownResp: SiaUpgradeResult = {
 			previousVersion,
 			strategy: type,
 			error: "Cannot determine current version — rollback would be impossible. Aborting upgrade.",
 		};
+		if (unknownNext.length > 0) unknownResp.next_steps = unknownNext;
+		return unknownResp;
 	}
 
 	// 4. Try update → on failure, try rollback
@@ -227,16 +235,20 @@ export async function handleSiaUpgrade(
 			rollbackMsg = ` (rollback also failed: ${rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)})`;
 		}
 
-		return {
+		const failNext = buildNextSteps("sia_upgrade", { hasFailure: true });
+		const failResp: SiaUpgradeResult = {
 			previousVersion,
 			strategy: type,
 			error: `${updateErr instanceof Error ? updateErr.message : String(updateErr)}${rollbackMsg}`,
 		};
+		if (failNext.length > 0) failResp.next_steps = failNext;
+		return failResp;
 	}
 
 	// 5. Return success result
 	const newVersion = strategy.currentVersion();
-	return {
+	const nextSteps = buildNextSteps("sia_upgrade", { hasFailure: false });
+	const response: SiaUpgradeResult = {
 		previousVersion,
 		newVersion,
 		strategy: type,
@@ -244,4 +256,6 @@ export async function handleSiaUpgrade(
 		hooksReconfigured: false,
 		vssRebuilt: false,
 	};
+	if (nextSteps.length > 0) response.next_steps = nextSteps;
+	return response;
 }

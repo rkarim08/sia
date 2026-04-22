@@ -100,4 +100,36 @@ describe("handleSiaBatchExecute", () => {
 		const throttleResult = await deps.throttle.check(deps.sessionId, "sia_execute");
 		expect(throttleResult.callCount).toBe(3);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps: omitted on success, sia_doctor hint on failure
+	// ---------------------------------------------------------------
+
+	it("omits next_steps when all operations succeed", async () => {
+		const deps = setup();
+		const result = await handleSiaBatchExecute(
+			db,
+			{ operations: [{ type: "execute", code: 'echo "ok"', language: "bash" }] },
+			deps.embedder,
+			deps.throttle,
+			deps.sessionId,
+		);
+		expect(result.results[0].error).toBeUndefined();
+		expect(result.next_steps).toBeUndefined();
+	});
+
+	it("populates next_steps with sia_doctor hint on failure", async () => {
+		const deps = setup();
+		// Invalid op type gets caught & recorded with .error
+		const result = await handleSiaBatchExecute(
+			db,
+			{ operations: [{ type: "search", query: "irrelevant" }] },
+			deps.embedder,
+			deps.throttle,
+			deps.sessionId,
+		);
+		expect(result.results[0].error).toBeDefined();
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
+	});
 });

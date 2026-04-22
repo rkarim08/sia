@@ -66,4 +66,22 @@ describe("handleSiaSyncStatus", () => {
 		expect(result.status).toBe("error");
 		expect(result.error).toBe("config file corrupt");
 	});
+
+	it("omits next_steps on normal status", async () => {
+		mockGetConfig.mockReturnValue({
+			sync: { enabled: false, serverUrl: null, developerId: null, syncInterval: 30 },
+		});
+		const result = await handleSiaSyncStatus();
+		expect(result.next_steps).toBeUndefined();
+	});
+
+	it("populates next_steps with sia_doctor on error status", async () => {
+		mockGetConfig.mockImplementation(() => {
+			throw new Error("boom");
+		});
+		const result = await handleSiaSyncStatus();
+		expect(result.status).toBe("error");
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
+	});
 });

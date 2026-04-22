@@ -3,6 +3,7 @@
 // Returns the current sync configuration and status.
 // Read-only — does not require a database connection.
 
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import { getConfig, resolveSiaHome } from "@/shared/config";
 
 export interface SiaSyncStatusResult {
@@ -12,6 +13,7 @@ export interface SiaSyncStatusResult {
 	developer_id?: string;
 	sync_interval_seconds?: number;
 	error?: string;
+	next_steps?: NextStep[];
 }
 
 /**
@@ -35,10 +37,13 @@ export async function handleSiaSyncStatus(): Promise<SiaSyncStatusResult> {
 		};
 	} catch (err) {
 		console.error("[sia] sia_sync_status error:", err);
-		return {
+		const nextSteps = buildNextSteps("sia_sync_status", { hasFailure: true });
+		const response: SiaSyncStatusResult = {
 			enabled: false,
 			status: "error",
 			error: err instanceof Error ? err.message : String(err),
 		};
+		if (nextSteps.length > 0) response.next_steps = nextSteps;
+		return response;
 	}
 }

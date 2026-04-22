@@ -7,6 +7,7 @@ import type { SiaDb } from "@/graph/db-interface";
 import type { EdgeRow } from "@/graph/edges";
 import type { Entity } from "@/graph/entities";
 import { annotateFreshness } from "@/mcp/freshness-annotator";
+import { buildNextSteps, type NextStep } from "@/mcp/next-steps";
 import type { SiaExpandInput } from "@/mcp/server";
 
 /** Optional dependencies for recording agent feedback signals. */
@@ -21,6 +22,7 @@ export interface SiaExpandResult {
 	neighbors: Entity[];
 	edges: EdgeRow[];
 	edge_count: number;
+	next_steps?: NextStep[];
 }
 
 /** Error result when root entity is not found. */
@@ -174,10 +176,35 @@ export async function handleSiaExpand(
 		}
 	}
 
-	return {
+	const neighborEntities = annotatedNeighbors as unknown as Entity[];
+	// `file_paths` is a JSON-encoded string array on each row. Parse the first
+	// entry defensively so a malformed value simply yields no hint.
+	let topFilePath: string | undefined;
+	const rawFilePaths = neighborEntities[0]?.file_paths;
+	if (typeof rawFilePaths === "string" && rawFilePaths.length > 0) {
+		try {
+			const parsed = JSON.parse(rawFilePaths) as unknown;
+			if (Array.isArray(parsed) && typeof parsed[0] === "string") {
+				topFilePath = parsed[0];
+			}
+		} catch {
+			// ignore malformed file_paths for hint purposes
+		}
+	}
+
+	const nextSteps = buildNextSteps("sia_expand", {
+		resultCount: neighborEntities.length,
+		topEntityId: input.entity_id,
+		topFilePath,
+		depthExplored: depth,
+	});
+
+	const result: SiaExpandResult = {
 		entity: annotatedRoot as unknown as Entity,
-		neighbors: annotatedNeighbors as unknown as Entity[],
+		neighbors: neighborEntities,
 		edges: dedupedEdges.slice(0, MAX_EDGES),
 		edge_count: totalEdgeCount,
 	};
+	if (nextSteps.length > 0) result.next_steps = nextSteps;
+	return result;
 }

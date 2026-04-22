@@ -123,4 +123,27 @@ describe("sia_stats tool", () => {
 		expect(result.edges).toEqual({});
 		expect(result.session).toBeUndefined();
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps: /sia-learn on empty graph, sia_doctor otherwise
+	// ---------------------------------------------------------------
+
+	it("populates next_steps with /sia-learn hint on empty graph", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("stats-empty", tmpDir);
+
+		const result = await handleSiaStats(db, {});
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("/sia-learn");
+	});
+
+	it("populates next_steps with sia_doctor hint on non-empty graph", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("stats-populated", tmpDir);
+		await insertTestNode(db, { type: "CodeEntity", name: "X" });
+
+		const result = await handleSiaStats(db, {});
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		expect(result.next_steps?.map((s) => s.tool)).toContain("sia_doctor");
+	});
 });

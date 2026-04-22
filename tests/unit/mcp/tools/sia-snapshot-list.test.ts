@@ -112,4 +112,30 @@ describe("sia_snapshot_list tool", () => {
 		expect(result.error).toMatch(/Snapshot list query failed/);
 		expect(result.error).toMatch(/boom from graph layer/);
 	});
+
+	// ---------------------------------------------------------------
+	// next_steps: populated when snapshots exist, omitted when empty
+	// ---------------------------------------------------------------
+
+	it("populates next_steps with sia_snapshot_restore on the newest entry", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		await createBranchSnapshot(db, "main", "hash-main");
+
+		const result = await handleSiaSnapshotList(db);
+		expect(result.snapshots).toHaveLength(1);
+		expect(result.next_steps?.length).toBeGreaterThan(0);
+		const restore = result.next_steps?.find((s) => s.tool === "sia_snapshot_restore");
+		expect(restore?.args?.branch_name).toBe(result.snapshots[0].branch_name);
+	});
+
+	it("omits next_steps when no snapshots exist", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb(randomUUID(), tmpDir);
+
+		const result = await handleSiaSnapshotList(db);
+		expect(result.snapshots).toHaveLength(0);
+		expect(result.next_steps).toBeUndefined();
+	});
 });
