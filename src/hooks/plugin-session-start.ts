@@ -6,6 +6,7 @@
 // Also ensures the MCP server is configured in the project.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { resolveRepoHash } from "@/capture/hook";
 import { incrementalReindex, readStoredHead } from "@/capture/incremental-reindexer";
@@ -76,6 +77,26 @@ function ensureMcpConfig(cwd: string): void {
 	}
 }
 
+/**
+ * First-run hint: if no T0 embedding model is present, nudge the user to
+ * download it for better search quality. Degrades silently on any error.
+ */
+function getModelInstallHint(): string {
+	try {
+		const modelPath = join(
+			homedir(),
+			".sia",
+			"models",
+			"bge-small-en-v1.5",
+			"model_quantized.onnx",
+		);
+		if (existsSync(modelPath)) return "";
+		return "\n💡 Transformer models not installed — run `sia download-model` for better search quality (55MB).\n";
+	} catch {
+		return "";
+	}
+}
+
 async function main() {
 	try {
 		const input = await readStdin();
@@ -118,6 +139,9 @@ async function main() {
 			const isResume = event.source === "resume";
 			const context = await buildSessionContext(db, cwd, isResume);
 			let formatted = formatSessionContext(context);
+
+			// First-run UX: hint to download T0 models if missing.
+			formatted += getModelInstallHint();
 
 			// Nous: run self-monitor and inject drift warning if needed.
 			// Must not break SessionStart — any failure is logged and ignored.
