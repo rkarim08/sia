@@ -6,6 +6,28 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-04-21
+
+### Fixed
+- Community-detection bridge no longer attempts to call `detectCommunities`
+  on the native module unconditionally. The current `@sia/native` binary
+  exposes `astDiff`, `graphCompute`, `isNative`, and `isWasm`, but does
+  **not** yet include a Rust Leiden implementation. Before this fix the
+  bridge logged "sia: native Leiden failed at runtime: nativeMod.detectCommunities
+  is not a function — using JS fallback" on every community-detection call.
+  Detection now probes for the function and silently falls through to JS
+  Louvain when it is missing.
+- `sia doctor` reported "Rust Leiden via graphrs" whenever any tier of the
+  native module loaded. It now uses the new `isLeidenAvailable()` probe and
+  only claims Leiden when the native module genuinely exports it.
+
+### Added
+- README "Running the Test Suite" section clarifying `bun run test`
+  (vitest, 2021/2021 pass) vs `bun test` (Bun's native runner, ~400
+  bogus failures from `vi.mock` leakage across files).
+- `vitest.config.ts` top-of-file banner with the same note so agents or
+  contributors touching test configuration see the warning immediately.
+
 ## [1.1.3] - 2026-04-21
 
 ### Added

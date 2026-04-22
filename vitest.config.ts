@@ -1,3 +1,12 @@
+// Vitest configuration for the main test suite.
+//
+// IMPORTANT: run tests via `bun run test` (which invokes vitest) rather than
+// `bun test` (Bun's native runner). `bun test` ignores this config file, the
+// `@/…` alias map, and the per-file isolation that prevents `vi.mock(...)`
+// pollution across test files. Running `bun test` directly will appear to
+// produce several hundred failures; those failures are an artefact of the
+// wrong runner, not real regressions.
+
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 

@@ -33,13 +33,31 @@ interface NativeLeidenModule {
 	): CommunityResult;
 }
 
+/**
+ * Probe @sia/native for a `detectCommunities` export. The current native
+ * binary does not yet expose Leiden (only astDiff and graphCompute), so
+ * this returns null when the function is missing and the caller falls
+ * through to the JS Louvain implementation silently.
+ */
 function loadNativeLeiden(): NativeLeidenModule | null {
 	try {
-		return require("@sia/native") as NativeLeidenModule;
+		const mod = require("@sia/native") as Partial<NativeLeidenModule>;
+		if (typeof mod.detectCommunities === "function") {
+			return mod as NativeLeidenModule;
+		}
+		return null;
 	} catch {
-		process.stderr.write("sia: native Leiden module not available, using JS fallback\n");
 		return null;
 	}
+}
+
+/**
+ * Returns true when the native module exposes a working `detectCommunities`
+ * export. Used by `sia doctor` to label the active community-detection
+ * backend accurately.
+ */
+export function isLeidenAvailable(): boolean {
+	return loadNativeLeiden() !== null;
 }
 
 // ---------------------------------------------------------------------------
