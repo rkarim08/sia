@@ -6,6 +6,76 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-04-21
+
+### Removed
+
+Command palette pruned 74 → 40. Every cut command's functionality remains
+reachable — skills as `/sia-<name>`, agents as `@sia-<name>`. Only the
+short-alias slash shim was removed.
+
+**Skill shim aliases (18):** `/compare`, `/export`, `/export-import`,
+`/history`, `/impact`, `/index`, `/playbooks`, `/pm-decision-log`,
+`/pm-risk-dashboard`, `/pm-sprint-summary`, `/prune`, `/qa-coverage`,
+`/qa-flaky`, `/qa-report`, `/reindex`, `/review-respond`, `/team`,
+`/visualize-live`.
+
+**Agent delegation shims (16):** `/changelog-writer`, `/conflict-resolver`,
+`/convention-enforcer`, `/decision-reviewer`, `/dependency-tracker`,
+`/doc-writer`, `/feature`, `/lead-architecture-advisor`,
+`/lead-team-health`, `/migration`, `/pm-briefing`, `/pm-risk-advisor`,
+`/qa-analyst`, `/qa-regression-map`, `/search-debugger`, `/test-advisor`.
+
+### Changed
+
+- **Pruning rule (adopted 1.2.3, open for team debate).** Phase 7 deferred
+  this cut because no principled rule distinguished a palette-worthy alias
+  from clutter. The rule applied here:
+
+  > **KEEP a command if ANY of:**
+  >
+  > 1. It takes arguments (`argument-hint:` in frontmatter) — the short
+  >    alias carries ergonomic value that `/sia-<name>` cannot replicate
+  >    without more typing per invocation.
+  > 2. It wraps an MCP tool directly (non-shim body that invokes a tool
+  >    like `sia_at_time` or `sia_community`) — no corresponding `/sia-X`
+  >    skill exists to absorb the command.
+  > 3. It is one of the five `/nous-*` cognitive-layer commands —
+  >    CLAUDE.md's Nous Tool Contract references these by name as the
+  >    canonical slash interface.
+  > 4. It is a high-frequency daily-workflow short alias where the short
+  >    form provides real discoverability value — the curated set is
+  >    `/setup`, `/install`, `/doctor`, `/tour`, `/stats`, `/status`,
+  >    `/capture`, `/learn`, `/search`, `/debug`, `/plan`, `/test`,
+  >    `/verify`, `/upgrade`, `/finish`, `/brainstorm`, `/execute`,
+  >    `/execute-plan`, `/dispatch`, `/conflicts`, `/freshness`,
+  >    `/digest`, `/workspace`, `/sync`, plus the agent-canonical
+  >    entries `/code-reviewer`, `/pr-writer`, `/refactor`,
+  >    `/regression`, `/security-audit`, `/knowledge-capture`,
+  >    `/onboarding`, `/orientation`, `/explain`.
+  >
+  > **CUT a command if ALL of:**
+  >
+  > 1. It is a 2-line shim with no `$ARGUMENTS` handling.
+  > 2. A `/sia-<name>` skill or `@sia-<name>` agent already autocompletes
+  >    from the palette.
+  > 3. It is not in the daily-workflow curation list above.
+  > 4. It is not an MCP-direct or Nous-layer command.
+
+  Rationale: the starting heuristic — "cut any alias whose name is a
+  prefix of the canonical `/sia-<name>`" — is too mechanical. It would
+  cut `/search` and `/setup` despite those being the highest-frequency
+  entries. The refined rule is explicit about which high-frequency
+  aliases get protected, so the cut list is defensible rather than
+  arbitrary.
+
+- `PLUGIN_USAGE.md` — "Commands (non-shim)" section rewritten as
+  "Commands (40)" with three tables (MCP wrappers, Nous layer, short
+  aliases) plus an agent-canonical table. Every retained command is
+  now listed with its forwarding target.
+- `PLUGIN_README.md` — command count updated 74 → 40 with a pointer to
+  the pruning rule in this CHANGELOG entry.
+
 ## [1.2.2] - 2026-04-21
 
 ### Changed

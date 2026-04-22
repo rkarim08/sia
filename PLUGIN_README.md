@@ -68,10 +68,10 @@ Subagents are dispatched via `@sia-<name>`. They run as sub-sessions with their 
 
 Color palette: **blue** (orient / explain), **green** (generate), **red** (debug / incident), **cyan** (quality / review), **purple** (plan / advise).
 
-## Commands (74)
+## Commands (40)
 
-Most commands are thin shims that forward to a skill or dispatch an agent. Direct MCP wrappers (e.g. `/at-time`, `/community`, `/freshness`) and the five `/nous-*` cognitive-layer commands have substantive bodies worth reading. See
-[PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-non-shim).
+Pruned from 74 in 1.2.1. Kept: direct MCP wrappers (`/at-time`, `/community`), the five `/nous-*` cognitive-layer commands, args-bearing shims (`/search`, `/learn`), and high-frequency short aliases (`/setup`, `/doctor`, `/capture`, `/debug`, etc.). All other skills and agents remain reachable as `/sia-<name>` and `@sia-<name>`. See
+[PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-40) and the 1.2.1 CHANGELOG entry for the full pruning rule.
 
 ## Hooks (9 entries across 7 events)
 
