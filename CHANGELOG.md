@@ -6,6 +6,18 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- UserPromptSubmit hook now classifies task type and injects top-k memory
+  retrieval + open-Concern matches as `additionalContext`. Prompts < 20
+  chars skipped. Per-turn memoized; 200 ms hard timeout with graceful
+  `db.close()` deferral (via `pendingBackgroundWork`) to prevent leaked
+  "database closed" errors from orphaned queries after the timer fires.
+  Entity name/summary fields embedded into the block are sanitised
+  (leading `#` stripped, triple-backticks downgraded to single) so the
+  downstream compactor sees well-formed markdown. Closes Phase 4
+  §UserPromptSubmit gap; pushes concern surfacing from pull to push.
+
 ## [1.3.3] — 2026-04-22
 
 ### Added
