@@ -7,6 +7,17 @@ description: Writes implementation plans using SIA's knowledge of module topolog
 
 Write implementation plans pre-loaded with architectural constraints, module boundaries, and conventions from SIA's knowledge graph.
 
+## Usage
+
+**When to invoke:**
+- User hands you a spec and asks for a multi-step implementation plan
+- Breaking a large feature into tasks before executing
+- Coming out of `sia-brainstorm` with an approved design
+
+**Inputs:** No arguments. The skill reads the current spec / request from context, queries SIA for module boundaries, and emits a plan document.
+
+**Worked example:** Given spec "Add rate limiting to the public API", the skill runs `sia_community({ level: 1 })` (finds `api-gateway` and `shared-middleware` as separate communities → tasks can be parallel), `sia_search({ query: "rate limiting decisions", node_types: ["Decision"] })` (finds prior "use Redis for distributed counters" Decision), and writes a plan that respects both constraints. Output: a markdown plan with per-task graph citations.
+
 ## Checklist
 
 ```

@@ -49,6 +49,20 @@ If the process crashes mid-run (OOM, Ctrl+C, power loss), re-running `/sia-learn
 - After a large refactoring
 - When onboarding to a new codebase
 
+## Worked Example
+
+```
+$ /sia-learn --incremental
+[sia] Indexing changed files (3)...
+[sia] Parsed src/auth/login.ts → 4 entities, 6 edges
+[sia] Parsed src/auth/session.ts → 2 entities, 3 edges
+[sia] Parsed docs/ADR-012-auth.md → 1 Decision
+[sia] Community re-cluster: 2 communities touched
+[sia] Done in 4.2s — 7 new entities, 9 new edges, 1 Decision
+```
+
+Subsequent `sia_search`, `sia_by_file`, and `sia_community` calls immediately see the new entities.
+
 ## After Learning
 
 Use SIA's MCP tools to query the knowledge graph:
