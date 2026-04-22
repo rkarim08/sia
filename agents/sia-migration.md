@@ -2,6 +2,7 @@
 name: sia-migration
 description: Plans and executes knowledge graph updates during major refactoring — renames entities, updates edges, invalidates stale knowledge, and cleans graph data after architecture changes
 model: sonnet
+color: purple
 whenToUse: |
   Use when a major refactoring changes the codebase structure and the knowledge graph needs updating — entity names no longer match code, edges point to renamed files, or whole modules have been restructured.
 

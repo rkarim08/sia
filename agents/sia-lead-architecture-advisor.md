@@ -2,6 +2,7 @@
 name: sia-lead-architecture-advisor
 description: Detects architecture drift by comparing current code structure against captured architectural decisions — surfaces where the codebase has diverged from intended design
 model: sonnet
+color: purple
 whenToUse: |
   Use when a tech lead wants to verify the codebase still matches architectural decisions, or when reviewing whether the team is following the intended design.
 

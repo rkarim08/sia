@@ -2,6 +2,7 @@
 name: sia-security-audit
 description: Reviews code for security vulnerabilities using SIA's paranoid mode, Tier 4 exposure tracking, and security-related entity history
 model: sonnet
+color: red
 whenToUse: |
   Use when reviewing code for security concerns, auditing dependencies, or when the user mentions security, authentication, authorization, encryption, or vulnerability assessment.
 

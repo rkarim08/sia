@@ -2,6 +2,7 @@
 name: sia-debug-specialist
 description: Investigates active bugs using SIA's temporal knowledge graph — traces root cause through time, finds what changed and when, surfaces related known bugs and past solutions
 model: sonnet
+color: red
 whenToUse: |
   Use when actively debugging a bug, error, or unexpected behavior. This agent uses SIA's temporal queries to investigate what changed, when it broke, and what past bugs in the same area looked like.
 

@@ -2,6 +2,7 @@
 name: sia-refactor
 description: Analyzes impact of structural code changes using SIA's dependency graph — maps what calls, imports, and depends on the code being changed before you refactor
 model: sonnet
+color: purple
 whenToUse: |
   Use when refactoring, renaming, moving, or restructuring code. This agent uses SIA's backlink traversal and AST queries to map all dependents before you make changes.
 

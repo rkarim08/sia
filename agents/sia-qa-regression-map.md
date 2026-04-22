@@ -2,6 +2,7 @@
 name: sia-qa-regression-map
 description: Generates a SCORED regression risk map with numeric risk ratings (0-100) per module — combines bug density, change velocity, and dependency fan-out. Unlike sia-qa-analyst (which gives broad QA recommendations), this agent produces a single ranked table for test prioritization.
 model: sonnet
+color: cyan
 whenToUse: |
   Use when QA needs a visual or structured regression risk assessment, especially before releases or after major changes.
 

@@ -2,6 +2,7 @@
 name: sia-qa-analyst
 description: QA intelligence agent — analyzes the knowledge graph to identify regression risk areas, coverage gaps, recently changed modules, and test recommendations for QA and SDET teams
 model: sonnet
+color: cyan
 whenToUse: |
   Use when a QA engineer, SDET, or tester needs to understand what to test, where the risks are, or what changed since the last test cycle.
 

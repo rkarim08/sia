@@ -2,6 +2,7 @@
 name: sia-pm-risk-advisor
 description: Technical risk advisor for PMs — surfaces areas of technical debt, recurring bugs, fragile modules, and dependency risks from the knowledge graph in business-impact language
 model: sonnet
+color: cyan
 whenToUse: |
   Use when a PM needs to understand technical risks, plan mitigation, or prioritize technical debt.
 
