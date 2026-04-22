@@ -13,11 +13,13 @@ All notable changes to Sia are documented here. This project adheres to
   usage guide with invocation triggers and worked examples. Linked
   from README and PLUGIN_README as the canonical entry point for
   "how do I use X?" questions.
-- Uniform "Usage" section on 41 skills that were previously thin or
-  missing usage documentation. The contract (what it does / when to
-  invoke / inputs / worked example) is now consistent across every
-  skill the plugin ships.
-- Context blurbs on 26 agent-delegation commands so users reading the
+- Added or expanded "Usage" documentation on 38 skills that were
+  previously thin or missing it. Individual skills keep their
+  existing section structure (some use `## Usage`, others split
+  into `## When To Use` + `## Worked Example`) — the contract is
+  semantic, not syntactic: every skill now covers what it does,
+  when to invoke, inputs, and a worked example or typical output.
+- Context blurbs on 22 agent-delegation commands so users reading the
   command body understand what the underlying agent does without
   round-tripping to the agent file.
 - Positive worked examples on the 5 `/nous-*` commands (previously

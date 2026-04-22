@@ -54,8 +54,8 @@ extract_usage_hint() {
 print_skills_table() {
   echo "## Skills"
   echo
-  echo "| Skill | What it does |"
-  echo "|---|---|"
+  echo "| Skill | What it does | When to invoke |"
+  echo "|---|---|---|"
   for dir in skills/*/; do
     local name
     name=$(basename "$dir")
@@ -69,7 +69,9 @@ print_skills_table() {
     # Strip the "Use when..." tail for the summary table.
     desc="${desc%%. Use when*}"
     desc="${desc%%. Called automatically*}"
-    echo "| [$name]($skill_file) | $desc |"
+    local hint
+    hint=$(extract_usage_hint "$skill_file")
+    echo "| [$name]($skill_file) | $desc | $hint |"
   done
 }
 
@@ -77,8 +79,8 @@ print_agents_table() {
   echo
   echo "## Agents"
   echo
-  echo "| Agent | What it does |"
-  echo "|---|---|"
+  echo "| Agent | What it does | When to invoke |"
+  echo "|---|---|---|"
   for f in agents/*.md; do
     [[ -f "$f" ]] || continue
     local name
@@ -87,7 +89,9 @@ print_agents_table() {
     desc=$(extract_description "$f")
     desc="${desc%%. Use when*}"
     desc="${desc%%. Works for*}"
-    echo "| [$name]($f) | $desc |"
+    local hint
+    hint=$(extract_usage_hint "$f")
+    echo "| [$name]($f) | $desc | $hint |"
   done
 }
 
@@ -95,8 +99,8 @@ print_commands_table() {
   echo
   echo "## Commands"
   echo
-  echo "| Command | Description | Kind |"
-  echo "|---|---|---|"
+  echo "| Command | Description | Kind | When to invoke |"
+  echo "|---|---|---|---|"
   for f in commands/*.md; do
     [[ -f "$f" ]] || continue
     local name
@@ -112,7 +116,9 @@ print_commands_table() {
     elif grep -qE '^(Invoke|Call) the `(sia|nous)_' "$f"; then
       kind="mcp-wrapper"
     fi
-    echo "| /$name | $desc | $kind |"
+    local hint
+    hint=$(extract_usage_hint "$f")
+    echo "| /$name | $desc | $kind | $hint |"
   done
 }
 
@@ -141,14 +147,16 @@ if [[ "$MODE" == "verify" ]]; then
   missing=0
   for dir in skills/*/; do
     name=$(basename "$dir")
-    if ! grep -q "$name" "$target"; then
+    # Use word-boundary match so e.g. future skill 'sia-at' does not pass
+    # verify via a substring match inside 'sia-at-time'.
+    if ! grep -Eq "(^|[^A-Za-z0-9_-])${name}([^A-Za-z0-9_-]|$)" "$target"; then
       echo "drift: skill '$name' not listed in $target" >&2
       missing=$((missing + 1))
     fi
   done
   for f in agents/*.md; do
     name=$(basename "$f" .md)
-    if ! grep -q "$name" "$target"; then
+    if ! grep -Eq "(^|[^A-Za-z0-9_-])${name}([^A-Za-z0-9_-]|$)" "$target"; then
       echo "drift: agent '$name' not listed in $target" >&2
       missing=$((missing + 1))
     fi
