@@ -1,6 +1,6 @@
 ---
 name: sia-brainstorm
-description: Brainstorms features using SIA's knowledge graph — surfaces past decisions, rejected alternatives, and architectural constraints before proposing approaches. Use when starting any creative work, designing features, or modifying behavior.
+description: You MUST use this before any creative work — creating features, building components, adding functionality, or modifying behaviour. Explores user intent, requirements, and design before implementation, surfacing past decisions and architectural constraints from the graph. Retrieval-first — load prior art before inventing new structures.
 ---
 
 # SIA-Enhanced Brainstorming
