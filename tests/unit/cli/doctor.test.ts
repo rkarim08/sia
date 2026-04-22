@@ -52,7 +52,9 @@ describe("doctor command", () => {
 	it("reports community detection backend", async () => {
 		tmpDir = makeTmp();
 		const report = await runDoctor(null, tmpDir);
-		expect(report.communityBackend).toContain("Louvain");
+		// "JavaScript Louvain" when @sia/native is unavailable;
+		// "Rust Leiden via graphrs" when native or wasm is loaded.
+		expect(report.communityBackend).toMatch(/Louvain|Leiden/);
 	});
 
 	it("includes hook health configuration", async () => {

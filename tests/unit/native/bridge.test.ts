@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { astDiff, graphCompute, isNativeAvailable } from "@/native/bridge";
 
 describe("isNativeAvailable", () => {
-	it("returns 'typescript' when no native module is installed", () => {
+	it("returns one of the three valid tiers", () => {
 		const result = isNativeAvailable();
-		expect(result).toBe("typescript");
+		expect(["native", "wasm", "typescript"]).toContain(result);
 	});
 });
 
