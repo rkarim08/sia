@@ -9,8 +9,36 @@ Generate a PM-ready sprint summary from the knowledge graph.
 
 ## Usage
 
+**When to invoke:**
+- Sprint review / retro prep
+- End-of-sprint status report for non-engineers
+- Weekly leadership briefing
+
+**Inputs:**
+- `--since <date>` (required): sprint start date
+- `--until <date>` (optional, default today): sprint end date
+- `--output <path>` (optional, default `SPRINT-SUMMARY.md`): target file
+
+**Worked example:**
+
 ```bash
 bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts pm-report --type sprint --since 2026-03-10 --until 2026-03-23
+```
+
+Produces `SPRINT-SUMMARY.md`:
+
+```markdown
+## Executive Summary
+Sprint 24 shipped the rate-limiting feature and resolved the payment-retry bug.
+
+## Key Decisions
+- **Use Redis for rate limiting** — chose over Postgres advisory locks for burst-load tolerance.
+
+## Bugs Found & Fixed
+- Double-charge on payment retry — root cause: missing idempotency key; fixed via `orders/charge.ts:42`.
+
+## Metrics
+- 14 entities captured · 8 Decisions · 3 Bugs · 3 Solutions
 ```
 
 ## Sections
