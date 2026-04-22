@@ -34,7 +34,7 @@ SIA cross-references:
 
 Areas with bugs but no corresponding test entities = coverage gaps.
 
-## Usage
+## Direct MCP queries
 
 Ask the sia-qa-analyst agent or run:
 

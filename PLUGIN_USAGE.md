@@ -42,7 +42,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 
 | Skill | What it does | When to invoke |
 |---|---|---|
-| [sia-augment](skills/sia-augment/SKILL.md) | Proactive capture assist | After ambiguous "we're doing X now" moments |
+| [sia-augment](skills/sia-augment/SKILL.md) | Toggle auto-enrichment of Grep/Glob/Bash results with graph context | Silence noisy augmentation; debug PreToolUse hook behavior |
 | [sia-digest](skills/sia-digest/SKILL.md) | 24-hour knowledge digest | Start of workday; daily standup |
 | [sia-history](skills/sia-history/SKILL.md) | Temporal explore of graph evolution | "What decisions were made this week?" |
 | [sia-compare](skills/sia-compare/SKILL.md) | Diff graph state across two time points | Release retro; sprint audit |
