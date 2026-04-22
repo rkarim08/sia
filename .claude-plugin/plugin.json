@@ -6,6 +6,7 @@
 		"name": "Ramez Karim"
 	},
 	"license": "Apache-2.0",
+	"category": "development",
 	"repository": "https://github.com/rkarim08/sia",
 	"homepage": "https://github.com/rkarim08/sia#readme",
 	"bugs": "https://github.com/rkarim08/sia/issues",
