@@ -8,6 +8,7 @@ All notable changes to Sia are documented here. This project adheres to
 
 ### Added
 
+- `src/nous/surprise-router.ts` graduated from Phase 1 stub to working prediction-error detector using the transformer-stack cross-encoder. Writes `Signal` nodes with `name: surprise:<kind>` when cross-encoder score < threshold; fails open when no reranker model is available. Closes the last Nous cognitive-safety gap (benchmark eval Moat #2 full realisation).
 - Transformer-stack Phase 1 landed: model manager + registry, bge-small
   embedder upgrade via multi-model support, embedding cache extended for
   model-keyed lookups, config fields for model tier, `@/models/*` tsconfig

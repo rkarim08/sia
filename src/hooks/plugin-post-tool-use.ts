@@ -42,7 +42,7 @@ async function main() {
 							: JSON.stringify(event.tool_response ?? "");
 
 					runDiscomfortSignal(db, event.session_id, responseText, nousConfig);
-					runSurpriseRouter(db, event.session_id, event.tool_response, nousConfig);
+					await runSurpriseRouter(db, event, nousConfig);
 				}
 			} catch (err) {
 				process.stderr.write(`[Nous] PostToolUse error: ${err}\n`);
