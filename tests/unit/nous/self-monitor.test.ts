@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
-import { runSessionStart } from "@/nous/self-monitor";
+import { CLAUDE_MD_PREFERENCES, runSessionStart, seedPreferences } from "@/nous/self-monitor";
 import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
 import { appendHistory, getSession } from "@/nous/working-memory";
 
@@ -89,5 +89,56 @@ describe("self-monitor", () => {
 		const result = await runSessionStart(db, { session_id: "sess-c", cwd: "/tmp" });
 		expect(result.modifyBlocked).toBe(true);
 		expect(result.session.state.nousModifyBlocked).toBe(true);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Folded seedPreferences (previously nous/preference-seeder.ts — see Phase D1 #19)
+// ---------------------------------------------------------------------------
+
+describe("self-monitor: seedPreferences (folded)", () => {
+	let db: SiaDb | undefined;
+	let tmpDir = "";
+
+	afterEach(async () => {
+		await db?.close();
+		db = undefined;
+		if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
+		tmpDir = "";
+	});
+
+	it("inserts CLAUDE_MD_PREFERENCES on first run", () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("test-seed", tmpDir);
+		const inserted = seedPreferences(db);
+		expect(inserted).toBe(CLAUDE_MD_PREFERENCES.length);
+
+		const raw = db.rawSqlite();
+		expect(raw).not.toBeNull();
+		const rows = raw!
+			.prepare("SELECT name, trust_tier FROM graph_nodes WHERE kind = 'Preference'")
+			.all() as Array<{ name: string; trust_tier: number }>;
+		expect(rows.length).toBe(CLAUDE_MD_PREFERENCES.length);
+		for (const pref of CLAUDE_MD_PREFERENCES) {
+			const match = rows.find((r) => r.name === pref.name);
+			expect(match).toBeDefined();
+			expect(match?.trust_tier).toBe(pref.trust_tier);
+		}
+	});
+
+	it("is idempotent — second run inserts zero rows", () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("test-seed2", tmpDir);
+		expect(seedPreferences(db)).toBe(CLAUDE_MD_PREFERENCES.length);
+		expect(seedPreferences(db)).toBe(0);
+	});
+
+	it("runSessionStart seeds preferences on first run and loads them into session state", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("test-seed-integration", tmpDir);
+
+		const result = await runSessionStart(db, { session_id: "sess-seed", cwd: "/tmp" });
+		// preferenceNodeIds should be populated with the seeded rows
+		expect(result.session.state.preferenceNodeIds.length).toBe(CLAUDE_MD_PREFERENCES.length);
 	});
 });

@@ -196,4 +196,98 @@ describe("createPostToolUseHandler", () => {
 		const result = await handler(event);
 		expect(result.status).toBe("skipped");
 	});
+
+	// ---------------------------------------------------------------
+	// Size / binary guards (Phase D1 #17) — skip TrackA for oversize or
+	// binary content but still record the FileNode for the write.
+	// ---------------------------------------------------------------
+
+	it("skips TrackA for oversize (>500 KB) Write content — only FileNode is created", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ptu-write-oversize", tmpDir);
+		const handler = createPostToolUseHandler(db);
+
+		// 600 KB of valid TS — small enough that TrackA *would* extract
+		// multiple entities, but above the guard threshold.
+		const fn = "export function foo() { return 1; }\n";
+		const content = fn.repeat(Math.ceil(600_000 / fn.length));
+		expect(content.length).toBeGreaterThan(500_000);
+
+		const event = baseEvent({
+			tool_name: "Write",
+			tool_input: { file_path: "/tmp/project/huge.ts", content },
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.nodes_created).toBe(1); // FileNode only; TrackA + patterns skipped
+
+		const entities = await getActiveEntities(db);
+		expect(entities.filter((e) => e.type === "FileNode").length).toBe(1);
+		// Zero TrackA-derived CodeEntity rows (the FileNode is a FileNode, not CodeEntity).
+		expect(entities.filter((e) => e.type === "CodeEntity").length).toBe(0);
+	});
+
+	it("skips TrackA for binary-looking Write content (NUL byte heuristic)", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ptu-write-binary", tmpDir);
+		const handler = createPostToolUseHandler(db);
+
+		// Content with a NUL byte in the first 1 KB — our heuristic for binary.
+		const content = `some prefix\x00then more\nexport function x() {}`;
+		const event = baseEvent({
+			tool_name: "Write",
+			tool_input: { file_path: "/tmp/project/artifact.bin", content },
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.nodes_created).toBe(1); // FileNode only
+
+		const entities = await getActiveEntities(db);
+		expect(entities.filter((e) => e.type === "CodeEntity").length).toBe(0);
+	});
+
+	it("skips TrackA for oversize Edit new_string — only EditEvent is created", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ptu-edit-oversize", tmpDir);
+		const handler = createPostToolUseHandler(db);
+
+		const fn = "export const k = 1;\n";
+		const newStr = fn.repeat(Math.ceil(600_000 / fn.length));
+		expect(newStr.length).toBeGreaterThan(500_000);
+
+		const event = baseEvent({
+			tool_name: "Edit",
+			tool_input: {
+				file_path: "/tmp/project/big.ts",
+				old_string: "placeholder",
+				new_string: newStr,
+			},
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		// Exactly one EditEvent node — TrackA + patterns skipped.
+		expect(result.nodes_created).toBe(1);
+	});
+
+	it("skips TrackA for binary-looking Edit new_string", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("ptu-edit-binary", tmpDir);
+		const handler = createPostToolUseHandler(db);
+
+		const event = baseEvent({
+			tool_name: "Edit",
+			tool_input: {
+				file_path: "/tmp/project/artifact.bin",
+				old_string: "old",
+				new_string: `hdr\x00payload\nexport function y() {}`,
+			},
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.nodes_created).toBe(1); // EditEvent only
+	});
 });

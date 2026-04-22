@@ -20,7 +20,7 @@ vi.mock("@/capture/hook", () => ({
 }));
 
 import { openGraphDb } from "@/graph/semantic-db";
-import { augment } from "@/hooks/augmentation/engine";
+import { __resetAugmentLruForTests, augment } from "@/hooks/augmentation/engine";
 import { bm25Search } from "@/retrieval/bm25-search";
 
 describe("hooks/augmentation/engine", () => {
@@ -42,6 +42,9 @@ describe("hooks/augmentation/engine", () => {
 		mkdirSync(siaGraphDir, { recursive: true });
 
 		vi.clearAllMocks();
+		// The LRU lives at module scope — flush it between tests so one test's
+		// cached empty/hit entry doesn't short-circuit the next test's bm25 path.
+		__resetAugmentLruForTests();
 		(openGraphDb as ReturnType<typeof vi.fn>).mockReturnValue(mockDb);
 		(bm25Search as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 	});
@@ -148,5 +151,49 @@ describe("hooks/augmentation/engine", () => {
 
 		await augment("handleAuth", siaGraphDir);
 		expect(mockDb.close).toHaveBeenCalled();
+	});
+
+	// ---------------------------------------------------------------
+	// Short-query skip: patterns shorter than 3 chars bypass augment
+	// ---------------------------------------------------------------
+	it("skips augmentation for queries shorter than 3 characters", async () => {
+		const result = await augment("ab", siaGraphDir);
+		expect(result).toBe("");
+		expect(bm25Search).not.toHaveBeenCalled();
+		expect(openGraphDb).not.toHaveBeenCalled();
+	});
+
+	// ---------------------------------------------------------------
+	// LRU cache: second call with same populated result returns cached
+	// ---------------------------------------------------------------
+	it("returns cached formatted context on repeat calls without re-opening the DB", async () => {
+		(bm25Search as ReturnType<typeof vi.fn>).mockResolvedValue([{ entityId: "e1", score: 0.9 }]);
+		mockDb.execute
+			.mockResolvedValueOnce({
+				rows: [
+					{
+						id: "e1",
+						name: "handleAuth",
+						type: "CodeEntity",
+						file_paths: '["src/auth.ts"]',
+						trust_tier: 2,
+						summary: "Handles authentication",
+					},
+				],
+			})
+			.mockResolvedValueOnce({
+				rows: [{ target_name: "validateToken", type: "calls" }],
+			});
+
+		const first = await augment("handleAuth", siaGraphDir);
+		expect(first).toContain("handleAuth");
+		expect(bm25Search).toHaveBeenCalledTimes(1);
+		expect(openGraphDb).toHaveBeenCalledTimes(1);
+
+		// Second call — the LRU should short-circuit the entire pipeline.
+		const second = await augment("handleAuth", siaGraphDir);
+		expect(second).toBe(first);
+		expect(bm25Search).toHaveBeenCalledTimes(1); // still 1
+		expect(openGraphDb).toHaveBeenCalledTimes(1); // still 1 — no re-open
 	});
 });

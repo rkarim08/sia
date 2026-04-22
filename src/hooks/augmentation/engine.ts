@@ -15,6 +15,54 @@ import { bm25Search } from "@/retrieval/bm25-search";
 /** Maximum number of entities to fetch details for. */
 const MAX_ENTITIES = 3;
 
+/** LRU cache size for augment results keyed on query string (Phase 4 §4.4 cost mitigation). */
+const AUGMENT_LRU_MAX = 32;
+
+/** Minimum query length — patterns shorter than this skip augmentation entirely. */
+const MIN_QUERY_LENGTH = 3;
+
+/**
+ * Module-level LRU cache keyed on BM25 query string.
+ *
+ * Scope: per-process. Since augment-hook runs as a short-lived subprocess
+ * (one invocation per PreToolUse event), this cache primarily dedups
+ * within the lifetime of a single worker process. When the process is
+ * reused across hook invocations (e.g. hot-restart in `bun run`), the
+ * cache hit counter in stderr becomes meaningful across calls.
+ *
+ * Not shared across sessions — there is no cross-process state.
+ *
+ * Implementation: `Map` preserves insertion order in ES2015+, so we
+ * delete-and-reinsert on hit to move the key to the "most recently used"
+ * end, and evict the oldest entry (first key) on overflow.
+ */
+const augmentLru = new Map<string, string>();
+
+/** Exported for tests only — reset LRU state between runs. */
+export function __resetAugmentLruForTests(): void {
+	augmentLru.clear();
+}
+
+function lruGet(key: string): string | undefined {
+	if (!augmentLru.has(key)) return undefined;
+	const val = augmentLru.get(key) as string;
+	// Move to most-recently-used end.
+	augmentLru.delete(key);
+	augmentLru.set(key, val);
+	return val;
+}
+
+function lruSet(key: string, value: string): void {
+	if (augmentLru.has(key)) {
+		augmentLru.delete(key);
+	} else if (augmentLru.size >= AUGMENT_LRU_MAX) {
+		// Evict the oldest entry (first key in insertion order).
+		const oldest = augmentLru.keys().next().value;
+		if (oldest !== undefined) augmentLru.delete(oldest);
+	}
+	augmentLru.set(key, value);
+}
+
 /**
  * Augment a search pattern with SIA graph context.
  *
@@ -30,6 +78,23 @@ const MAX_ENTITIES = 3;
  * 9. Return formatted context
  */
 export async function augment(pattern: string, siaGraphDir: string): Promise<string> {
+	// Step 0a: Skip trivially short queries — BM25 produces noise for <3 char
+	// patterns and the per-call cost is not worth the signal.
+	if (pattern.length < MIN_QUERY_LENGTH) {
+		return "";
+	}
+
+	// Step 0b: Check the module-level LRU cache. A hit short-circuits
+	// everything else (enabled flag check, lock file, DB open). This is
+	// safe because the cache only lives for the lifetime of the process
+	// and any state change (lock acquired, flag flipped) tears the
+	// process down before the next hook invocation.
+	const cached = lruGet(pattern);
+	if (cached !== undefined) {
+		process.stderr.write("[sia] augment cache hit\n");
+		return cached;
+	}
+
 	// Step 1: Check augment-enabled flag (default: enabled)
 	if (!isAugmentEnabled(siaGraphDir)) {
 		return "";
@@ -58,6 +123,7 @@ export async function augment(pattern: string, siaGraphDir: string): Promise<str
 		if (results.length === 0) {
 			// Mark as augmented even on empty results to avoid re-querying
 			cache.markAugmented(pattern);
+			lruSet(pattern, "");
 			return "";
 		}
 
@@ -75,6 +141,9 @@ export async function augment(pattern: string, siaGraphDir: string): Promise<str
 
 		// Step 8: Mark pattern as augmented
 		cache.markAugmented(pattern);
+
+		// Step 8b: Store in LRU for fast return on repeat queries in-process.
+		lruSet(pattern, formatted);
 
 		// Step 9: Return
 		return formatted;
