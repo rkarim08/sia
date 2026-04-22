@@ -52,6 +52,8 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 
 **The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
 
+Every MCP tool response now carries an optional `next_steps` chaining hint that names the next natural tool call (e.g., `sia_search` → `sia_by_file`, `nous_state` → `nous_reflect` on drift warning), so the agent rarely has to guess at the follow-up.
+
 ---
 
 ## Quick Start
@@ -520,7 +522,7 @@ List, restore, and prune branch snapshots for worktree-aware graph state managem
 
 ## Nous Cognitive Layer
 
-Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-driven graph exploration, and anti-sycophancy guardrails. Four hooks fire automatically (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode). Five MCP tools require explicit invocation:
+Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-driven graph exploration, and anti-sycophancy guardrails. Four hooks fire automatically (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode + drift recompute). The `surprise-router` is now backed by the T3 transformer-stack cross-encoder (no longer the Phase 1 stub) — it scores prediction error on `Bash`/`Grep`/`Glob` calls and writes `surprise:<kind>` Signal nodes when the score drops below 0.7; any failure (missing model, onnxruntime absent, rerank timeout) fails open. Alongside the Nous hooks, Sia runs: `preference-guard` (PreToolUse deny for Tier-1 "never/do not X" Preferences, session-cached, fails open), UserPromptSubmit memory+concern inject (`sia_search` hits + open Concerns as `additionalContext` on every prompt ≥ 20 chars, 200ms hard timeout), PreCompact staging promotion + top-Preferences/Episodes `systemMessage`, SessionEnd final consolidation (staging promotion + `EpisodeSummary` when ≥ 3 Signals fired + marks `nous_sessions.ended_at`), and a PostToolUse commit-capture dispatch hint that nudges toward `@sia-knowledge-capture` after a successful `git commit`. 10 hook entries across 7 events total. Five MCP tools require explicit invocation:
 
 | Tool | Purpose |
 |---|---|
@@ -532,7 +534,7 @@ Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-d
 
 Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify` — mirror these tools with sensible defaults. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for the authoritative semantics and anti-sycophancy rules.
 
-**Disabling Nous.** Set `nous.enabled = false` in your Sia config (defaults to `true`). When disabled, all four hooks become no-ops — no session rows, no signals, no episodes — and the MCP tools remain callable but operate against an empty working memory. Useful for debugging, tightly-scoped agent sessions, or users who prefer retrieval-only Sia.
+**Disabling Nous.** Set `nous.enabled = false` in your Sia config (defaults to `true`). When disabled, all four Nous hooks become no-ops — no session rows, no signals, no episodes — and the MCP tools remain callable but operate against an empty working memory. The non-Nous subscribers listed above (`preference-guard`, UserPromptSubmit inject, PreCompact staging, SessionEnd consolidation, commit-capture hint) are independent and continue to run. Useful for debugging, tightly-scoped agent sessions, or users who prefer retrieval-only Sia.
 
 ---
 
@@ -573,7 +575,7 @@ Skills are slash commands providing structured workflows. Invoke them in Claude 
 
 ### Development Workflow
 
-These nine skills augment standard development workflows with graph intelligence:
+These ten skills augment standard development workflows with graph intelligence:
 
 | Skill | Enhancement Over Standard Workflow |
 |---|---|
@@ -586,6 +588,7 @@ These nine skills augment standard development workflows with graph intelligence
 | `/sia-dispatch` | Community-based independence verification for parallel agents |
 | `/sia-review-respond` | Past decision context, YAGNI checks via usage patterns |
 | `/sia-verify` | Area-specific requirements, past verification failures, known gotchas |
+| `/sia-verify-before-completion` | Verify-then-claim discipline with graph-powered past-failure lookup — run before committing, creating a PR, or declaring work done |
 
 ### Visualization & Onboarding
 

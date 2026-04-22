@@ -73,17 +73,17 @@ Color palette: **blue** (orient / explain), **green** (generate), **red** (debug
 Pruned from 74 in 1.2.1. Kept: direct MCP wrappers (`/at-time`, `/community`), the five `/nous-*` cognitive-layer commands, args-bearing shims (`/search`, `/learn`), and high-frequency short aliases (`/setup`, `/doctor`, `/capture`, `/debug`, etc.). All other skills and agents remain reachable as `/sia-<name>` and `@sia-<name>`. Phase C1 (Unreleased) folded `/stats`+`/status` into `/health` and added `/pm`, `/qa`, `/export` short aliases for the consolidated skills. See
 [PLUGIN_USAGE.md → Commands](PLUGIN_USAGE.md#commands-42) and the 1.2.1 CHANGELOG entry for the full pruning rule.
 
-## Hooks (9 entries across 7 events)
+## Hooks (10 entries across 7 events)
 
 | Event | Purpose |
 |---|---|
-| PreToolUse | Augment tool calls with graph context; Nous significance signal |
-| PostToolUse | Capture knowledge from file changes; branch-switch snapshots |
-| Stop | Detect uncaptured knowledge patterns |
-| SessionStart | Inject recent decisions + conventions |
-| PreCompact | Extract knowledge before context compaction |
-| SessionEnd | Record session statistics |
-| UserPromptSubmit | Capture prompts and detect correction/preference patterns |
+| PreToolUse | Augment tool calls with graph context; Nous significance signal; `preference-guard` denies Tier-1 "never/do not X" matches |
+| PostToolUse | Capture knowledge from file changes; branch-switch snapshots; Nous discomfort + surprise-router (T3 cross-encoder) signals; commit-capture dispatch hint on successful `git commit` |
+| Stop | Detect uncaptured knowledge patterns; drift recompute; `SubagentEpisode` write for subagent sessions |
+| SessionStart | Inject recent decisions + conventions; Nous drift check |
+| PreCompact | Promote staged entities + emit `systemMessage` with top Preferences/Episodes |
+| SessionEnd | Staging promotion + `EpisodeSummary` aggregation + mark `nous_sessions.ended_at` |
+| UserPromptSubmit | Inject top-k `sia_search` hits + open Concerns as `additionalContext` (≥ 20 char prompts, 200ms timeout) |
 
 Full event matrix and authoring guidance in [hooks/README.md](hooks/README.md).
 
