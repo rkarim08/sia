@@ -6,6 +6,33 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-04-21
+
+### Fixed
+- Observatory (visualizer) accessibility cleanup — removed the blanket Biome
+  a11y override for `src/visualization/frontend/**` and fixed the 44
+  resulting violations across `App.tsx`, `GraphCanvas.tsx`, `Sidebar.tsx`,
+  `SearchOverlay.tsx`, `ShortcutsModal.tsx`, `CodeInspector.tsx`, and
+  `ContextMenu.tsx`:
+  - Converted `<div onClick>` patterns to semantic `<button type="button">`
+    where possible (search results, file tree entries, entity/edge rows,
+    modal backdrops, bookmark items), restoring keyboard accessibility and
+    screen-reader labeling.
+  - Added explicit `type="button"` to every unlabeled `<button>` to avoid
+    the default `"submit"` behavior in a React SPA.
+  - Added `role="presentation"` + `aria-hidden="true"` to decorative SVG
+    icons sitting next to labeled text.
+  - Used stable `item.label` keys in `ContextMenu` instead of array
+    indices.
+  - Restructured the Node Types sidebar row (previously nested an
+    interactive `<input>` and `<label>` inside a `<button>`, which is
+    invalid HTML) into a flex row with the color-swatch label and the
+    toggle button as siblings.
+  - Added `aria-label` / `aria-pressed` / `aria-expanded` on interactive
+    controls (close buttons, tab bars, layout mode toggles, folder tree).
+- No `// biome-ignore` suppressions were added — all violations fixed
+  structurally.
+
 ## [1.1.1] - 2026-04-21
 
 ### Added

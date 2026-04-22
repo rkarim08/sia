@@ -95,22 +95,36 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
 
 	return (
 		<div
-			onClick={onClose}
 			style={{
 				position: "fixed",
 				inset: 0,
 				zIndex: 1000,
-				background: "rgba(0, 0, 0, 0.5)",
-				backdropFilter: "blur(20px)",
 				display: "flex",
 				alignItems: "flex-start",
 				justifyContent: "center",
 				paddingTop: "15vh",
 			}}
 		>
-			<div
-				onClick={(e) => e.stopPropagation()}
+			<button
+				type="button"
+				aria-label="Close search"
+				onClick={onClose}
 				style={{
+					position: "fixed",
+					inset: 0,
+					background: "rgba(0, 0, 0, 0.5)",
+					backdropFilter: "blur(20px)",
+					border: "none",
+					padding: 0,
+					cursor: "default",
+				}}
+			/>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-label="Search"
+				style={{
+					position: "relative",
 					width: isLarge ? 680 : 520,
 					maxWidth: "90vw",
 					background: "rgba(14,14,28,0.9)",
@@ -140,6 +154,8 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
 						strokeWidth="2"
 						strokeLinecap="round"
 						strokeLinejoin="round"
+						role="presentation"
+						aria-hidden="true"
 					>
 						<circle cx="11" cy="11" r="8" />
 						<line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -214,7 +230,8 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
 									const isSelected = globalIndex === selectedIndex;
 									const dotColor = NODE_COLORS[r.type as SiaNodeType] || "#666";
 									return (
-										<div
+										<button
+											type="button"
 											key={r.id}
 											onClick={() => handleResultClick(r.id)}
 											onMouseEnter={() => setSelectedIndex(globalIndex)}
@@ -226,6 +243,11 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
 												cursor: "pointer",
 												background: isSelected ? "rgba(59,130,246,0.12)" : "transparent",
 												transition: "background 0.1s",
+												border: "none",
+												width: "100%",
+												textAlign: "left",
+												color: "inherit",
+												font: "inherit",
 											}}
 										>
 											<span
@@ -277,7 +299,7 @@ export default function SearchOverlay({ onSelect, onClose }: Props) {
 											>
 												{r.type}
 											</span>
-										</div>
+										</button>
 									);
 								})}
 							</div>

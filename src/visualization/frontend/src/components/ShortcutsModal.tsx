@@ -48,21 +48,35 @@ export default function ShortcutsModal({ onClose }: Props) {
 
 	return (
 		<div
-			onClick={onClose}
 			style={{
 				position: "fixed",
 				inset: 0,
 				zIndex: 1000,
-				background: "rgba(0,0,0,0.4)",
-				backdropFilter: "blur(8px)",
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "center",
 			}}
 		>
-			<div
-				onClick={(e) => e.stopPropagation()}
+			<button
+				type="button"
+				aria-label="Close shortcuts"
+				onClick={onClose}
 				style={{
+					position: "fixed",
+					inset: 0,
+					background: "rgba(0,0,0,0.4)",
+					backdropFilter: "blur(8px)",
+					border: "none",
+					padding: 0,
+					cursor: "pointer",
+				}}
+			/>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-label="Keyboard shortcuts"
+				style={{
+					position: "relative",
 					width: isLarge ? 640 : 480,
 					maxWidth: "90vw",
 					background: "rgba(14,14,28,0.92)",

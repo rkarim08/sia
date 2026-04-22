@@ -17,24 +17,6 @@
 			}
 		}
 	},
-	"overrides": [
-		{
-			"includes": ["src/visualization/frontend/**"],
-			"linter": {
-				"rules": {
-					"a11y": {
-						"noStaticElementInteractions": "off",
-						"useKeyWithClickEvents": "off",
-						"useButtonType": "off",
-						"noSvgWithoutTitle": "off"
-					},
-					"suspicious": {
-						"noArrayIndexKey": "off"
-					}
-				}
-			}
-		}
-	],
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
