@@ -18,6 +18,10 @@ claude --plugin-dir /path/to/sia
 > **Note:** Local development mode (`--plugin-dir`) is project-scoped.
 > For cross-project usage, install from the marketplace.
 
+### Full component usage
+
+See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usage guides with invocation triggers and worked examples.
+
 ## Features
 
 ### MCP Tools (always available)

@@ -6,6 +6,30 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-04-21
+
+### Added
+- `PLUGIN_USAGE.md` — consolidated per-skill, per-agent, per-command
+  usage guide with invocation triggers and worked examples. Linked
+  from README and PLUGIN_README as the canonical entry point for
+  "how do I use X?" questions.
+- Uniform "Usage" section on 41 skills that were previously thin or
+  missing usage documentation. The contract (what it does / when to
+  invoke / inputs / worked example) is now consistent across every
+  skill the plugin ships.
+- Context blurbs on 26 agent-delegation commands so users reading the
+  command body understand what the underlying agent does without
+  round-tripping to the agent file.
+- Positive worked examples on the 5 `/nous-*` commands (previously
+  safety-rules only).
+- `scripts/generate-plugin-usage.sh` — walks skills/agents/commands
+  and regenerates PLUGIN_USAGE.md tables. Supports `--verify` for
+  drift detection (used by the Phase 6 validator).
+
+### Changed
+- README and PLUGIN_README point to PLUGIN_USAGE.md as the
+  per-component entry point.
+
 ## [1.1.6] - 2026-04-21
 
 ### Removed
