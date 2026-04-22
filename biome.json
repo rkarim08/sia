@@ -17,6 +17,24 @@
 			}
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["src/visualization/frontend/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noStaticElementInteractions": "off",
+						"useKeyWithClickEvents": "off",
+						"useButtonType": "off",
+						"noSvgWithoutTitle": "off"
+					},
+					"suspicious": {
+						"noArrayIndexKey": "off"
+					}
+				}
+			}
+		}
+	],
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
@@ -27,6 +45,9 @@
 			"**",
 			"!**/node_modules",
 			"!**/dist",
+			"!**/frontend-dist",
+			"!**/build",
+			"!**/coverage",
 			"!**/*.md",
 			"!**/migrations/**/*.sql",
 			"!**/src/agent/**/*.md",
@@ -36,7 +57,13 @@
 			"!sia-native/target",
 			"!sia-native/package.json",
 			"!skills/sia-brainstorm/scripts",
-			"!skills/sia-visualize-live/scripts"
+			"!skills/sia-visualize-live/scripts",
+			"!**/*.d.ts",
+			"!**/*.tgz",
+			"!.sia-graph",
+			"!.sia",
+			"!.superpowers",
+			"!**/*.html"
 		]
 	}
 }

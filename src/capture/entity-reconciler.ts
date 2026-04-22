@@ -83,7 +83,7 @@ export function parseConfirmationResponse(
 	const rejected: GlinerSpan[] = [];
 	for (let i = 0; i < candidates.length; i++) {
 		const line = lines[i];
-		if (line && line.toUpperCase().startsWith("ACCEPT")) {
+		if (line?.toUpperCase().startsWith("ACCEPT")) {
 			confirmed.push(candidates[i]);
 		} else {
 			rejected.push(candidates[i]);

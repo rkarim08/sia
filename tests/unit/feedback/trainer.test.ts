@@ -10,9 +10,7 @@ import {
 	gradientDescentStep,
 	mseLoss,
 	shouldTrain,
-	type TrainerDeps,
 	type TrainingExample,
-	type TrainingPhase,
 	trainAttentionHead,
 } from "@/feedback/trainer";
 import type { FeedbackEvent } from "@/feedback/types";
@@ -107,7 +105,7 @@ describe("trainAttentionHead manifest update", () => {
 			},
 		};
 
-		const modelManager = {
+		const _modelManager = {
 			getManifest: () => mockManifest,
 			getModelPath: (name: string, file: string) => `/tmp/models/${name}/${file}`,
 			getModelsDir: () => "/tmp/models",

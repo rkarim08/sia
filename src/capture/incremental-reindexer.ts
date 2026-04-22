@@ -235,7 +235,7 @@ export async function incrementalReindex(
 
 			// Content changed — re-parse
 			const result = await parseFileWithRetry(absPath, relPath);
-			if (result && result.facts) {
+			if (result?.facts) {
 				for (const fact of result.facts) {
 					const existing = await db.execute(
 						"SELECT id FROM graph_nodes WHERE name = ? AND type = ? AND t_valid_until IS NULL AND archived_at IS NULL LIMIT 1",

@@ -249,7 +249,7 @@ export async function hybridSearch(
 		results,
 		mode: "local",
 		globalUnavailable: classification.globalUnavailable,
-		vectorSearchUsed: useNlEmbedder || useCodeEmbedder ? true : false,
+		vectorSearchUsed: !!(useNlEmbedder || useCodeEmbedder),
 		totalCandidates: allCandidateIds.size,
 	};
 }
