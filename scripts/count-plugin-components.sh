@@ -4,12 +4,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-skills=$(ls -d skills/*/ 2>/dev/null | wc -l | tr -d ' ')
-agents=$(ls agents/*.md 2>/dev/null | wc -l | tr -d ' ')
-commands=$(ls commands/*.md 2>/dev/null | wc -l | tr -d ' ')
-mcp_tools=$(grep -oE '"(sia_|nous_)[a-z_]+"' src/mcp/server.ts | sort -u | wc -l | tr -d ' ')
-hook_entries=$(jq '[.hooks | to_entries[] | .value[]] | length' hooks/hooks.json)
-hook_events=$(jq '.hooks | keys | length' hooks/hooks.json)
+skills=$( { ls -d skills/*/ 2>/dev/null || true; } | wc -l | tr -d ' ')
+agents=$( { ls agents/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+commands=$( { ls commands/*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+mcp_tools=$( { grep -oE '"(sia_|nous_)[a-z_]+"' src/mcp/server.ts 2>/dev/null || true; } | sort -u | wc -l | tr -d ' ')
+hook_entries=$(jq '[.hooks | to_entries[] | .value[]] | length' hooks/hooks.json 2>/dev/null || echo 0)
+hook_events=$(jq '.hooks | keys | length' hooks/hooks.json 2>/dev/null || echo 0)
 
 echo "Skills:       ${skills}"
 echo "Agents:       ${agents}"
