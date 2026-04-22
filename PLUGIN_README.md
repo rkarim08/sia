@@ -162,7 +162,7 @@ See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usa
 | `/sia-pm-decision-log` | Chronological decision log with rationale |
 | `/sia-pm-risk-dashboard` | Technical risk dashboard scored by impact |
 
-### Subagents (24 agents)
+### Subagents (26 agents)
 
 | Agent | Purpose | Category |
 |---|---|---|
@@ -171,6 +171,8 @@ See [PLUGIN_USAGE.md](PLUGIN_USAGE.md) for per-skill, per-agent, per-command usa
 | `sia-onboarding` | Comprehensive multi-topic onboarding session | Onboarding |
 | `sia-decision-reviewer` | Decision archaeology — past choices and rejected alternatives | Planning |
 | `sia-explain` | Explains SIA's tools, graph structure, and workflows | Meta |
+| `sia-search-debugger` | Diagnoses empty / off-target `sia_search` results | Diagnostic |
+| `sia-doc-writer` | Generates ADRs / README sections from Decisions + Conventions | Documentation |
 | **During Coding** | | |
 | `sia-feature` | Feature dev with convention awareness and dependency context | Development |
 | `sia-refactor` | Impact analysis via dependency graph before structural changes | Development |

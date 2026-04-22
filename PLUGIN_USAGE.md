@@ -103,7 +103,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 | [sia-qa-flaky](skills/sia-qa-flaky/SKILL.md) | Flaky test pattern miner | CI flake triage |
 | [sia-qa-report](skills/sia-qa-report/SKILL.md) | Risk-based QA report | QA cycle kickoff |
 
-## Agents (24)
+## Agents (26)
 
 Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command. Each agent is self-contained with a `whenToUse` section, examples, and tools list.
 
@@ -116,6 +116,7 @@ Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command
 | [sia-debug-specialist](agents/sia-debug-specialist.md) | Temporal root-cause investigation | Active bug investigation |
 | [sia-decision-reviewer](agents/sia-decision-reviewer.md) | Past decisions, rejected approaches, active constraints | Before a new architectural choice |
 | [sia-dependency-tracker](agents/sia-dependency-tracker.md) | Cross-repo dependency and API-contract monitor | Workspace-level changes |
+| [sia-doc-writer](agents/sia-doc-writer.md) | Generates ADRs, README sections, module docs from captured Decisions + Conventions | Refreshing project docs; drafting an ADR |
 | [sia-explain](agents/sia-explain.md) | Explains SIA itself — entities, tools, skills, agents | User learning the plugin |
 | [sia-feature](agents/sia-feature.md) | Feature development with architectural context | New feature work |
 | [sia-knowledge-capture](agents/sia-knowledge-capture.md) | Systematic uncaptured-knowledge extraction from session | End of session |
@@ -131,6 +132,7 @@ Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command
 | [sia-qa-regression-map](agents/sia-qa-regression-map.md) | Scored regression risk table per module | Test prioritisation |
 | [sia-refactor](agents/sia-refactor.md) | Dependency-graph impact analysis | Before structural refactor |
 | [sia-regression](agents/sia-regression.md) | Regression-risk assessment of proposed changes | PR / change risk review |
+| [sia-search-debugger](agents/sia-search-debugger.md) | Diagnoses empty / off-target `sia_search` results | Search returns nothing when results are expected |
 | [sia-security-audit](agents/sia-security-audit.md) | Security review with paranoid mode and Tier 4 exposure | Security review |
 | [sia-test-advisor](agents/sia-test-advisor.md) | Test strategy from past failures + edge cases | Test-planning session |
 
