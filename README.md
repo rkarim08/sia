@@ -498,6 +498,22 @@ List, restore, and prune branch snapshots for worktree-aware graph state managem
 
 ---
 
+## Nous Cognitive Layer
+
+Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-driven graph exploration, and anti-sycophancy guardrails. Four hooks fire automatically (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode). Five MCP tools require explicit invocation:
+
+| Tool | Purpose |
+|---|---|
+| `nous_state` | Read drift score, active Preferences, recent signals |
+| `nous_reflect` | Self-monitor pass — per-preference alignment + recommended action |
+| `nous_curiosity` | Explore under-retrieved, high-trust graph entities; writes Concerns |
+| `nous_concern` | Surface open Concerns weighted by active Preferences |
+| `nous_modify` | Create, update, or deprecate Preference nodes (gated, reason required) |
+
+Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify` — mirror these tools with sensible defaults. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for the authoritative semantics and anti-sycophancy rules.
+
+---
+
 ## Skills (46)
 
 Skills are slash commands providing structured workflows. Invoke them in Claude Code with `/sia-<name>`.
