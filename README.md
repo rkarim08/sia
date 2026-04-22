@@ -52,7 +52,47 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 
 **The core difference:** CLAUDE.md and claude-mem treat memory as flat text or key-value stores. Obsidian provides rich manual knowledge management but has no AI agent integration. Sia treats memory as a **typed, temporal, ontology-enforced knowledge graph** with native agent integration — the same data structure that makes knowledge useful to humans also makes it useful to AI agents, and knowledge flows automatically between sessions without manual curation.
 
+### Versus modern Claude Code plugins (mem0, superpowers, GSD)
+
+The table above compares against the original generation of agent-memory solutions. The modern competitors in the Claude Code plugin ecosystem warrant a separate comparison because each approaches agent augmentation from a different angle — mem0 ships a managed memory SDK, `obra/superpowers` sells workflow discipline, and `gsd-build/get-shit-done` sells spec-driven long-running execution. None of them overlap Sia's core moats. Axes where Sia leads are marked **✓ Sia-only**:
+
+| Axis | mem0 | obra/superpowers | GSD (get-shit-done) | **Sia** |
+|---|---|---|---|---|
+| Memory model | Vector + optional entity graph | None (workflow only) | Flat `.planning/` files | **✓ Sia-only** — typed graph + bi-temporal + 4-tier trust + Leiden communities |
+| Bi-temporal history | — | — | — | **✓ Sia-only** — every node carries `t_valid_from` / `t_valid_until`; nothing deleted, only invalidated |
+| Trust-tier provenance | — | — | — | **✓ Sia-only** — 4 tiers (User-Direct / Code-Analysis / LLM-Inferred / External) rerank retrieval and gate writes |
+| Conflict handling | Silent merge / overwrite | N/A | N/A | **✓ Sia-only** — `conflict_group_id` surfaces contradictions; staged→promoted capture; explicit resolve flow |
+| AST + structural backbone | — | — | — | **✓ Sia-only** — Tree-sitter across 25+ languages feeds a typed dependency graph |
+| Community detection | — | — | — | **✓ Sia-only** — hierarchical Leiden summaries at 3 levels (fine / module / architectural) |
+| Hook-event coverage (of 7) | 5 / 7 | 1 / 7 | 3 / 7 | **✓ Sia-only** — 7 / 7, 10 hook entries |
+| Sandbox execution tied to memory | — | — | — (PreToolUse prompt-injection guards only) | **✓ Sia-only** — `sia_execute` / `_file` / `_batch` with SSRF + throttle, auto-capture as `ExecutionResult` |
+| Cognitive-safety: drift detection | — | — | — | **✓ Sia-only** — per-session drift score + `[Nous] Drift warning` on elevation |
+| Cognitive-safety: anti-sycophancy | — | Prompt-level reminders only | — | **✓ Sia-only** — `discomfort-signal` scans output for 7 approval-seeking patterns → Signal nodes |
+| Cognitive-safety: gated self-modification | — | — | — | **✓ Sia-only** — `nous_modify` requires `reason`, blocked for subagents, blocked at drift > 0.9 |
+| Workflow discipline skills | — | **Leads here** — brainstorming / writing-plans / verification-before-completion | **Leads here** — 80 commands + spec templates + wave-based phases | ~ Eight Tier-3 workflow skills (sia-brainstorm, sia-debug-workflow, sia-finish, sia-test, sia-verify, …) |
+| Install friction | **Simplest** — `pip install mem0ai` | `curl \| bash` | `npx get-shit-done-cc install` | ~ `/plugin install sia@sia-plugins` + bun + native modules |
+
+**How to read this.** Sia is unambiguously best-in-class on every row except workflow discipline (where superpowers and GSD lead) and install friction (where mem0 leads). Workflow discipline is a composition opportunity, not a head-to-head gap: Sia can run *alongside* superpowers in the same session with no conflicts, because superpowers adds skills and Sia adds memory + hooks. The comparison draws from the internal Sia-Nous benchmark evaluation (Phase 3 capability matrix).
+
 Every MCP tool response now carries an optional `next_steps` chaining hint that names the next natural tool call (e.g., `sia_search` → `sia_by_file`, `nous_state` → `nous_reflect` on drift warning), so the agent rarely has to guess at the follow-up.
+
+---
+
+## Why Sia Wins — Five Moats
+
+Five capability areas where Sia has no peer in the Claude Code plugin ecosystem. Each moat is independent; together they compose into a single coherent system.
+
+**1. Bi-temporal + trust-tier memory.** Every entity carries `t_valid_from` / `t_valid_until` — facts are never deleted, only invalidated, and `sia_at_time` queries the graph at any historical point. Writes pass through a 4-tier trust model (User-Direct → Code-Analysis → LLM-Inferred → External) with ontology enforcement and a staged→promoted capture pipeline. Contradictory captures get a `conflict_group_id` and surface to the developer instead of silently merging. mem0 silently merges on contradiction; superpowers has no memory layer; GSD stores flat `.planning/` files. No competitor has bi-temporal history, and none has trust-weighted provenance.
+
+**2. Full 5-of-5 cognitive safety (Nous).** Drift detection (per-session score with `[Nous] Drift warning` on elevation), anti-sycophancy signals (7-pattern approval-seeking scan on every response → Signal nodes), curiosity surfacing (`nous_curiosity` explores under-retrieved high-trust entities), concern surfacing (`nous_concern` returns open prioritised insights), and gated self-modification (`nous_modify` requires an explicit `reason`, blocks subagents, blocks at drift > 0.9). Every path fails open on error and is gated per session. No surveyed competitor has *any* of drift / anti-sycophancy / gated-self-modification; superpowers offers prompt-level anti-sycophancy reminders only.
+
+**3. AST + Leiden community detection.** Tree-sitter parses 25+ languages into a typed structural graph (`CodeSymbol`, `FileNode`, `PackageNode` with typed edges like `calls`, `imports`, `extends`). Leiden community detection produces hierarchical summaries at 3 levels (fine / module / architectural) that `sia_community` serves on demand. mem0 has an optional extracted-entity graph but no AST and no communities; superpowers and GSD have neither. This gives Sia a structural understanding of the codebase that no competitor can match.
+
+**4. 7-of-7 hook-event coverage.** Every Claude Code hook event has a substantive subscriber, 10 entries total. mem0 reaches 5/7 when installed as a plugin (no `PreToolUse`, no `PostToolUse` work). GSD reaches 3/7 (`SessionStart`, `PreToolUse`, `PostToolUse`). superpowers reaches 1/7 (`SessionStart` only). The breadth matters because each event captures knowledge the others cannot: `PreToolUse` guards Tier-1 Preferences before a destructive write; `PostToolUse` extracts TrackA entities from AST diffs; `PreCompact` promotes staging to survive context compaction; `SessionEnd` rolls up Signals into `EpisodeSummary`. Full enumeration in the Hook Architecture subsection of "How It Works".
+
+**5. Sandbox execution fused with memory capture.** `sia_execute`, `sia_execute_file`, and `sia_batch_execute` run code in an isolated subprocess with SSRF + per-language throttle guards, auto-capture results as `ExecutionResult` entities linked to the session, and trigger Context Mode when output exceeds the threshold (chunk + embed + return only relevant chunks). mem0 has no sandbox. superpowers has no sandbox. GSD has PreToolUse prompt-injection guards but no sandbox and no memory capture. This is the only path in the ecosystem that lets Claude Code execute code, index the output into graph memory, and query it across future sessions.
+
+The full audit lives in the internal Sia-Nous benchmark evaluation (Phase 3 capability matrix + Phase 6 moat analysis), which informed this section.
 
 ---
 
@@ -209,6 +249,38 @@ SIA injects behavioral directives into your project's CLAUDE.md that make Claude
 - **Trust tier rules** -- Tier 1-2 facts cited as ground truth, Tier 3 qualified before acting, Tier 4 referenced only
 
 Knowledge flows into and out of the graph automatically during normal coding sessions.
+
+### Hook Architecture (10 entries across 7/7 Claude Code events)
+
+Every Claude Code hook event has at least one substantive subscriber. No competing plugin achieves full 7-of-7 coverage (mem0: 5/7, GSD: 3/7, superpowers: 1/7). The entries in `hooks/hooks.json` fan out to the following in-process subscribers:
+
+- **SessionStart** (1 entry → 3 subscribers): `session-context` (memory preload — 5 recent decisions + conventions + 3 bugs) · `self-monitor` (drift baseline + 10-session history window) · `preference-seeder` (idempotent seed of 4 core CLAUDE.md Preferences, Tier 1).
+- **PreToolUse** (2 entries → 3 subscribers): `augment-hook` on `Grep|Glob|Bash` (BM25 graph context as `additionalContext`) · `significance-detector` on all tools (Write=1.0, Bash=0.5, Read=0.2, feeds downstream thresholds) · `preference-guard` on `Bash|Write|Edit` (denies calls that conflict with an active Tier-1 Preference; session-cached; fails open).
+- **PostToolUse** (3 entries → 4 subscribers): `post-tool-use-handler` on `Write|Edit|Read` (TrackA AST extraction + test-failure parse + "touch for importance") · `discomfort-signal` on all tools (7-pattern approval-seeking scan → Signal node) · `surprise-router` on all tools (T3 cross-encoder prediction-error scoring — fails open if models unavailable) · `branch-switch` on `Bash` (snapshot/restore on `git checkout`/`switch`) · `commit-capture-dispatch` on `Bash` (recommends `@sia-knowledge-capture` after successful non-amend `git commit`).
+- **UserPromptSubmit** (1 entry → 1 subscriber): `user-prompt-handler` (task classify, `sia_search` + open-Concern inject as `additionalContext` for prompts ≥ 20 chars with a 200ms hard timeout, creates `UserDecision` on correction patterns).
+- **PreCompact** (1 entry → 1 subscriber): `pre-compact-handler` (staging promotion + transcript-tail scan for unextracted knowledge + top-5 Preference/Episode `systemMessage`).
+- **Stop** (1 entry → 2 subscribers): `stop-handler` (uncaptured-knowledge scan of last 50 transcript lines; skipped if `sia_note` was already called) · `episode-writer` (writes `Episode` for primary sessions with drift/discomfort summary + Signal count; flushes `nous_sessions`).
+- **SessionEnd** (1 entry → 1 subscriber): `session-end-handler` (final staging promotion + Signal rollup → `EpisodeSummary` when ≥ 3 Signals fired, marks `nous_sessions.ended_at`).
+
+Every subscriber fails open on error — no hook can crash a Claude Code session. Ordering dependencies are encoded in the `plugin-*.ts` entry files (not in `hooks.json`), so shuffling `hooks.json` entries is safe.
+
+---
+
+## Nous Cognitive Layer
+
+Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-driven graph exploration, and anti-sycophancy guardrails. It is the second pillar of Sia after persistent graph memory: no competing plugin surveyed (mem0, superpowers, GSD) ships any of drift detection, anti-sycophancy signals, or gated self-modification. Four Nous-authored hooks fire automatically (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode + drift recompute). The `surprise-router` is now backed by the T3 transformer-stack cross-encoder (no longer the Phase 1 stub) — it scores prediction error on `Bash`/`Grep`/`Glob` calls and writes `surprise:<kind>` Signal nodes when the score drops below 0.7; any failure (missing model, onnxruntime absent, rerank timeout) fails open. Alongside the Nous hooks, Sia runs: `preference-guard` (PreToolUse deny for Tier-1 "never/do not X" Preferences, session-cached, fails open), UserPromptSubmit memory+concern inject (`sia_search` hits + open Concerns as `additionalContext` on every prompt ≥ 20 chars, 200ms hard timeout), PreCompact staging promotion + top-Preferences/Episodes `systemMessage`, SessionEnd final consolidation (staging promotion + `EpisodeSummary` when ≥ 3 Signals fired + marks `nous_sessions.ended_at`), and a PostToolUse commit-capture dispatch hint that nudges toward `@sia-knowledge-capture` after a successful `git commit`. 10 hook entries across 7 events total (enumerated in the Hook Architecture subsection above). Five MCP tools require explicit invocation:
+
+| Tool | Purpose |
+|---|---|
+| `nous_state` | Read drift score, active Preferences, recent signals |
+| `nous_reflect` | Self-monitor pass — per-preference alignment + recommended action |
+| `nous_curiosity` | Explore under-retrieved, high-trust graph entities; writes Concerns |
+| `nous_concern` | Surface open Concerns weighted by active Preferences |
+| `nous_modify` | Create, update, or deprecate Preference nodes (gated, reason required) |
+
+Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify` — mirror these tools with sensible defaults. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for the authoritative semantics and anti-sycophancy rules.
+
+**Disabling Nous.** Set `nous.enabled = false` in your Sia config (defaults to `true`). When disabled, all four Nous hooks become no-ops — no session rows, no signals, no episodes — and the MCP tools remain callable but operate against an empty working memory. The non-Nous subscribers enumerated in the Hook Architecture subsection (`preference-guard`, UserPromptSubmit inject, PreCompact staging, SessionEnd consolidation, commit-capture hint) are independent and continue to run. Useful for debugging, tightly-scoped agent sessions, or users who prefer retrieval-only Sia.
 
 ---
 
@@ -517,24 +589,6 @@ Check team sync configuration and connection status.
 #### `sia_snapshot_list` / `sia_snapshot_restore` / `sia_snapshot_prune`
 
 List, restore, and prune branch snapshots for worktree-aware graph state management.
-
----
-
-## Nous Cognitive Layer
-
-Nous is Sia's cognitive layer — drift monitoring, self-reflection, curiosity-driven graph exploration, and anti-sycophancy guardrails. Four hooks fire automatically (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode + drift recompute). The `surprise-router` is now backed by the T3 transformer-stack cross-encoder (no longer the Phase 1 stub) — it scores prediction error on `Bash`/`Grep`/`Glob` calls and writes `surprise:<kind>` Signal nodes when the score drops below 0.7; any failure (missing model, onnxruntime absent, rerank timeout) fails open. Alongside the Nous hooks, Sia runs: `preference-guard` (PreToolUse deny for Tier-1 "never/do not X" Preferences, session-cached, fails open), UserPromptSubmit memory+concern inject (`sia_search` hits + open Concerns as `additionalContext` on every prompt ≥ 20 chars, 200ms hard timeout), PreCompact staging promotion + top-Preferences/Episodes `systemMessage`, SessionEnd final consolidation (staging promotion + `EpisodeSummary` when ≥ 3 Signals fired + marks `nous_sessions.ended_at`), and a PostToolUse commit-capture dispatch hint that nudges toward `@sia-knowledge-capture` after a successful `git commit`. 10 hook entries across 7 events total. Five MCP tools require explicit invocation:
-
-| Tool | Purpose |
-|---|---|
-| `nous_state` | Read drift score, active Preferences, recent signals |
-| `nous_reflect` | Self-monitor pass — per-preference alignment + recommended action |
-| `nous_curiosity` | Explore under-retrieved, high-trust graph entities; writes Concerns |
-| `nous_concern` | Surface open Concerns weighted by active Preferences |
-| `nous_modify` | Create, update, or deprecate Preference nodes (gated, reason required) |
-
-Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify` — mirror these tools with sensible defaults. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for the authoritative semantics and anti-sycophancy rules.
-
-**Disabling Nous.** Set `nous.enabled = false` in your Sia config (defaults to `true`). When disabled, all four Nous hooks become no-ops — no session rows, no signals, no episodes — and the MCP tools remain callable but operate against an empty working memory. The non-Nous subscribers listed above (`preference-guard`, UserPromptSubmit inject, PreCompact staging, SessionEnd consolidation, commit-capture hint) are independent and continue to run. Useful for debugging, tightly-scoped agent sessions, or users who prefer retrieval-only Sia.
 
 ---
 
