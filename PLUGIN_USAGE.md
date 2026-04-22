@@ -103,7 +103,7 @@ Shortest path for a new user: `/sia-setup` → `/sia-tour` → start working nor
 | [sia-qa-flaky](skills/sia-qa-flaky/SKILL.md) | Flaky test pattern miner | CI flake triage |
 | [sia-qa-report](skills/sia-qa-report/SKILL.md) | Risk-based QA report | QA cycle kickoff |
 
-## Agents (23)
+## Agents (24)
 
 Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command. Each agent is self-contained with a `whenToUse` section, examples, and tools list.
 
@@ -126,6 +126,7 @@ Agents are dispatched via `@sia-<name>` or their corresponding `/<name>` command
 | [sia-orientation](agents/sia-orientation.md) | Quick single-answer architecture Q&A | "Why was X chosen?" |
 | [sia-pm-briefing](agents/sia-pm-briefing.md) | Plain-language PM project briefings | Status update for non-engineers |
 | [sia-pm-risk-advisor](agents/sia-pm-risk-advisor.md) | Technical risk surfaced in business-impact language | PM risk review |
+| [sia-pr-writer](agents/sia-pr-writer.md) | Drafts a PR body from branch diff + captured Decisions/Bugs/Solutions | Before `gh pr create`; PR body refresh |
 | [sia-qa-analyst](agents/sia-qa-analyst.md) | QA intelligence — risk, coverage, recommendations | QA cycle prep |
 | [sia-qa-regression-map](agents/sia-qa-regression-map.md) | Scored regression risk table per module | Test prioritisation |
 | [sia-refactor](agents/sia-refactor.md) | Dependency-graph impact analysis | Before structural refactor |
