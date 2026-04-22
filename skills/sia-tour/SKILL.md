@@ -27,3 +27,19 @@ bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts tour
 - When onboarding to a project — get the full picture
 - After a long break — refresh your memory of the project
 - When a new team member joins — share what SIA knows
+
+## Worked Example
+
+```
+$ /sia-tour
+[tour] Architecture: 6 communities
+  · api-gateway (142 entities) — HTTP routing, middleware
+  · orders (88) — checkout, charge, refund
+  · docs-site (61) — marketing + API reference
+  · auth (54) — session, session-store
+  · analytics (39) — event pipeline
+  · infra (27) — deploy scripts
+[tour] Key decisions (top 5): ...
+[tour] Active bugs: 2
+[tour] Run /sia-search <topic> to drill in.
+```

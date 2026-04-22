@@ -7,6 +7,21 @@ description: Indexes external content into SIA's knowledge graph — markdown, U
 
 Index external content into the knowledge graph for future retrieval.
 
+## Usage
+
+**Inputs:** One of `content` (markdown/plain text) or `url`; optional `source`, `intent`, `tags`. See MCP tool blocks below.
+
+**Worked example:**
+
+```
+sia_index({
+  content: "# Rate limiting\nWe chose Redis over Postgres advisory locks for burst-load tolerance.",
+  source: "design-doc/rate-limiting-v2",
+  tags: ["decision", "api-gateway"]
+})
+// → ingested 1 chunk, extracted 2 candidate entities (1 Decision, 1 Concept)
+```
+
 ## When To Use
 
 Use this skill when you need to:

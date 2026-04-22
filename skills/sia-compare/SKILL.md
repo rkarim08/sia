@@ -31,3 +31,12 @@ bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts compare --since 2026-03-01 --unti
 - "What knowledge was captured this sprint?"
 - "How much knowledge decayed in the last month?"
 - Before a knowledge audit — understand the graph's evolution
+
+## Worked Example
+
+```
+$ /sia-compare --since 2026-03-01 --until 2026-03-15
+Added (14): 4 Decisions, 3 Conventions, 5 Bugs, 2 Solutions
+Invalidated (3): "Use jQuery in docs-site" (superseded 2026-03-08), ...
+Archived (2): stale CodeSymbol entries below decay threshold
+```

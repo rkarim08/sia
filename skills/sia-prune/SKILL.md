@@ -43,3 +43,15 @@ Pruning removes archived entities permanently. Invalidated entities are kept for
 - After `sia-freshness` identifies many rotten entities
 - As periodic maintenance (monthly recommended)
 - Before exporting the graph to reduce export size
+
+## Worked Example
+
+```
+$ /sia-prune --dry-run
+[prune] 87 archived entities eligible
+  · ent-12 "stale CodeSymbol parseToken" (importance 0.04, 184d idle)
+  · ent-34 "archived Convention (superseded twice)" (0.02, 220d idle)
+  ...
+$ /sia-prune --confirm
+[prune] Deleted 87 entities, reclaimed 3.2MB.
+```

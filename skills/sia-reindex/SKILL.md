@@ -7,6 +7,22 @@ description: Re-indexes the repository with tree-sitter to update SIA's knowledg
 
 Trigger a full or incremental re-index of the repository's code structure.
 
+## Usage
+
+**Inputs:** No arguments.
+
+**Worked example:**
+
+```
+$ /sia-reindex
+[reindex] Walked 1,204 files (skipped 87 via .gitignore)
+[reindex] Parsed with native tree-sitter: TypeScript, JS, Python, Go
+[reindex] Updated 2,431 CodeSymbol entities, 6,104 edges
+[reindex] Recomputed PageRank in 1.8s
+```
+
+Use `/sia-learn --incremental` for the faster changed-files-only path; `/sia-reindex` does a full walk.
+
 ## Steps
 
 Run the reindex command:

@@ -31,6 +31,17 @@ description: Verifies work completeness using SIA's knowledge of area-specific r
 
 Verify work is truly complete — queries SIA for area-specific requirements, past verification failures, and known gotchas before running checks. Evidence before assertions.
 
+## Usage
+
+**When to invoke:**
+- Before claiming "done" on any task
+- Before committing or opening a PR
+- After a bugfix, to ensure the known regression surface is covered
+
+**Inputs:** No arguments. The skill takes the area/files from context.
+
+**Worked example:** About to claim the rate-limiting feature is done. Skill queries `sia_search({ query: "verification requirements api-gateway", node_types: ["Convention"] })` → returns "api-gateway changes require integration tests AND typecheck". Runs both (`bun run test:int`, `bun run typecheck`), reads full output, confirms pass, then allows the "done" claim.
+
 ## Checklist
 
 ```

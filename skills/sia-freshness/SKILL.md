@@ -36,3 +36,14 @@ Additional metrics:
 - Before major refactoring to understand graph quality
 - When search results seem outdated
 - After `sia-prune` to confirm cleanup effectiveness
+
+## Worked Example
+
+```
+$ /sia-freshness
+[freshness] Fresh: 1,823 (74.9%) · Stale: 498 (20.5%) · Rotten: 110 (4.5%)
+[freshness] Pending revalidation: 37
+[freshness] Avg confidence — T1: 0.98 · T2: 0.92 · T3: 0.68 · T4: 0.54
+[freshness] Last deep validation: 2026-04-14 (7 days ago)
+[freshness] Native tree-sitter: yes
+```

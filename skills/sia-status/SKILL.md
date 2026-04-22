@@ -7,6 +7,17 @@ description: Shows SIA knowledge graph health — entity counts by type and tier
 
 Display a health dashboard for the project's knowledge graph.
 
+## Usage
+
+**When to invoke:**
+- User asks "is SIA healthy?" / "how's my graph?"
+- Checking capture rate during a busy sprint
+- Quick conflict count — "do we have any unresolved conflicts?"
+
+**Inputs:** No arguments.
+
+**Typical output:** A dashboard with totals (entities, edges, communities, conflicts, archived), recent capture rate (24h), graph age, plus breakdowns by entity type and trust tier.
+
 ## Steps
 
 Run the status command:

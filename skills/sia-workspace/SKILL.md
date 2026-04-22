@@ -7,6 +7,28 @@ description: Manages SIA workspaces for cross-repo knowledge sharing — creatin
 
 Manage workspaces that enable cross-repo knowledge sharing.
 
+## Usage
+
+**When to invoke:**
+- You're working across 2+ repos and want shared search
+- Setting up a monorepo-style knowledge view from separate repos
+- Tracking API contracts between backend and client repos
+
+**Inputs:** Subcommand (`create`, `list`, `add`, `remove`, `show`) plus name and path as positional args.
+
+**Worked example:**
+
+```
+$ /sia-workspace create acme-platform
+[workspace] Created 'acme-platform' (empty)
+$ /sia-workspace add acme-platform /Users/me/src/api
+$ /sia-workspace add acme-platform /Users/me/src/web
+$ /sia-workspace show acme-platform
+acme-platform: 2 repos, 4,812 entities, 12 bridge edges
+```
+
+Subsequent `sia_search({ workspace: true })` calls now span both repos.
+
 ## What Are Workspaces?
 
 Workspaces group multiple repositories together so SIA can:
