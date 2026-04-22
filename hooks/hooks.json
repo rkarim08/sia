@@ -1,5 +1,5 @@
 {
-	"_comment": "PreToolUse fires TWO handlers in parallel: (1) augment-hook.ts enriches Grep|Glob|Bash tool calls with graph context, and (2) scripts/pre-tool-use.sh runs on all tools and implements the Nous PreToolUse significance signal. Both must coexist — do not collapse them into a single handler.",
+	"_comment": "PreToolUse fires TWO handlers in parallel: (1) augment-hook.ts enriches Grep|Glob|Bash tool calls with graph context, and (2) scripts/pre-tool-use.sh runs on all tools and hosts two in-process subscribers — the Nous PreToolUse significance signal AND the Preference-Guard (Bash|Write|Edit), which denies tool calls that conflict with an active Tier-1 Preference. Both top-level entries must coexist — do not collapse them into a single handler.",
 	"hooks": {
 		"PreToolUse": [
 			{
