@@ -33,7 +33,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 | **Context cost** | Grows unbounded with project maturity | Grows with entries | Manual copy-paste to agent | ~1,200 tokens average per session (only relevant facts retrieved) |
 | **Code structure** | Not captured | Not captured | Not captured | AST-powered structural backbone via Tree-sitter (30+ languages) |
 | **Documentation ingestion** | Not captured | Not captured | Manual note creation | Auto-discovers and indexes AGENTS.md, CLAUDE.md, ADRs, README.md, and 15+ doc formats |
-| **Agent integration** | Injected at session start | MCP tool calls | None native; requires manual bridging | Native MCP server with 17 tools, automatic hook-based capture |
+| **Agent integration** | Injected at session start | MCP tool calls | None native; requires manual bridging | Native MCP server with 29 tools (24 `sia_*` + 5 `nous_*`), automatic hook-based capture |
 | **Sandbox execution** | N/A | N/A | N/A | Isolated subprocess execution with context-aware output indexing |
 | **Session continuity** | Lost on compaction | Lost on compaction | N/A | Priority-weighted subgraph serialization survives context compaction |
 | **Knowledge authoring** | Developer writes manually | Developer writes manually | Developer writes manually (rich editor) | `sia_note` for deliberate entry + automatic dual-track capture |
@@ -66,7 +66,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 /plugin install sia@sia-plugins
 ```
 
-This registers all 22 MCP tools, 46 skills, 23 agents, 8 hooks, and CLAUDE.md behavioral directives in one step.
+This registers all 29 MCP tools, 48 skills, 23 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
 
 > **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
@@ -316,9 +316,9 @@ Sia uses a unified graph with a `kind` discriminator. Nodes fall into three cate
 
 ---
 
-## MCP Tools (17)
+## MCP Tools (29)
 
-Sia exposes 17 tools via the Model Context Protocol, organized into five categories.
+Sia exposes 29 tools via the Model Context Protocol, organized into five categories.
 
 ### Memory Tools
 
@@ -532,7 +532,7 @@ Matching slash commands — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `
 
 ---
 
-## Skills (46)
+## Skills (48)
 
 Skills are slash commands providing structured workflows. Invoke them in Claude Code with `/sia-<name>`.
 
@@ -1074,6 +1074,45 @@ Auto-detected from `pnpm-workspace.yaml`, `package.json` workspaces, `nx.json`, 
 **`/sia-tour`** -- Interactive guided tour covering architecture, decisions, conventions, and known issues.
 
 **`/sia-export-knowledge`** -- Exports the graph as a human-readable `KNOWLEDGE.md` for team onboarding, sharing outside SIA, or generating project documentation.
+
+---
+
+## Troubleshooting
+
+### `bun install` fails
+
+If you don't have bun installed, Sia's `ensure-runtime.sh` bootstrap runs `curl -fsSL https://bun.sh/install | bash` to install bun at `$HOME/.bun/` on the first hook fire. If you prefer a manual install or run on a locked-down system, install bun >=1.0.0 first and the auto-install will short-circuit.
+
+### MCP handshake fails
+
+Check your Claude Code MCP log (path depends on your Claude Code version — typically `~/.claude/mcp/sia.log` or surfaced by `/mcp` in the UI). Common cause: `scripts/start-mcp.sh` exits non-zero because `$CLAUDE_PLUGIN_ROOT` is unset, meaning the plugin was not installed through the marketplace flow. Reinstall via `/plugin install sia@sia-plugins` to restore the environment.
+
+### Native tree-sitter build fails
+
+`postinstall.sh` attempts a C++20 rebuild of the `tree-sitter` native module. If your system only has C++11 headers, Sia silently falls back to the WASM tree-sitter build. If you want the native speedup, install a modern compiler toolchain (Xcode CLT on macOS; `build-essential` + `g++-11` on Debian/Ubuntu) and run manually:
+
+```bash
+cd node_modules/tree-sitter
+CXXFLAGS="-std=c++20" npx node-gyp rebuild
+```
+
+### SQLite extensions / FTS5 missing
+
+Sia's retrieval uses FTS5 and optional vector indexing. `bun:sqlite` ships with FTS5 built in. If you see errors about missing extensions, verify `bun --version` reports >= 1.0.0.
+
+### `sia doctor` reports warnings
+
+Run `sia doctor` to surface the warning details. Common warnings:
+- "Native module: Using TypeScript fallbacks" — install `@sia/native` (ships on darwin-arm64 out of the box; other platforms fall through to TS).
+- "ONNX embedding model: missing" — run `/sia-setup` or `sia install --t0` to download the bge-small embedding model.
+
+### Empty graph after install
+
+If `sia search` returns no results and `sia stats` reports zero entities, the graph hasn't been indexed yet. Run `/sia-setup` for the guided bootstrap, or `sia learn` directly.
+
+### `[Nous] Drift warning` in session output
+
+Drift is measured from your captured Preference nodes. Call `/nous-reflect` to see per-Preference alignment and the recommended action.
 
 ---
 

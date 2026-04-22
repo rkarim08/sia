@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sia">
+  <title>Sia</title>
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <g stroke="#38bdf8" stroke-width="6" stroke-linecap="round">
+    <line x1="256" y1="160" x2="144" y2="272"/>
+    <line x1="256" y1="160" x2="368" y2="272"/>
+    <line x1="256" y1="160" x2="256" y2="360"/>
+    <line x1="144" y1="272" x2="256" y2="360"/>
+    <line x1="368" y1="272" x2="256" y2="360"/>
+  </g>
+  <g fill="#38bdf8">
+    <circle cx="256" cy="160" r="28"/>
+    <circle cx="144" cy="272" r="28"/>
+    <circle cx="368" cy="272" r="28"/>
+    <circle cx="256" cy="360" r="28"/>
+  </g>
+  <circle cx="256" cy="160" r="10" fill="#0f172a"/>
+</svg>
