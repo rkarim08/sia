@@ -9,6 +9,7 @@ import { openGraphDb } from "@/graph/semantic-db";
 import { createStopHandler } from "@/hooks/handlers/stop";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
 import { writeEpisode } from "@/nous/episode-writer";
+import { recomputeDriftIfStale } from "@/nous/self-monitor";
 import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
 import { getConfig } from "@/shared/config";
 
@@ -53,11 +54,18 @@ async function main() {
 				process.stderr.write(`sia: session save failed (non-fatal): ${err}\n`);
 			}
 
-			// Nous: write Episode node for primary sessions
+			// Nous: lightweight drift recompute (catches mid-session divergence
+			// the SessionStart baseline missed) then write Episode/SubagentEpisode.
+			// Drift recompute is best-effort — never let it break the Stop hook.
 			try {
 				const config = getConfig();
 				const nousConfig = config.nous ?? DEFAULT_NOUS_CONFIG;
 				if (nousConfig.enabled && event.session_id) {
+					try {
+						await recomputeDriftIfStale(db, event.session_id, nousConfig);
+					} catch (driftErr) {
+						process.stderr.write(`[Nous] drift recompute failed (non-fatal): ${driftErr}\n`);
+					}
 					await writeEpisode(db, event.session_id, nousConfig);
 				}
 			} catch (err) {
