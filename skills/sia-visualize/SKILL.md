@@ -1,6 +1,6 @@
 ---
 name: sia-visualize
-description: Generates an interactive HTML visualization of the SIA knowledge graph. Use when the user wants a static visualization file, for sharing graph views, or embedding in documentation.
+description: Use when explaining architecture to a new teammate, or when a community-summary response is too abstract for the question.
 ---
 
 # SIA Visualize

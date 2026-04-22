@@ -4,18 +4,24 @@ description: Reviews the current session's work and systematically captures all 
 model: sonnet
 color: green
 whenToUse: |
-  Use at the end of a significant work session, or when the user wants to ensure important knowledge was captured. This agent reviews what happened and produces sia_note calls for anything missing.
+  Use immediately after a git commit lands, when the user explicitly asks to capture what was learned, or at the end of a work session to roll up uncaptured decisions, conventions, bugs, and solutions. This agent reviews what happened and produces `sia_note` calls for anything missing. Dispatch it from the PostToolUse Bash hook that matches `git commit` so capture happens automatically on every commit.
 
   <example>
-  Context: User just finished a complex feature implementation.
-  user: "I think we're done with the auth refactor. Make sure everything important is captured."
-  assistant: "I'll use the sia-knowledge-capture agent to review and capture all knowledge from this session."
+  Context: The PostToolUse hook fires after a successful `git commit` and the dispatch rule routes the commit SHA to this agent.
+  user: "[post-tool-use-hook: git commit abcdef succeeded on branch feature/auth-refactor]"
+  assistant: "Dispatching sia-knowledge-capture to review commit abcdef and record any uncaptured Decisions, Conventions, Bugs, or Solutions."
   </example>
 
   <example>
-  Context: User wants to capture knowledge before ending the session.
-  user: "Before I close this session, let's capture what we learned"
-  assistant: "I'll use the sia-knowledge-capture agent to systematically capture session knowledge."
+  Context: User explicitly asks for knowledge capture after a long pairing session.
+  user: "Capture what we learned in this session before I context-switch."
+  assistant: "I'll invoke the sia-knowledge-capture agent to systematically extract and record session knowledge now."
+  </example>
+
+  <example>
+  Context: End-of-session summary trigger — the session is wrapping up and Stop-hook metadata flags significant uncaptured activity.
+  user: "Wrapping up for the day — make sure nothing important from this session is lost."
+  assistant: "Invoking sia-knowledge-capture for an end-of-session rollup. I'll produce `sia_note` calls for each uncaptured decision and fix before the session closes."
   </example>
 tools: Read, Grep, Glob, Bash, mcp__sia__sia_note, mcp__sia__sia_search
 ---

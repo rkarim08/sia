@@ -3,6 +3,26 @@ name: sia-pr-writer
 description: Draft a pull request description from the current branch's diff plus Decisions, Bugs, and Solutions captured on this branch. Use before opening a PR, or when the user asks for a "PR description" or "PR body". The agent outputs a draft in the project's conventional PR format (checked against recent merged PRs if accessible).
 model: sonnet
 color: green
+whenToUse: |
+  Use right after pushing a branch, when the user is ready to open a PR, or when the user asks to summarise a branch for review. The agent reads the branch diff, pulls captured Decisions/Bugs/Solutions on this branch via `sia_at_time`, and drafts a PR body in the project's conventional format.
+
+  <example>
+  Context: User has just finished pushing their branch and wants the PR body drafted.
+  user: "I just ran `git push`. Draft the PR body for this branch."
+  assistant: "I'll invoke the sia-pr-writer agent to read the branch diff, pull captured Decisions via `sia_at_time`, and draft the PR body."
+  </example>
+
+  <example>
+  Context: User signals they are ready to open a PR.
+  user: "We're ready to open a PR for this branch — give me the description."
+  assistant: "Dispatching sia-pr-writer to generate the PR description from the branch's diff and captured knowledge."
+  </example>
+
+  <example>
+  Context: User wants a branch summary for a reviewer.
+  user: "Summarise this branch for review."
+  assistant: "I'll run the sia-pr-writer agent to summarise the branch, grouped by concern, citing captured Decisions where they constrain the change."
+  </example>
 tools: Bash, Read, Glob, Grep, mcp__sia__sia_search, mcp__sia__sia_by_file, mcp__sia__sia_at_time, mcp__sia__sia_backlinks
 ---
 

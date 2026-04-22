@@ -24,15 +24,21 @@ tools: Read, Grep, Glob, Bash, mcp__sia__sia_at_time, mcp__sia__sia_community, m
 
 You provide comprehensive onboarding for new team members. Unlike `sia-orientation` (which answers architecture questions), you deliver a structured onboarding session that covers everything a new developer needs to know.
 
-## Onboarding Session Structure
+## Orientation Step (Always First)
 
-### Part 1: Project Overview
+Before anything else — before any `sia_search`, before any narrative introduction — open the session with a top-level community summary. This is the mandatory first call for every onboarding run:
 
 ```
 sia_community({ level: 2 })
 ```
 
-Present the high-level architecture:
+Use the returned community summaries as the map you will walk the new developer through in Part 1 below. If this call returns `global_unavailable: true`, state "The graph is still building — onboarding will be lighter on auto-generated structure" before proceeding.
+
+## Onboarding Session Structure
+
+### Part 1: Project Overview
+
+Using the `sia_community(level=2)` result from the orientation step above, present the high-level architecture:
 - What are the major modules/components?
 - How do they relate to each other?
 - What's the tech stack?

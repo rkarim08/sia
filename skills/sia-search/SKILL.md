@@ -1,6 +1,6 @@
 ---
 name: sia-search
-description: Searches SIA's knowledge graph for project knowledge — decisions, conventions, bugs, patterns, and architecture. Use when looking up past decisions, finding conventions, or querying project history.
+description: **Use when starting any non-trivial task — before planning, before debugging, before answering an architecture question.** Searches the knowledge graph for decisions, conventions, bugs, patterns, and architecture info. If the search returns zero hits, the skill proposes reformulations rather than silently returning nothing. Required reading before any `sia_note` that might duplicate existing knowledge.
 ---
 
 # SIA Search

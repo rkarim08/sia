@@ -58,3 +58,20 @@ export const DEFAULT_SESSION_STATE: NousSessionState = {
 	toolCallCount: 0,
 	sessionStartedAt: 0,
 };
+
+/**
+ * Bookkeeping `kind` values that should never be surfaced by curiosity-style
+ * retrieval. Shared between `nous_curiosity` (the retrieval tool) and
+ * `nous_state` (the hint emitter) so both use identical exclusion sets.
+ *
+ * These kinds are pure session/meta bookkeeping: they record events, prompts,
+ * flags, and per-session cognitive state rather than knowledge worth exploring.
+ */
+export const NOUS_BOOKKEEPING_KINDS = [
+	"Episode",
+	"Signal",
+	"Concern",
+	"Preference",
+	"UserPrompt",
+	"SessionFlag",
+] as const;
