@@ -6,6 +6,12 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-04-22
+
+### Added
+
+- `preference-guard` PreToolUse subscriber denies `Bash|Write|Edit` calls that conflict with an active Tier-1 Preference. Conservative pattern-matching (`never X`/`do not X`/`don't X`). Session-cached to keep per-call overhead at ~5–15 ms. This makes captured Preferences enforcing rather than advisory — closes Phase 4 §PreToolUse gap and completes Moat #1 (bi-temporal + trust-tier).
+
 ## [1.2.5] — 2026-04-22
 
 Tighten `nous_curiosity` and `/sia-playbooks` contracts; rewrite 9 noun-description skills and 3 agent frontmatters with superpowers-style triggers; add `next_steps` hint to `nous_state` response. Align the `nous_state` curiosity-branch SQL with `nous_curiosity`: both now share the same `access_count <= MAX_ACCESS_COUNT` threshold and the same bookkeeping-kind exclusion set (`NOUS_BOOKKEEPING_KINDS`, which additionally excludes `UserPrompt` and `SessionFlag`).
