@@ -37,6 +37,9 @@ import { handleSiaIndex } from "@/mcp/tools/sia-index";
 import { handleSiaModels, SiaModelsInput } from "@/mcp/tools/sia-models";
 import { handleSiaNote } from "@/mcp/tools/sia-note";
 import { handleSiaSearch } from "@/mcp/tools/sia-search";
+import { handleSiaSnapshotList } from "@/mcp/tools/sia-snapshot-list";
+import { handleSiaSnapshotPrune } from "@/mcp/tools/sia-snapshot-prune";
+import { handleSiaSnapshotRestore } from "@/mcp/tools/sia-snapshot-restore";
 import { handleSiaStats } from "@/mcp/tools/sia-stats";
 import { handleSiaSyncStatus } from "@/mcp/tools/sia-sync-status";
 import { handleSiaUpgrade } from "@/mcp/tools/sia-upgrade";
@@ -963,17 +966,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"sia_snapshot_list",
-					async () => {
-						const { listBranchSnapshots } = await import("@/graph/snapshots");
-						const snapshots = await listBranchSnapshots(deps.graphDb);
-						return snapshots.map((s) => ({
-							branch_name: s.branch_name,
-							commit_hash: s.commit_hash,
-							node_count: s.node_count,
-							edge_count: s.edge_count,
-							updated_at: s.updated_at,
-						}));
-					},
+					() => handleSiaSnapshotList(deps.graphDb),
 					maxChars,
 				);
 			}
@@ -1001,11 +994,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"sia_snapshot_restore",
-					async () => {
-						const { restoreBranchSnapshot } = await import("@/graph/snapshots");
-						const restored = await restoreBranchSnapshot(deps.graphDb, args.branch_name);
-						return { restored, branch_name: args.branch_name };
-					},
+					() => handleSiaSnapshotRestore(deps.graphDb, args),
 					maxChars,
 				);
 			}
@@ -1033,11 +1022,7 @@ export function createMcpServer(deps?: McpServerDeps): McpServer {
 			if (deps) {
 				return safeToolCall(
 					"sia_snapshot_prune",
-					async () => {
-						const { pruneBranchSnapshots } = await import("@/graph/snapshots");
-						const pruned = await pruneBranchSnapshots(deps.graphDb, args.branch_names);
-						return { pruned, branch_names: args.branch_names };
-					},
+					() => handleSiaSnapshotPrune(deps.graphDb, args),
 					maxChars,
 				);
 			}
