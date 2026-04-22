@@ -64,8 +64,19 @@ describe("nous Phase 1 integration", () => {
 		expect(discomfort.signalFired).toBe(true);
 		expect(discomfort.signalNodeId).toBeDefined();
 
-		// Surprise router is still a Phase 1 stub.
-		const surprise = runSurpriseRouter(db, sessionId, "output");
+		// Surprise router fails open (no reranker) in this integration test — we
+		// exercise the wiring, not the cross-encoder path.
+		const surprise = await runSurpriseRouter(
+			db,
+			{
+				session_id: sessionId,
+				tool_name: "Bash",
+				tool_input: { command: "echo hello" },
+				tool_response: { output: "hello" },
+			},
+			undefined,
+			{ reranker: null },
+		);
 		expect(surprise.surpriseDetected).toBe(false);
 
 		// Verify Signal node persisted with session provenance fields.
