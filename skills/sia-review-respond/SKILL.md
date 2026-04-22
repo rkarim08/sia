@@ -7,6 +7,17 @@ description: Responds to code review feedback using SIA's knowledge of past deci
 
 Respond to code review feedback grounded in SIA's decision history, usage edges (YAGNI checks), and convention records — argue from the graph, not from memory.
 
+## Usage
+
+**When to invoke:**
+- PR review comments arrive, before you react to any of them
+- Reviewer suggests a pattern change you think has already been decided
+- Reviewer asks "why isn't this X?" and a prior Decision covers the answer
+
+**Inputs:** No arguments. The skill reads the review comments from context and cross-references them against the graph.
+
+**Worked example:** Reviewer comment: "Why aren't you using Zod for validation here?" Skill runs `sia_search({ query: "Zod validation decision", node_types: ["Decision"] })` → returns "Rejected Zod in favour of ajv — 2025-11 perf benchmark showed 3x overhead on hot path". Response drafted: "We evaluated Zod in November (see Decision ID xyz) and chose ajv for the hot-path perf reasons — happy to revisit if the workload has changed." Graph receipts, not memory.
+
 ## Checklist
 
 ```
