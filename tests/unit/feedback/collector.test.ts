@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createFeedbackCollector } from "@/feedback/collector";
-import { createFeedbackEvent, SIGNAL_STRENGTHS, type SignalType } from "@/feedback/types";
+import { createFeedbackEvent, SIGNAL_STRENGTHS } from "@/feedback/types";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 

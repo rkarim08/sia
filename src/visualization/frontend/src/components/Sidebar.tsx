@@ -3,7 +3,7 @@ import { useFeedbackContext } from "../App";
 import type { GraphCombo, GraphNode, SearchResult } from "../lib/api";
 import { searchNodes } from "../lib/api";
 import type { SiaNodeType } from "../lib/constants";
-import { BG_SIDEBAR, FILTERABLE_TYPES, NODE_COLORS } from "../lib/constants";
+import { BG_SIDEBAR, FILTERABLE_TYPES } from "../lib/constants";
 
 interface Props {
 	combos: GraphCombo[];

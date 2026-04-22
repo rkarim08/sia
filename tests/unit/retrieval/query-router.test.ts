@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	classifyQueryContent,
-	type QueryContentType,
-	selectEmbedders,
-} from "@/retrieval/query-router";
+import { classifyQueryContent, selectEmbedders } from "@/retrieval/query-router";
 
 describe("query router", () => {
 	it("detects code-like queries with file paths", () => {

@@ -37,7 +37,7 @@ export function generateSpanIndices(numWords: number, maxWidth: number): number[
 export function buildGlinerInput(
 	labels: string[],
 	text: string,
-	maxSeqLength: number,
+	_maxSeqLength: number,
 	maxWidth = 12,
 ): GlinerModelInput {
 	const labelPrefix = labels

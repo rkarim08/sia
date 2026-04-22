@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	buildGlinerInput,
-	type GlinerModelInput,
-	generateSpanIndices,
-} from "@/capture/gliner-tokenizer";
+import { buildGlinerInput, generateSpanIndices } from "@/capture/gliner-tokenizer";
 
 describe("GLiNER tokenizer", () => {
 	it("generateSpanIndices creates all spans up to maxWidth", () => {

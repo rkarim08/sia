@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	type CrossEncoderCandidate,
-	type CrossEncoderReranker,
 	createCrossEncoderReranker,
 	sigmoid,
 } from "@/retrieval/cross-encoder";

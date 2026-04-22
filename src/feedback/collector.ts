@@ -5,7 +5,6 @@ import {
 	createFeedbackEvent,
 	type FeedbackEvent,
 	type FeedbackSource,
-	SIGNAL_STRENGTHS,
 	type SignalType,
 } from "@/feedback/types";
 import type { SiaDb } from "@/graph/db-interface";

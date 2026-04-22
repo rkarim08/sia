@@ -296,7 +296,7 @@ const GLINER_LABEL_TO_TYPE: Record<string, CandidateFact["type"]> = {
 function glinerSpanToCandidate(
 	span: GlinerSpan,
 	classification: "accept" | "confirm",
-	sessionId: string,
+	_sessionId: string,
 ): CandidateFact {
 	return {
 		type: GLINER_LABEL_TO_TYPE[span.label] ?? "Concept",

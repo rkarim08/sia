@@ -33,7 +33,7 @@ const rgbToHex = (r: number, g: number, b: number): string => {
 		[r, g, b]
 			.map((x) => {
 				const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
-				return hex.length === 1 ? "0" + hex : hex;
+				return hex.length === 1 ? `0${hex}` : hex;
 			})
 			.join("")
 	);
@@ -716,16 +716,7 @@ export function useSigma(
 	// -------------------------------------------------------------------
 	useEffect(() => {
 		sigmaRef.current?.refresh();
-	}, [
-		options.selectedNodeId,
-		options.blastRadiusMode,
-		options.blastDistances,
-		options.colorByFolder,
-		options.clusterColorMap,
-		options.pathNodes,
-		options.pathEdgeKeys,
-		options.showHulls,
-	]);
+	}, []);
 
 	// -------------------------------------------------------------------
 	// Pulse animation for selected node

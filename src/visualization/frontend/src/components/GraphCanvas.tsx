@@ -169,37 +169,43 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 			return { pathNodes: nodes, pathEdgeKeys: edges };
 		}, [pathSource, pathTarget, graph]);
 
-		const handleNodeClick = (nodeId: string, attrs: SigmaNodeAttributes) => {
-			setContextMenu(null);
-			feedback?.recordClick(nodeId);
-			onNodeClick({
-				id: nodeId,
-				label: attrs.label,
-				parentId: attrs.parentId,
-				nodeType: attrs.nodeType as GraphNode["nodeType"],
-				filePath: attrs.filePath || undefined,
-				importance: attrs.importance,
-				trustTier: attrs.trustTier,
-				color: attrs.color,
-				entityId: attrs.entityId,
-			});
-		};
+		const handleNodeClick = useCallback(
+			(nodeId: string, attrs: SigmaNodeAttributes) => {
+				setContextMenu(null);
+				feedback?.recordClick(nodeId);
+				onNodeClick({
+					id: nodeId,
+					label: attrs.label,
+					parentId: attrs.parentId,
+					nodeType: attrs.nodeType as GraphNode["nodeType"],
+					filePath: attrs.filePath || undefined,
+					importance: attrs.importance,
+					trustTier: attrs.trustTier,
+					color: attrs.color,
+					entityId: attrs.entityId,
+				});
+			},
+			[feedback, onNodeClick],
+		);
 
-		const handleNodeDoubleClick = (nodeId: string, attrs: SigmaNodeAttributes) => {
-			if (!onNodeDoubleClick) return;
-			feedback?.recordExpand(nodeId);
-			onNodeDoubleClick({
-				id: nodeId,
-				label: attrs.label,
-				parentId: attrs.parentId,
-				nodeType: attrs.nodeType as GraphNode["nodeType"],
-				filePath: attrs.filePath || undefined,
-				importance: attrs.importance,
-				trustTier: attrs.trustTier,
-				color: attrs.color,
-				entityId: attrs.entityId,
-			});
-		};
+		const handleNodeDoubleClick = useCallback(
+			(nodeId: string, attrs: SigmaNodeAttributes) => {
+				if (!onNodeDoubleClick) return;
+				feedback?.recordExpand(nodeId);
+				onNodeDoubleClick({
+					id: nodeId,
+					label: attrs.label,
+					parentId: attrs.parentId,
+					nodeType: attrs.nodeType as GraphNode["nodeType"],
+					filePath: attrs.filePath || undefined,
+					importance: attrs.importance,
+					trustTier: attrs.trustTier,
+					color: attrs.color,
+					entityId: attrs.entityId,
+				});
+			},
+			[feedback, onNodeDoubleClick],
+		);
 
 		const handleRightClick = useCallback(
 			(nodeId: string, attrs: SigmaNodeAttributes, event: { x: number; y: number }) => {
@@ -354,7 +360,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
 			window.addEventListener("keydown", handleKeyDown);
 			return () => window.removeEventListener("keydown", handleKeyDown);
-		}, [graph, selectedNodeId, onStageClick, onNodeClick, focusNode, onClearPath]);
+		}, [graph, selectedNodeId, onStageClick, onNodeClick, focusNode, onClearPath, handleNodeClick]);
 
 		// Trust tier filtering
 		useEffect(() => {
@@ -370,7 +376,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 				}
 			});
 			sigmaRef.current?.refresh();
-		}, [graph, maxTrustTier, hiddenTypes, activeFolder]);
+		}, [graph, maxTrustTier, sigmaRef.current?.refresh]);
 
 		// Layout mode switching
 		useEffect(() => {
@@ -383,7 +389,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 				sigmaRef.current.refresh();
 			}
 			// 'force' is the default FA2 layout, applied at init
-		}, [layoutMode, graph, selectedNodeId]);
+		}, [layoutMode, graph, selectedNodeId, sigmaRef.current]);
 
 		// Minimap rendering
 		useEffect(() => {
@@ -530,7 +536,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 
 				sigma.getCamera().animate({ x: normX, y: normY }, { duration: 300 });
 			},
-			[graph],
+			[graph, sigmaRef.current],
 		);
 
 		// Local graph rendering (2-hop neighborhood)
@@ -581,7 +587,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 			// Draw edges
 			ctx.strokeStyle = "rgba(255,255,255,0.08)";
 			ctx.lineWidth = 0.5;
-			graph.forEachEdge((edge, _attrs, source, target) => {
+			graph.forEachEdge((_edge, _attrs, source, target) => {
 				const sp = positions.get(source);
 				const tp = positions.get(target);
 				if (!sp || !tp) return;
@@ -663,7 +669,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 					}
 				});
 			},
-			[graph, selectedNodeId, focusNode],
+			[graph, selectedNodeId, focusNode, handleNodeClick],
 		);
 
 		// Context menu items
@@ -708,7 +714,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 				});
 			}
 			return items;
-		}, [contextMenu, graph, focusNode]);
+		}, [contextMenu, graph, focusNode, handleNodeClick]);
 
 		// Save bookmark
 		const saveBookmark = useCallback(() => {

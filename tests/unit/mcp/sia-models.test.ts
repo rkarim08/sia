@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { handleSiaModels } from "@/mcp/tools/sia-models";
 import type { ModelManager } from "@/models/manager";
-import { createEmptyManifest, type ModelEntry, type ModelTier } from "@/models/types";
+import { createEmptyManifest } from "@/models/types";
 
 function mockModelManager(overrides?: Partial<ReturnType<typeof createMockManager>>): ModelManager {
 	return createMockManager(overrides);

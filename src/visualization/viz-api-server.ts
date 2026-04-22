@@ -230,7 +230,7 @@ async function handleRequest(
 			// Verify the resolved path is still inside projectRoot
 			const resolved = resolve(absPath);
 			const resolvedRoot = resolve(projectRoot);
-			if (!resolved.startsWith(resolvedRoot + "/") && resolved !== resolvedRoot) {
+			if (!resolved.startsWith(`${resolvedRoot}/`) && resolved !== resolvedRoot) {
 				sendError(res, "Invalid path: path traversal not allowed", 400);
 				return;
 			}

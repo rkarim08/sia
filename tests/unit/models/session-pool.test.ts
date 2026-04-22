@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSessionPool, type SessionPool } from "@/models/session-pool";
+import { createSessionPool } from "@/models/session-pool";
 
 describe("ONNX session pool", () => {
 	it("returns null for unregistered model", async () => {
