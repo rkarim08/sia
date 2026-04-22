@@ -21,11 +21,16 @@ All notable changes to Sia are documented here. This project adheres to
 - New skill `sia-verify-before-completion` ports the superpowers
   `verification-before-completion` discipline with Sia's graph-powered
   past-failure lookup.
+- PreCompact hook now (a) promotes staged entities via `src/graph/staging.ts::promoteStagedEntities()` and (b) emits a `systemMessage` with the top-5 Preferences + top-3 Episodes so the summariser preserves them verbatim. Closes Phase 4 §PreCompact gap. Staging helper is a safe no-op when the schema lacks staging columns (documented in-source).
 
 ### Changed
 
 - `sia-brainstorm` frontmatter rewritten to superpowers-style mandate:
   "You MUST use this before any creative work…". Body unchanged.
+
+### Fixed
+
+- Staging catch blocks surface non-missing-table errors to stderr; null trust_tier defaults to Tier 4 strict threshold.
 
 ## [1.3.3] — 2026-04-22
 

@@ -2,10 +2,11 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { insertEntity } from "@/graph/entities";
 import { openGraphDb } from "@/graph/semantic-db";
+import { insertStagedFact } from "@/graph/staging";
 import { createPostCompactHandler } from "@/hooks/handlers/post-compact";
 import { createPreCompactHandler } from "@/hooks/handlers/pre-compact";
 import { createSessionEndHandler } from "@/hooks/handlers/session-end";
@@ -301,6 +302,209 @@ describe("createPreCompactHandler", () => {
 		const result = await handler(event);
 		expect(result.status).toBe("processed");
 		expect(result.snapshot_nodes).toBe(0);
+	});
+
+	// -----------------------------------------------------------------------
+	// Phase A5 — staging promotion + preservation systemMessage.
+	// -----------------------------------------------------------------------
+
+	it("invokes staging promotion and reports staging counts", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("pre-compact-staging-promotion", tmpDir);
+
+		// One staged fact above Tier-4 threshold → should promote.
+		await insertStagedFact(db, {
+			proposed_type: "Convention",
+			proposed_name: "Phase A5 promote",
+			proposed_content:
+				"A convention captured during the session that survived confirmatory signals.",
+			trust_tier: 4,
+			raw_confidence: 0.92,
+		});
+		// One below threshold → should stay pending (kept).
+		await insertStagedFact(db, {
+			proposed_type: "Concept",
+			proposed_name: "Phase A5 keep",
+			proposed_content: "Something tentative.",
+			trust_tier: 4,
+			raw_confidence: 0.5,
+		});
+
+		const handler = createPreCompactHandler(db);
+		const transcriptPath = writeTranscript(tmpDir, [{ role: "user", content: "hi" }]);
+		const event = baseEvent({
+			hook_event_name: "PreCompact",
+			transcript_path: transcriptPath,
+			session_id: "phase-a5-staging",
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.staging_promoted).toBe(1);
+		expect(result.staging_kept).toBe(1);
+		expect(result.staging_rejected).toBe(0);
+	});
+
+	it("emits systemMessage containing top-5 Preferences + top-3 Episodes", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("pre-compact-preserve-msg", tmpDir);
+
+		const now = Date.now();
+		// 6 Preferences (only top 5 by t_valid_from DESC should appear).
+		for (let i = 0; i < 6; i++) {
+			await insertEntity(db, {
+				type: "Preference",
+				kind: "Preference",
+				name: `Preference ${i}`,
+				content: `Preference body ${i}`,
+				summary: `Preference summary ${i}`,
+				t_valid_from: now + i, // later i = newer
+			});
+		}
+		// 4 Episodes (only top 3 should appear).
+		for (let i = 0; i < 4; i++) {
+			await insertEntity(db, {
+				type: "Episode",
+				kind: "Episode",
+				name: `Episode ${i}`,
+				content: `Episode body ${i}`,
+				summary: `Episode summary ${i}`,
+				t_valid_from: now + i,
+			});
+		}
+
+		const handler = createPreCompactHandler(db);
+		const transcriptPath = writeTranscript(tmpDir, [{ role: "user", content: "hi" }]);
+		const event = baseEvent({
+			hook_event_name: "PreCompact",
+			transcript_path: transcriptPath,
+			session_id: "phase-a5-preserve",
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(typeof result.systemMessage).toBe("string");
+
+		const msg = result.systemMessage as string;
+		expect(msg).toContain("Keep verbatim across compaction:");
+
+		// Exactly 5 Preference bullets.
+		const prefMatches = msg.match(/\[Preference\]/g) ?? [];
+		expect(prefMatches).toHaveLength(5);
+
+		// Exactly 3 Episode bullets.
+		const epMatches = msg.match(/\[Episode\]/g) ?? [];
+		expect(epMatches).toHaveLength(3);
+
+		// Newest first: Preference 5 kept, Preference 0 dropped.
+		expect(msg).toContain("Preference 5");
+		expect(msg).not.toContain("Preference 0");
+		// Episode 3 kept, Episode 0 dropped.
+		expect(msg).toContain("Episode 3");
+		expect(msg).not.toContain("Episode 0");
+
+		// Every line ≤ 150 chars.
+		for (const line of msg.split("\n")) {
+			expect(line.length).toBeLessThanOrEqual(150);
+		}
+	});
+
+	it("empty graph → no systemMessage field", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("pre-compact-empty-preserve", tmpDir);
+
+		const handler = createPreCompactHandler(db);
+		const transcriptPath = writeTranscript(tmpDir, [{ role: "user", content: "hi" }]);
+		const event = baseEvent({
+			hook_event_name: "PreCompact",
+			transcript_path: transcriptPath,
+			session_id: "phase-a5-empty",
+		});
+
+		const result = await handler(event);
+		expect(result.status).toBe("processed");
+		expect(result.systemMessage).toBeUndefined();
+	});
+
+	it("missing memory_staging table → helper is a safe no-op; hook still succeeds", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("pre-compact-staging-missing", tmpDir);
+
+		// Simulate the documented "schema lacks staging columns" case.
+		await db.execute("DROP TABLE memory_staging");
+
+		const handler = createPreCompactHandler(db);
+		const transcriptPath = writeTranscript(tmpDir, [{ role: "user", content: "hi" }]);
+		const event = baseEvent({
+			hook_event_name: "PreCompact",
+			transcript_path: transcriptPath,
+			session_id: "phase-a5-missing-table",
+		});
+
+		const result = await handler(event);
+		// Hook must still succeed — compaction cannot be blocked.
+		expect(result.status).toBe("processed");
+		expect(result.staging_promoted).toBe(0);
+		expect(result.staging_kept).toBe(0);
+		expect(result.staging_rejected).toBe(0);
+	});
+
+	it("unexpected staging throw is caught, logged to stderr, and does not break the hook", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("pre-compact-staging-failure", tmpDir);
+
+		// Stage a high-confidence clean fact that will pass injection + threshold
+		// gates and enter the promotion path. Then stub db.execute to throw the
+		// moment the consolidation pipeline issues its first UPDATE/INSERT, forcing
+		// an unexpected error to escape `promoteStagedEntities`'s internal guards.
+		await insertStagedFact(db, {
+			proposed_type: "Convention",
+			proposed_name: "A clean fact",
+			proposed_content: "A convention captured from normal session dialog with full support.",
+			trust_tier: 4,
+			raw_confidence: 0.95,
+		});
+
+		const originalExecute = db.execute.bind(db);
+		const execSpy = vi
+			.spyOn(db, "execute")
+			.mockImplementation(async (sql: string, params?: unknown[]) => {
+				// Let reads through so the helper reaches the loop body, then throw
+				// on the first write the loop attempts.
+				const isWrite =
+					sql.trim().toUpperCase().startsWith("UPDATE") ||
+					sql.trim().toUpperCase().startsWith("INSERT");
+				const touchesStagingOrGraph = sql.includes("memory_staging") || sql.includes("graph_nodes");
+				if (isWrite && touchesStagingOrGraph) {
+					throw new Error("simulated unexpected staging write failure");
+				}
+				return originalExecute(sql, params);
+			});
+		const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+		try {
+			const handler = createPreCompactHandler(db);
+			const transcriptPath = writeTranscript(tmpDir, [{ role: "user", content: "hi" }]);
+			const event = baseEvent({
+				hook_event_name: "PreCompact",
+				transcript_path: transcriptPath,
+				session_id: "phase-a5-failure",
+			});
+
+			const result = await handler(event);
+			// Hook must still succeed — compaction cannot be blocked.
+			expect(result.status).toBe("processed");
+
+			// Error surfaced on stderr with the sia:pre-compact prefix.
+			const stderrCalls = stderrSpy.mock.calls
+				.map((c) => String(c[0]))
+				.filter((s) => s.includes("sia:pre-compact"));
+			expect(stderrCalls.length).toBeGreaterThanOrEqual(1);
+			expect(stderrCalls.join("\n")).toContain("promoteStagedEntities failed");
+		} finally {
+			execSpy.mockRestore();
+			stderrSpy.mockRestore();
+		}
 	});
 });
 
