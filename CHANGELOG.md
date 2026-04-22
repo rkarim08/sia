@@ -6,6 +6,32 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-04-21
+
+### Added
+- `@sia/native` Rust performance module is now wired as an optional
+  dependency. On platforms with a prebuilt binary
+  (darwin-arm64, linux-x64-gnu, linux-x64-musl) `sia doctor` reports
+  "Native module: Loaded: native" and the community-detection backend
+  switches from "JavaScript Louvain" to "Rust Leiden via graphrs".
+- Shape adapters in `src/native/bridge.ts` translate between the native
+  module's camelCase NAPI surface and the bridge's snake_case public
+  contract, covering both `astDiff` and `graphCompute`. Bridge callers
+  see an identical result shape regardless of tier (native / wasm /
+  typescript). Null parents in AST tree bytes are normalised to empty
+  strings before reaching the native module, which declares
+  `parent: String` rather than `Option<String>`.
+- Integration test suite `tests/unit/native/bridge-native.test.ts`
+  exercises the native code path when available and verifies parity
+  with the TypeScript fallback for a small AST diff and several graph
+  algorithms. The suite skips cleanly on platforms without a binary.
+
+### Changed
+- `tests/unit/native/bridge.test.ts` and `tests/unit/cli/doctor.test.ts`
+  no longer hard-code "typescript" / "Louvain" expectations — they now
+  accept the full tier matrix so CI and developer machines with the
+  native binary produce green runs.
+
 ## [1.1.2] - 2026-04-21
 
 ### Fixed

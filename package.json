@@ -95,6 +95,7 @@
 		"vitest": "^4.1.0"
 	},
 	"optionalDependencies": {
+		"@sia/native": "file:./sia-native",
 		"tree-sitter": "^0.25.0"
 	},
 	"engines": {
