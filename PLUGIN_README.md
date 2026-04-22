@@ -220,6 +220,20 @@ Invoke via `@sia-code-reviewer`, `@sia-orientation`, etc.
 | **SessionEnd** | Session exit | Records session statistics and entity counts |
 | **UserPromptSubmit** | User prompt | Captures user prompts and detects correction/preference patterns |
 
+## Nous Cognitive Layer
+
+Nous is Sia's cognitive layer — drift monitoring, self-reflection, and anti-sycophancy guardrails. Four always-active hooks (SessionStart drift, PreToolUse significance, PostToolUse discomfort + surprise, Stop episode) run alongside Sia's capture path. Five MCP tools are available for explicit invocation:
+
+| Tool | Purpose |
+|---|---|
+| `nous_state` | Read drift score, active Preferences, recent signals |
+| `nous_reflect` | Self-monitor pass — per-preference alignment + recommended action |
+| `nous_curiosity` | Explore under-retrieved, high-trust entities; writes Concerns |
+| `nous_concern` | Surface open Concerns weighted by active Preferences |
+| `nous_modify` | Create, update, or deprecate Preference nodes (gated, reason required) |
+
+Each tool has a matching slash command — `/nous-state`, `/nous-reflect`, `/nous-curiosity`, `/nous-concern`, `/nous-modify`. See `CLAUDE.md` → "Nous Cognitive Layer — Tool Contract" for authoritative semantics and anti-sycophancy rules.
+
 ## Team Sync
 
 SIA supports team knowledge sharing via a self-hosted sqld (libSQL) server.
