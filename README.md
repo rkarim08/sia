@@ -66,7 +66,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 /plugin install sia@sia-plugins
 ```
 
-This registers all 29 MCP tools, 48 skills, 23 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
+This registers all 29 MCP tools, 47 skills, 23 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
 
 > **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
@@ -610,9 +610,6 @@ These nine skills augment standard development workflows with graph intelligence
 | `/sia-pm-sprint-summary` | PM | Plain-language progress, decisions, features delivered |
 | `/sia-pm-decision-log` | PM | Chronological decisions with rationale and alternatives |
 | `/sia-pm-risk-dashboard` | PM | Recurring bugs, conflicting decisions, fragile modules |
-| `/sia-lead-drift-report` | Tech Lead | Architecture drift vs captured decisions |
-| `/sia-lead-knowledge-map` | Tech Lead | Knowledge distribution, coverage gaps, bus-factor risks |
-| `/sia-lead-compliance` | Tech Lead | Convention compliance audit across the codebase |
 
 ---
 
@@ -645,7 +642,7 @@ Agents are specialized subagents dispatched for focused tasks. Invoke via `@sia-
 
 | Agent | What It Does |
 |---|---|
-| `sia-debug` | Temporal root-cause investigation using `sia_at_time` and causal history |
+| `sia-debug-specialist` | Temporal root-cause investigation using `sia_at_time` and causal history |
 | `sia-regression` | Regression risk analysis from known bugs and failure patterns |
 
 ### Code Review

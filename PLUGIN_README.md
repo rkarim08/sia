@@ -73,7 +73,7 @@ claude --plugin-dir /path/to/sia
 | `sia_upgrade` | Self-update SIA to the latest version |
 | `sia_sync_status` | Check team sync configuration and connection status |
 
-### Skills (48 slash commands)
+### Skills (47 slash commands)
 
 #### Core
 
@@ -158,14 +158,6 @@ claude --plugin-dir /path/to/sia
 | `/sia-pm-decision-log` | Chronological decision log with rationale |
 | `/sia-pm-risk-dashboard` | Technical risk dashboard scored by impact |
 
-#### Tech Lead Intelligence
-
-| Skill | Description |
-|---|---|
-| `/sia-lead-drift-report` | Architecture drift report — decisions vs current code |
-| `/sia-lead-knowledge-map` | Knowledge distribution map with bus-factor risks |
-| `/sia-lead-compliance` | Convention compliance audit across the codebase |
-
 ### Subagents (23 agents)
 
 | Agent | Purpose | Category |
@@ -182,7 +174,7 @@ claude --plugin-dir /path/to/sia
 | `sia-test-advisor` | Test strategy from past failures and known edge cases | Testing |
 | `sia-dependency-tracker` | Cross-repo dependency monitoring and API contract tracking | Architecture |
 | **During Debugging** | | |
-| `sia-debug` | Active bug investigation with temporal root-cause tracing | Debugging |
+| `sia-debug-specialist` | Active bug investigation with temporal root-cause tracing | Debugging |
 | `sia-regression` | Proactive regression risk analysis for code changes | Prevention |
 | **During Review** | | |
 | `sia-code-reviewer` | Code review with historical context and convention enforcement | Review |

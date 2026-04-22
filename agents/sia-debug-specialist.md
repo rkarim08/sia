@@ -1,5 +1,5 @@
 ---
-name: sia-debug
+name: sia-debug-specialist
 description: Investigates active bugs using SIA's temporal knowledge graph — traces root cause through time, finds what changed and when, surfaces related known bugs and past solutions
 model: sonnet
 whenToUse: |
@@ -8,19 +8,19 @@ whenToUse: |
   <example>
   Context: User is stuck on a bug and needs to understand root cause.
   user: "The login endpoint is returning 500 errors since yesterday"
-  assistant: "I'll use the sia-debug agent to investigate using temporal queries."
+  assistant: "I'll use the sia-debug-specialist agent to investigate using temporal queries."
   </example>
 
   <example>
   Context: A test is failing and the user doesn't know why.
   user: "test_payment_flow started failing and I can't figure out why"
-  assistant: "Let me use the sia-debug agent to trace what changed in the payment module."
+  assistant: "Let me use the sia-debug-specialist agent to trace what changed in the payment module."
   </example>
 
   <example>
   Context: User sees unexpected behavior after a deployment.
   user: "Users are reporting they can't upload files anymore"
-  assistant: "I'll use the sia-debug agent to investigate the upload regression."
+  assistant: "I'll use the sia-debug-specialist agent to investigate the upload regression."
   </example>
 tools: Read, Grep, Glob, Bash, mcp__sia__nous_reflect, mcp__sia__nous_state, mcp__sia__sia_at_time, mcp__sia__sia_by_file, mcp__sia__sia_expand, mcp__sia__sia_note, mcp__sia__sia_search
 ---

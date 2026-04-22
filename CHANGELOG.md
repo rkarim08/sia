@@ -6,6 +6,42 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-04-21
+
+### Removed
+- Three `sia-lead-*` skill stubs (`sia-lead-compliance`,
+  `sia-lead-drift-report`, `sia-lead-knowledge-map`). Each was a 16-line
+  stub that shelled a command without a documented methodology; shipping
+  stubs as skills is a broken promise. Leadership reporting is covered
+  by existing skills like `sia-compliance-audit` and
+  `sia-lead-tech-report`.
+- `commands/visualize.md` — dead alias that redirected to
+  `/sia-visualize-live`. Kept `sia-visualize-live` as the single entry
+  point.
+
+### Changed
+- `skills/sia-augment/SKILL.md` description now has an explicit
+  "Use when..." trigger so Claude Code routes correctly.
+- `skills/sia-playbooks/SKILL.md` description surfaces secondary
+  user-visible triggers beyond the CLAUDE.md auto-invoke path.
+- `skills/sia-nous/SKILL.md` expanded from 35 lines to a proper
+  walkthrough covering the 5 MCP tools, decision tree, 3 worked
+  examples, and anti-sycophancy rules.
+- Agent `sia-debug` renamed to `sia-debug-specialist` to disambiguate
+  from the `sia-debug-workflow` skill. Skill name unchanged.
+- Component counts updated: 48 skills → 47 skills (three
+  `sia-lead-*` deletions, plus two new `sia-at-time` and
+  `sia-community-inspect` skills). Commands: 73 → 71 (three
+  `lead-*` + one `visualize` alias removed; `/at-time` and
+  `/community` added; `/freshness` already existed).
+
+### Added
+- Direct commands for three MCP tools that were previously only
+  reachable via agent or raw MCP call: `/freshness`, `/at-time`,
+  `/community`. Commands accept the usual argument hints.
+- Skills `sia-at-time` and `sia-community-inspect` backing the new
+  commands (~40 lines each).
+
 ## [1.1.5] - 2026-04-21
 
 ### Changed
