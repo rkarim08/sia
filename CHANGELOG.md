@@ -13,10 +13,11 @@ All notable changes to Sia are documented here. This project adheres to
   body from the branch diff plus Decisions/Bugs/Solutions captured on
   this branch. Closes the most common missing-agent gap identified in
   the plugin audit.
-- `color:` declared on all 23 agents using a semantic palette
-  (red=regression, green=feature, cyan=review/audit, blue=orient/explain,
-  purple=plan/architecture, yellow=risk/security). Previously only 4
-  agents declared a color.
+- `color:` declared on all 24 agents using a semantic palette
+  (red=regression/incident, green=feature/create/generate,
+  cyan=review/audit, blue=orient/explain,
+  purple=plan/architecture/strategy). Previously only 4 agents
+  declared a color.
 
 ### Changed
 - Tool grants expanded on 7 agents whose stated purpose structurally
