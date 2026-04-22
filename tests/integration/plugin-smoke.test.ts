@@ -5,22 +5,16 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(__dirname, "../..");
 
 describe("plugin smoke test", () => {
-	it("should have a valid plugin.json manifest", () => {
+	it("should have a valid plugin.json manifest with inline mcpServers", () => {
 		const path = join(ROOT, ".claude-plugin/plugin.json");
 		expect(existsSync(path)).toBe(true);
 		const manifest = JSON.parse(readFileSync(path, "utf-8"));
 		expect(manifest.name).toBe("sia");
 		expect(manifest.version).toBeTruthy();
 		expect(manifest.description).toBeTruthy();
-	});
-
-	it("should have a valid .mcp.json", () => {
-		const path = join(ROOT, ".mcp.json");
-		expect(existsSync(path)).toBe(true);
-		const config = JSON.parse(readFileSync(path, "utf-8"));
-		expect(config.mcpServers).toBeDefined();
-		expect(config.mcpServers.sia).toBeDefined();
-		expect(config.mcpServers.sia.command).toBeTruthy();
+		expect(manifest.mcpServers).toBeDefined();
+		expect(manifest.mcpServers.sia).toBeDefined();
+		expect(manifest.mcpServers.sia.command).toBeTruthy();
 	});
 
 	it("should have hooks.json with expected events", () => {

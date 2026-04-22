@@ -109,7 +109,6 @@
 		"hooks/",
 		"migrations/",
 		".claude-plugin/",
-		".mcp.json",
 		"CLAUDE.md",
 		"PLUGIN_README.md"
 	]
