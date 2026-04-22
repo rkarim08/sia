@@ -39,6 +39,18 @@ export async function runSessionStart(
 ): Promise<SessionStartResult> {
 	const now = Math.floor(Date.now() / 1000);
 
+	if (!config.enabled) {
+		const session: NousSession = {
+			session_id: input.session_id,
+			parent_session_id: null,
+			session_type: "primary",
+			state: { ...DEFAULT_SESSION_STATE, sessionStartedAt: now },
+			created_at: now,
+			updated_at: now,
+		};
+		return { session, driftWarning: null, modifyBlocked: false };
+	}
+
 	cleanStaleSessions(db);
 
 	// First-run Preference seed — idempotent, no-op after first insert.

@@ -6,6 +6,43 @@ All notable changes to Sia are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-21
+
+### Added
+- Defense-in-depth gates for `config.nous.enabled` in the `self-monitor` and
+  `episode-writer` inner modules — direct callers (tests, MCP tools) now match
+  the plugin hook layer's always-gated behavior.
+- README section describing how to disable Nous via `nous.enabled = false`.
+
+### Changed
+- Observatory (visualizer) design polish — eight coordinated UI refinements
+  bringing the graph view in line with the product's "code observatory"
+  vision:
+  - Ambient gradient orbs and a radial vignette replace the static dot grid,
+    giving the canvas a living, atmospheric feel.
+  - Staggered entrance animations (`fadeInDown`, `fadeInUp`, `fadeIn`) on
+    the header, sidebar, canvas, and inspector, plus a pulsing SIA wordmark
+    while the graph builds.
+  - Node glow halos on hover (radial gradient + soft ring) and a
+    selected-node pulse ring driven by a `requestAnimationFrame` loop that
+    breathes the size factor between 0.85× and 1.15×.
+  - Contextual cursor that swaps between `crosshair` (panning) and
+    `pointer` (over a node) based on the hover target.
+  - Redesigned bottom status bar with node / edge / visible counts,
+    active-mode badges (`BLAST`, `FOLDER`, `HULLS`), current layout, and a
+    `?` shortcuts hint.
+  - Command palette now groups results by node type with uppercase category
+    headers and shows a "Quick actions" empty state when the query is blank.
+  - Inspector tab bar (`code` / `entities` / `deps`) replacing the single
+    stacked scroll, with auto-switch to `entities` for non-file nodes.
+  - Node size legend (fn / file / class / decision) in the bottom-left when
+    no node is selected.
+
+### Fixed
+- Two `toBeUndefined()` assertions against `bun:sqlite` `.get()` results were
+  racing against the driver's `null`-for-no-row convention. Normalized both
+  tests (plus the new disabled-path tests) to `toBeNull()`.
+
 ## [1.1.0] - 2026-04-22
 
 ### Added

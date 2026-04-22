@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { SiaDb } from "@/graph/db-interface";
 import { openGraphDb } from "@/graph/semantic-db";
 import { writeEpisode } from "@/nous/episode-writer";
-import { DEFAULT_SESSION_STATE } from "@/nous/types";
+import { DEFAULT_NOUS_CONFIG, DEFAULT_SESSION_STATE } from "@/nous/types";
 import { getSession, upsertSession } from "@/nous/working-memory";
 
 function makeTmp() {
@@ -77,12 +77,37 @@ describe("episode-writer", () => {
 		const episode = raw
 			?.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get("ep-sess-2");
-		expect(episode).toBeUndefined();
+		expect(episode ?? null).toBeNull();
 	});
 
 	it("does nothing if session not found", async () => {
 		tmpDir = makeTmp();
 		db = openGraphDb("test-ep3", tmpDir);
 		await expect(writeEpisode(db, "nonexistent")).resolves.toBeUndefined();
+	});
+
+	it("is a no-op when config.enabled is false", async () => {
+		tmpDir = makeTmp();
+		db = openGraphDb("test-ep-disabled", tmpDir);
+
+		const now = Math.floor(Date.now() / 1000);
+		upsertSession(db, {
+			session_id: "ep-off",
+			parent_session_id: null,
+			session_type: "primary",
+			state: { ...DEFAULT_SESSION_STATE, driftScore: 0.3, toolCallCount: 5 },
+			created_at: now,
+			updated_at: now,
+		});
+
+		await writeEpisode(db, "ep-off", { ...DEFAULT_NOUS_CONFIG, enabled: false });
+
+		// Session row is preserved (noop does not delete) and no Episode is written
+		expect(getSession(db, "ep-off")).not.toBeNull();
+		const raw = db.rawSqlite();
+		const episode = raw
+			?.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
+			.get("ep-off");
+		expect(episode ?? null).toBeNull();
 	});
 });

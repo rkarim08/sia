@@ -127,6 +127,6 @@ describe("nous Phase 1 integration", () => {
 		const episode = raw
 			.prepare("SELECT * FROM graph_nodes WHERE kind = 'Episode' AND captured_by_session_id = ?")
 			.get("subagent-1");
-		expect(episode).toBeUndefined();
+		expect(episode ?? null).toBeNull();
 	});
 });
