@@ -617,7 +617,7 @@ These nine skills augment standard development workflows with graph intelligence
 
 ---
 
-## Agents (23)
+## Agents (26)
 
 Agents are specialized subagents dispatched for focused tasks. Invoke via `@sia-<name>` (e.g., `@sia-code-reviewer`). All agents retrieve from the knowledge graph and can run simultaneously.
 
@@ -648,6 +648,7 @@ Agents are specialized subagents dispatched for focused tasks. Invoke via `@sia-
 |---|---|
 | `sia-debug-specialist` | Temporal root-cause investigation using `sia_at_time` and causal history |
 | `sia-regression` | Regression risk analysis from known bugs and failure patterns |
+| `sia-search-debugger` | Diagnoses why a `sia_search` came back empty or noisy and suggests reformulations |
 
 ### Code Review
 
@@ -662,6 +663,8 @@ Agents are specialized subagents dispatched for focused tasks. Invoke via `@sia-
 |---|---|
 | `sia-knowledge-capture` | Systematic review and capture of uncaptured session knowledge |
 | `sia-changelog-writer` | Generates changelogs from decisions, bugs fixed, and features added |
+| `sia-pr-writer` | Drafts a PR body from the branch diff + Decisions/Bugs/Solutions captured on the branch |
+| `sia-doc-writer` | Generates ADRs, README sections, and runbooks from graph state |
 
 ### QA, PM & Tech Lead
 
