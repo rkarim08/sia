@@ -7,6 +7,17 @@ description: Load task-specific Sia playbooks (reference-regression, reference-f
 
 This skill provides detailed step-by-step guidance for using SIA's knowledge graph during specific task types. The CLAUDE.md behavioral spec directs you here after task classification.
 
+## Usage
+
+**When to invoke:**
+- CLAUDE.md Step 0 classifier points to a task type (bug-fix / feature / review / orientation)
+- You need the full MCP tool parameter reference (`reference-tools.md`)
+- Looking up flagging guidance (`reference-flagging.md`)
+
+**Inputs:** Reference filename passed inline in the skill invocation (e.g. `reference-regression.md`). No CLI arguments.
+
+**How it works:** Skill body below lists the available reference files and the load-on-demand pattern. The playbook file itself contains the step-by-step workflow for that task type.
+
 ## Available Playbooks
 
 Load the playbook matching your task type by reading the corresponding reference file in this skill's directory:

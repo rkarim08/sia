@@ -9,9 +9,23 @@ Generate a testing-focused report from the knowledge graph.
 
 ## Usage
 
+**When to invoke:**
+- Kicking off a QA cycle — "what should we test first?"
+- Release readiness review
+- Risk-based testing prioritisation
+
+**Inputs:**
+- `--since <date>` (required): start of the reporting window
+- `--output <path>` (optional, default `QA-REPORT.md`)
+
+**Worked example:**
+
 ```bash
-bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts qa-report --since 2026-03-15
+$ bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts qa-report --since 2026-03-15
+[qa-report] Wrote QA-REPORT.md — 6 risk areas, 14 priority tests, 3 coverage gaps
 ```
+
+Produces a markdown report with sections: Changes since date, Risk assessment, Bug activity, Test recommendations, Coverage gaps.
 
 ## What It Shows
 
