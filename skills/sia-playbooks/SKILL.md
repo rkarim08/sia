@@ -1,6 +1,6 @@
 ---
 name: sia-playbooks
-description: Loads SIA task-specific playbooks for regression analysis, feature development, code review, or orientation. Called automatically by CLAUDE.md behavioral directives after task classification.
+description: Load task-specific Sia playbooks (reference-regression, reference-feature, reference-review, reference-orientation, reference-tools). Called automatically by CLAUDE.md behavioral directives, and also useful when looking up full MCP tool parameter reference or task-type semantics.
 ---
 
 # SIA Task Playbooks

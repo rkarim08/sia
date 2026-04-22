@@ -1,6 +1,6 @@
 ---
 name: sia-augment
-description: Toggle SIA auto-augmentation of tool results on or off
+description: Toggle automatic graph-context enrichment of Grep/Glob/Bash tool results. Use when the user asks to enable/disable augmentation, when augmented output is noisy or distracting, or when debugging the PreToolUse augment-hook behavior.
 ---
 
 # SIA Auto-Augmentation Toggle
