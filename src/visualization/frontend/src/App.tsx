@@ -267,6 +267,8 @@ export default function App() {
 					{/* Hamburger (mobile only) */}
 					{isMobile && (
 						<button
+							type="button"
+							aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
 							onClick={() => setSidebarOpen((prev) => !prev)}
 							style={{
 								background: "none",
@@ -347,6 +349,7 @@ export default function App() {
 
 					{/* Search trigger */}
 					<button
+						type="button"
 						onClick={() => setSearchOpen(true)}
 						style={{
 							display: "flex",
@@ -380,6 +383,8 @@ export default function App() {
 							stroke="currentColor"
 							strokeWidth="2.5"
 							strokeLinecap="round"
+							role="presentation"
+							aria-hidden="true"
 						>
 							<circle cx="11" cy="11" r="7" />
 							<line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -459,7 +464,9 @@ export default function App() {
 					</div>
 
 					{isMobile && sidebarOpen && (
-						<div
+						<button
+							type="button"
+							aria-label="Close sidebar"
 							onClick={() => setSidebarOpen(false)}
 							style={{
 								position: "fixed",
@@ -467,6 +474,9 @@ export default function App() {
 								top: 44,
 								background: "rgba(0,0,0,0.4)",
 								zIndex: 29,
+								border: "none",
+								padding: 0,
+								cursor: "pointer",
 							}}
 						/>
 					)}

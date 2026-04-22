@@ -898,29 +898,36 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 									display: "flex",
 									alignItems: "center",
 									padding: "6px 10px",
-									cursor: "pointer",
 									fontSize: 12,
 									color: "#c8d0e0",
 									gap: 6,
 								}}
-								onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(59,130,246,0.12)")}
-								onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-								onClick={() => {
-									setCameraState(b.cameraState);
-									setShowBookmarks(false);
-								}}
 							>
-								<span
+								<button
+									type="button"
+									onClick={() => {
+										setCameraState(b.cameraState);
+										setShowBookmarks(false);
+									}}
 									style={{
 										flex: 1,
 										overflow: "hidden",
 										textOverflow: "ellipsis",
 										whiteSpace: "nowrap",
+										background: "transparent",
+										border: "none",
+										color: "inherit",
+										font: "inherit",
+										cursor: "pointer",
+										textAlign: "left",
+										padding: 0,
 									}}
 								>
 									{b.name}
-								</span>
+								</button>
 								<button
+									type="button"
+									aria-label={`Delete ${b.name}`}
 									onClick={(e) => {
 										e.stopPropagation();
 										deleteBookmark(b.id);
@@ -967,6 +974,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 					>
 						<span>Path: {pathNodes.size} nodes</span>
 						<button
+							type="button"
 							onClick={onClearPath}
 							style={{
 								background: "rgba(249,115,22,0.2)",
@@ -996,8 +1004,11 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(
 				>
 					{(["force", "tree", "radial"] as LayoutMode[]).map((mode) => (
 						<button
+							type="button"
 							key={mode}
 							onClick={() => onLayoutModeChange(mode)}
+							aria-pressed={layoutMode === mode}
+							aria-label={`${mode} layout`}
 							style={{
 								width: Math.round(28 * lgScale),
 								height: Math.round(28 * lgScale),
@@ -1289,8 +1300,11 @@ function ZoomBtn({
 
 	return (
 		<button
+			type="button"
 			onClick={onClick}
 			title={title}
+			aria-label={title}
+			aria-pressed={active}
 			onMouseEnter={() => setHovered(true)}
 			onMouseLeave={() => {
 				setHovered(false);

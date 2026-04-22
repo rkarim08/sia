@@ -124,6 +124,8 @@ export default function Sidebar({
 						strokeWidth="2"
 						strokeLinecap="round"
 						strokeLinejoin="round"
+						role="presentation"
+						aria-hidden="true"
 						style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }}
 					>
 						<circle cx="11" cy="11" r="8" />
@@ -154,7 +156,8 @@ export default function Sidebar({
 				{searchResults.length > 0 && (
 					<div style={{ marginTop: 8, maxHeight: 180, overflow: "auto" }}>
 						{searchResults.map((r) => (
-							<div
+							<button
+								type="button"
 								key={r.id}
 								onClick={() => {
 									feedback?.recordSearchClick(r.id, searchQuery);
@@ -169,6 +172,11 @@ export default function Sidebar({
 									alignItems: "center",
 									gap: 7,
 									color: "#c8d0e0",
+									background: "transparent",
+									border: "none",
+									width: "100%",
+									textAlign: "left",
+									font: "inherit",
 								}}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.background = "rgba(255,255,255,0.06)";
@@ -196,7 +204,7 @@ export default function Sidebar({
 								<span style={{ marginLeft: "auto", fontSize: 10, color: "#4d5a73", flexShrink: 0 }}>
 									{r.type}
 								</span>
-							</div>
+							</button>
 						))}
 					</div>
 				)}
@@ -214,39 +222,22 @@ export default function Sidebar({
 					{FILTERABLE_TYPES.map((type) => {
 						const active = !hiddenTypes.has(type);
 						return (
-							<button
+							<div
 								key={type}
-								onClick={() => onToggleType(type)}
 								style={{
 									display: "flex",
 									alignItems: "center",
 									gap: 8,
 									padding: isLarge ? "6px 8px" : "4px 6px",
-									cursor: "pointer",
 									fontSize: isLarge ? 14 : 12,
 									background: active ? "rgba(255,255,255,0.04)" : "transparent",
-									border: "none",
 									borderRadius: 4,
 									color: active ? "#c8d0e0" : "#4d5a73",
-									textAlign: "left",
-									width: "100%",
 									transition: "background 0.15s, color 0.15s",
-								}}
-								onMouseEnter={(e) => {
-									if (active) e.currentTarget.style.background = "rgba(255,255,255,0.07)";
-									else e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.background = active
-										? "rgba(255,255,255,0.04)"
-										: "transparent";
 								}}
 							>
 								{/* Clickable color swatch — opens native color picker */}
-								<label
-									style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}
-									onClick={(e) => e.stopPropagation()}
-								>
+								<label style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}>
 									<span
 										style={{
 											display: "block",
@@ -276,18 +267,37 @@ export default function Sidebar({
 										title={`Change ${type} color`}
 									/>
 								</label>
-								<span style={{ flex: 1 }}>{type}</span>
-								<span
+								<button
+									type="button"
+									onClick={() => onToggleType(type)}
+									aria-pressed={active}
 									style={{
-										width: 6,
-										height: 6,
-										borderRadius: "50%",
-										background: active ? "#60a5fa" : "rgba(255,255,255,0.1)",
-										flexShrink: 0,
-										transition: "background 0.15s",
+										flex: 1,
+										display: "flex",
+										alignItems: "center",
+										gap: 8,
+										background: "transparent",
+										border: "none",
+										color: "inherit",
+										font: "inherit",
+										cursor: "pointer",
+										textAlign: "left",
+										padding: 0,
 									}}
-								/>
-							</button>
+								>
+									<span style={{ flex: 1 }}>{type}</span>
+									<span
+										style={{
+											width: 6,
+											height: 6,
+											borderRadius: "50%",
+											background: active ? "#60a5fa" : "rgba(255,255,255,0.1)",
+											flexShrink: 0,
+											transition: "background 0.15s",
+										}}
+									/>
+								</button>
+							</div>
 						);
 					})}
 				</div>
@@ -336,6 +346,7 @@ export default function Sidebar({
 						const active = focusDepth === value;
 						return (
 							<button
+								type="button"
 								key={label}
 								onClick={() => onFocusDepthChange(value)}
 								style={{
@@ -382,6 +393,7 @@ export default function Sidebar({
 					<div style={sectionHeader as React.CSSProperties}>Explorer</div>
 					{activeFolder && (
 						<button
+							type="button"
 							onClick={() => onFolderClick(null)}
 							style={{
 								fontSize: 10,
@@ -451,7 +463,9 @@ function ToggleBtn({
 	const isLarge = typeof window !== "undefined" && window.innerWidth >= 2000;
 	return (
 		<button
+			type="button"
 			onClick={onClick}
+			aria-pressed={active}
 			title={hint}
 			style={{
 				display: "flex",
@@ -523,7 +537,9 @@ function FolderItem({
 
 	return (
 		<div>
-			<div
+			<button
+				type="button"
+				aria-expanded={expanded}
 				onClick={(e) => {
 					if (e.detail === 2) {
 						// Double-click: filter graph to this folder
@@ -544,7 +560,11 @@ function FolderItem({
 					borderRadius: 3,
 					color: "#c8d0e0",
 					background: isActive ? "rgba(59,130,246,0.12)" : "transparent",
+					border: "none",
 					borderLeft: isActive ? "2px solid #60a5fa" : "2px solid transparent",
+					width: "100%",
+					textAlign: "left",
+					font: "inherit",
 				}}
 				onMouseEnter={(e) => {
 					if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
@@ -599,7 +619,7 @@ function FolderItem({
 						FILTERED
 					</span>
 				)}
-			</div>
+			</button>
 			{expanded && (
 				<>
 					{children.map((child) => (
@@ -617,7 +637,8 @@ function FolderItem({
 						/>
 					))}
 					{fileChildren.map((fileNode) => (
-						<div
+						<button
+							type="button"
 							key={fileNode.id}
 							onClick={() => {
 								feedback?.recordClick(fileNode.id);
@@ -634,7 +655,12 @@ function FolderItem({
 								gap: 5,
 								borderRadius: 3,
 								color: "#a0aec0",
+								background: "transparent",
+								border: "none",
 								borderLeft: "2px solid transparent",
+								width: "100%",
+								textAlign: "left",
+								font: "inherit",
 							}}
 							onMouseEnter={(e) => {
 								e.currentTarget.style.background = "rgba(255,255,255,0.04)";
@@ -657,7 +683,7 @@ function FolderItem({
 							<span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
 								{fileNode.label}
 							</span>
-						</div>
+						</button>
 					))}
 				</>
 			)}

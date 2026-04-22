@@ -244,7 +244,9 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 		>
 			{/* Resize handle — left edge (desktop only) */}
 			{!isMobile && (
-				<div
+				<button
+					type="button"
+					aria-label="Resize inspector"
 					onMouseDown={startResize}
 					style={{
 						position: "absolute",
@@ -255,6 +257,8 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 						cursor: "col-resize",
 						zIndex: 10,
 						background: "transparent",
+						border: "none",
+						padding: 0,
 					}}
 					onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(59,130,246,0.35)")}
 					onMouseLeave={(e) => {
@@ -309,8 +313,10 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 					</span>
 				</div>
 				<button
+					type="button"
 					onClick={onClose}
 					title="Close inspector"
+					aria-label="Close inspector"
 					style={{
 						background: "none",
 						border: "none",
@@ -379,8 +385,10 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 			>
 				{(["code", "entities", "deps"] as const).map((tab) => (
 					<button
+						type="button"
 						key={tab}
 						onClick={() => setActiveTab(tab)}
+						aria-pressed={activeTab === tab}
 						style={{
 							flex: 1,
 							padding: "6px 0",
@@ -449,7 +457,8 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 							const entColor = NODE_COLORS[ent.nodeType as SiaNodeType] || "#888";
 							const isHovered = hoveredEntity === ent.id;
 							return (
-								<div
+								<button
+									type="button"
 									key={ent.id}
 									onClick={() => onEntityClick(ent.id)}
 									onMouseEnter={() => setHoveredEntity(ent.id)}
@@ -464,6 +473,11 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 										marginBottom: 1,
 										background: isHovered ? "rgba(255,255,255,0.05)" : "transparent",
 										transition: "background 0.12s",
+										border: "none",
+										width: "100%",
+										textAlign: "left",
+										font: "inherit",
+										color: "inherit",
 									}}
 								>
 									<span
@@ -501,7 +515,7 @@ export default function CodeInspector({ node, onEntityClick, onClose }: Props) {
 									>
 										{ent.nodeType}
 									</span>
-								</div>
+								</button>
 							);
 						})}
 					</div>
@@ -614,7 +628,8 @@ function EdgeRow({
 	const isLarge = typeof window !== "undefined" && window.innerWidth >= 2000;
 	const displayLabel = edge.label || resolveTargetLabel(edge.target, entities);
 	return (
-		<div
+		<button
+			type="button"
 			onClick={() => onEntityClick(edge.target)}
 			style={{
 				padding: "3px 8px",
@@ -627,11 +642,16 @@ function EdgeRow({
 				cursor: "pointer",
 				borderRadius: 4,
 				transition: "background 0.12s",
+				background: "transparent",
+				border: "none",
+				width: "100%",
+				textAlign: "left",
+				display: "block",
 			}}
 			onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
 			onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
 		>
 			{displayLabel}
-		</div>
+		</button>
 	);
 }

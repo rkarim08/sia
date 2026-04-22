@@ -45,6 +45,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
 	return (
 		<div
 			ref={menuRef}
+			role="menu"
 			style={{
 				position: "fixed",
 				left: adjustedX,
@@ -62,7 +63,7 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
 			onContextMenu={(e) => e.preventDefault()}
 		>
 			{items.map((item, i) => (
-				<div key={i}>
+				<div key={item.label}>
 					{item.separator && i > 0 && (
 						<div
 							style={{
@@ -73,6 +74,8 @@ export default function ContextMenu({ x, y, items, onClose }: Props) {
 						/>
 					)}
 					<button
+						type="button"
+						role="menuitem"
 						onClick={() => {
 							item.onClick();
 							onClose();
