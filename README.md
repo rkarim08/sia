@@ -103,6 +103,22 @@ sia doctor                          # Health check
 /sia-visualize-live                 # Graph explorer in your browser
 ```
 
+### Running the Test Suite
+
+Always run tests via the `bun run` wrapper so vitest picks up the project
+config. `bun test` invokes Bun's own test runner, which bypasses
+`vitest.config.ts`, skips the `@/…` path aliases, and runs every test file
+in a single shared process — which makes the `vi.mock(...)` calls in
+several tests (e.g. the C# project extractor) leak across file boundaries
+and produces spurious failures.
+
+```bash
+bun run test         # Correct — 2021/2021 pass
+bun test             # Incorrect — shows ~400 bogus failures
+```
+
+CI uses `bun run test`.
+
 ---
 
 ## How It Works

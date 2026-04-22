@@ -10,6 +10,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { isLeidenAvailable } from "@/community/detection-bridge";
 import type { SiaDb } from "@/graph/db-interface";
 import { detectAgent, getRecommendedCaptureMode } from "@/hooks/agent-detect";
 import { getHookConfig } from "@/hooks/event-router";
@@ -69,8 +70,9 @@ export async function runDoctor(
 	});
 
 	// 3. Community detection backend
-	const communityBackend =
-		nativeStatus !== "typescript" ? "Rust Leiden via graphrs" : "JavaScript Louvain (in-process)";
+	const communityBackend = isLeidenAvailable()
+		? "Rust Leiden via graphrs"
+		: "JavaScript Louvain (in-process)";
 	checks.push({
 		name: "Community detection",
 		status: "ok",
