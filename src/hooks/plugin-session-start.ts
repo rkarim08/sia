@@ -13,6 +13,7 @@ import { incrementalReindex, readStoredHead } from "@/capture/incremental-reinde
 import { openGraphDb } from "@/graph/semantic-db";
 import { buildSessionContext, formatSessionContext } from "@/hooks/handlers/session-start";
 import { parsePluginHookEvent, readStdin } from "@/hooks/plugin-common";
+import { getEmptyGraphHint } from "@/hooks/session-start-hints";
 import type { HookEvent } from "@/hooks/types";
 import { runSessionStart as runNousSessionStart } from "@/nous/self-monitor";
 import { DEFAULT_NOUS_CONFIG } from "@/nous/types";
@@ -142,6 +143,9 @@ async function main() {
 
 			// First-run UX: hint to download T0 models if missing.
 			formatted += getModelInstallHint();
+
+			// First-run UX: hint to run /sia-setup when the graph is empty.
+			formatted += await getEmptyGraphHint(db);
 
 			// Nous: run self-monitor and inject drift warning if needed.
 			// Must not break SessionStart — any failure is logged and ignored.
