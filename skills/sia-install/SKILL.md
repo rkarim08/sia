@@ -7,6 +7,26 @@ description: Initializes SIA persistent memory in the current project — create
 
 Initialize SIA's persistent graph memory for the current project.
 
+## Usage
+
+**When to invoke:**
+- First-time SIA setup in a new repo
+- Adopting SIA on an existing repo that hasn't been indexed
+- Re-creating databases after an intentional reset
+
+**Inputs:** No arguments. Reads the current git repo from the working directory.
+
+**Worked example:**
+
+```bash
+$ /sia-install
+[install] Created graph.db, episodic.db
+[install] Registered repo 'sia' in meta.db (repo_id=r_4f2c)
+[install] Ready — run /sia-learn to populate the graph
+```
+
+Prefer `/sia-setup` for guided first-run (includes learn + tour). Use `/sia-install` only when you want the DB scaffold without indexing.
+
 ## What This Does
 
 1. Creates the SIA databases (graph.db, episodic.db) for this repository

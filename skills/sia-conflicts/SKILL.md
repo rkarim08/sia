@@ -36,3 +36,14 @@ This:
 - When search results return contradictory information
 - After importing knowledge from another source
 - When conventions or decisions have been superseded
+
+## Worked Example
+
+```
+$ /sia-conflicts list
+group cg-4f2c: 2 entities
+  · ent-a1 "Session timeout = 15min" (Tier 1, captured 2026-01-12)
+  · ent-b7 "Session timeout = 60min" (Tier 2, captured 2026-03-04)
+$ /sia-conflicts resolve cg-4f2c ent-b7
+[conflicts] Kept ent-b7. Invalidated ent-a1 (t_valid_until=2026-04-21T...).
+```

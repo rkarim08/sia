@@ -7,6 +7,17 @@ description: Shows SIA knowledge graph statistics — entity counts, edges, comm
 
 Display statistics about the project's knowledge graph.
 
+## Usage
+
+**When to invoke:**
+- Quick capacity / growth check
+- Answering "how big is my graph?" / "how much has SIA captured?"
+- Diagnosing why a `sia_search` returned sparse results (is the graph even populated?)
+
+**Inputs:** No arguments; optional `include_session: true` via the MCP tool.
+
+**Typical output:** An inline table of node counts by type, edge counts by kind, community count, database file sizes, and the timestamp of the most recent index run.
+
 ## Steps
 
 Run the stats command:

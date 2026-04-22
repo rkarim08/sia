@@ -36,6 +36,16 @@ bun run ${CLAUDE_PLUGIN_ROOT}/src/cli/index.ts history --file src/auth/login.ts
 - "What changed in the graph since last release?"
 - "What conventions were established recently?"
 
+## Worked Example
+
+```
+$ /sia-history --since 2026-04-14 --types Decision,Bug
+2026-04-16  Decision  Use Redis for rate limiting
+2026-04-17  Bug       Double-charge on payment retry
+2026-04-18  Decision  Drop jQuery from docs-site
+2026-04-20  Bug       Session timeout inconsistent across pods
+```
+
 ## Also Available
 
 - `sia_at_time` MCP tool — query the graph at a specific point in time

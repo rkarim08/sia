@@ -7,6 +7,24 @@ description: Self-updates SIA to the latest version via npm, git, or binary stra
 
 Update SIA to the latest version.
 
+## Usage
+
+**When to invoke:**
+- A new SIA release is announced
+- CHANGELOG shows a fix you need
+- Regular maintenance (monthly)
+
+**Inputs:** Optional `target_version`; optional `dry_run`. See below.
+
+**Worked example:**
+
+```
+sia_upgrade({ dry_run: true })
+// → "Would upgrade 1.1.6 → 1.1.7 via npm; no breaking changes in release notes"
+sia_upgrade({})
+// → "Upgraded to 1.1.7. Run /sia-doctor to verify."
+```
+
 ## Quick Upgrade
 
 Use the `sia_upgrade` MCP tool:

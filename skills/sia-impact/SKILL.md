@@ -68,3 +68,18 @@ Present the impact as a structured report:
 - Before changing a function's signature
 - Before splitting or merging modules
 - Before removing exports or APIs
+
+## Worked Example
+
+```
+$ /sia-impact processPayment
+[impact] entity: src/orders/charge.ts::processPayment (CodeEntity)
+[impact] incoming: 7 callers, 3 importers
+  · src/orders/checkout.ts:42 — calls
+  · src/api/webhooks.ts:18 — calls
+  · src/orders/refund.ts:91 — calls
+  · test/orders/charge.spec.ts — tests
+  ...
+[impact] conventions: 1 ("All charge paths must be idempotent")
+[impact] known bugs in this area: 2 — review before changing signature
+```

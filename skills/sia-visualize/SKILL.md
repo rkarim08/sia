@@ -7,6 +7,25 @@ description: Generates an interactive HTML visualization of the SIA knowledge gr
 
 Generate a D3.js force-directed graph visualization of the knowledge graph.
 
+## Usage
+
+**When to invoke:**
+- User wants a shareable static HTML view of the graph
+- Embedding a graph view in a doc or wiki
+- Quick offline inspection without the live server
+
+**Inputs:** No arguments.
+
+**Worked example:**
+
+```
+$ /sia-visualize
+[graph] Rendered 2,431 nodes, 6,104 edges → sia-graph.html (1.2MB)
+[graph] Open sia-graph.html in your browser
+```
+
+For a live updating view with filters use `/sia-visualize-live` instead.
+
 ## Steps
 
 1. Run the graph visualization command:
