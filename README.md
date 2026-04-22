@@ -66,7 +66,7 @@ Sia gives your agent a typed, temporal, ontology-enforced knowledge graph that c
 /plugin install sia@sia-plugins
 ```
 
-This registers all 29 MCP tools, 47 skills, 24 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
+This registers all 29 MCP tools, 47 skills, 26 agents, 9 hook entries across 7 event types, and CLAUDE.md behavioral directives in one step.
 
 > **Coming soon:** Once Sia is accepted into the official Anthropic marketplace, installation will simplify to `/plugin install sia@claude-plugins-official`.
 
