@@ -46,7 +46,7 @@ All notable changes to Sia are documented here. This project adheres to
 
 - Staging catch blocks surface non-missing-table errors to stderr; null trust_tier defaults to Tier 4 strict threshold.
 
-## 1.3.2 — 2026-05-02
+## [1.3.4] — 2026-05-02
 
 ### Fixed
 - MCP server now starts cleanly on Claude Code installs where the

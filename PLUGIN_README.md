@@ -106,7 +106,7 @@ If you see this on the Claude Code MCP debug log:
 > `error: CLAUDE_PLUGIN_DATA must be an absolute path, got: "${CLAUDE_PLUGIN_DATA}"`
 
 …your Claude Code build is not expanding the `${CLAUDE_PLUGIN_DATA}`
-template in the plugin's `mcpServers.env` block. Sia v1.3.2 and later
+template in the plugin's `mcpServers.env` block. Sia v1.3.4 and later
 detect this and fall back to `~/.sia/`, printing a one-line warning to
 stderr:
 
