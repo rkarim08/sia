@@ -43,14 +43,10 @@ export async function memoizeForTurn<T>(
 		return bucket.get(key) as T;
 	}
 
-	try {
-		const value = await compute();
-		bucket.set(key, value);
-		return value;
-	} catch (err) {
-		// Do not cache failures — caller may want to retry next turn.
-		throw err;
-	}
+	// Failures from compute() propagate without being cached — caller may retry next turn.
+	const value = await compute();
+	bucket.set(key, value);
+	return value;
 }
 
 /**
