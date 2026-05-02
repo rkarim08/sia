@@ -46,6 +46,16 @@ All notable changes to Sia are documented here. This project adheres to
 
 - Staging catch blocks surface non-missing-table errors to stderr; null trust_tier defaults to Tier 4 strict threshold.
 
+## 1.3.2 — 2026-05-02
+
+### Fixed
+- MCP server now starts cleanly on Claude Code installs where the
+  `mcpServers.env` template substitution fails to expand
+  `${CLAUDE_PLUGIN_DATA}`. Both `scripts/start-mcp.sh` and
+  `resolveSiaHome()` now sanitize the value and fall back to `~/.sia`
+  with a single stderr breadcrumb instead of crashing on
+  `must be an absolute path: "${CLAUDE_PLUGIN_DATA}"`.
+
 ## [1.3.3] — 2026-04-22
 
 ### Added

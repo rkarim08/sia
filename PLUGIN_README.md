@@ -96,3 +96,21 @@ Full event matrix and authoring guidance in [hooks/README.md](hooks/README.md).
 
 - **Per-project:** Graph database in `~/.sia/repos/{repo-hash}/`
 - **Plugin-global:** Configuration and models in `$CLAUDE_PLUGIN_DATA/`
+
+## Troubleshooting
+
+### MCP server fails with `${CLAUDE_PLUGIN_DATA}` literal
+
+If you see this on the Claude Code MCP debug log:
+
+> `error: CLAUDE_PLUGIN_DATA must be an absolute path, got: "${CLAUDE_PLUGIN_DATA}"`
+
+…your Claude Code build is not expanding the `${CLAUDE_PLUGIN_DATA}`
+template in the plugin's `mcpServers.env` block. Sia v1.3.2 and later
+detect this and fall back to `~/.sia/`, printing a one-line warning to
+stderr:
+
+> `[sia] warning: CLAUDE_PLUGIN_DATA='${CLAUDE_PLUGIN_DATA}' looks malformed; ignoring (using default home)`
+
+The server will still start. To file the upstream bug, include your
+`claude --version` and the platform (Linux distro / macOS).
