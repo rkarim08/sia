@@ -525,9 +525,7 @@ describe("promoteStagedEntities", () => {
 			execute: async (sql, params) => {
 				const res = await real.execute(sql, params);
 				if (/FROM\s+memory_staging/i.test(sql) && /SELECT\s+\*/i.test(sql)) {
-					res.rows = res.rows.map((r) =>
-						r.id === stagedId ? { ...r, trust_tier: null } : r,
-					);
+					res.rows = res.rows.map((r) => (r.id === stagedId ? { ...r, trust_tier: null } : r));
 				}
 				return res;
 			},

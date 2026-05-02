@@ -16,14 +16,25 @@ export type TaskType = "orientation" | "feature" | "bug-fix" | "regression" | "r
  * CLAUDE_PLUGIN_DATA, ensure it is set before this module is first imported.
  */
 export function resolveSiaHome(): string {
-	const pluginData = process.env.CLAUDE_PLUGIN_DATA;
-	if (pluginData !== undefined && pluginData !== "") {
-		if (!isAbsolute(pluginData)) {
-			throw new Error(`CLAUDE_PLUGIN_DATA must be an absolute path, got: "${pluginData}"`);
+	const raw = process.env.CLAUDE_PLUGIN_DATA;
+	const pluginData = raw?.trim() ?? "";
+
+	// Treat empty / unexpanded-template values as "not set" — fall through to default.
+	// Healthy Claude Code installs never produce these; broken installs do, and we
+	// would rather degrade to standalone mode than crash the MCP server.
+	if (pluginData === "" || pluginData.includes("${")) {
+		if (raw !== undefined && raw !== "") {
+			process.stderr.write(
+				`sia: CLAUDE_PLUGIN_DATA="${raw}" looks malformed (template not expanded?); falling back to ~/.sia\n`,
+			);
 		}
-		return pluginData;
+		return join(homedir(), ".sia");
 	}
-	return join(homedir(), ".sia");
+
+	if (!isAbsolute(pluginData)) {
+		throw new Error(`CLAUDE_PLUGIN_DATA must be an absolute path, got: "${raw}"`);
+	}
+	return pluginData;
 }
 
 export const SIA_HOME: string = resolveSiaHome();

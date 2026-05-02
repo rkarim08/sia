@@ -431,7 +431,7 @@ function extractKeywords(prompt: string): string[] {
 	]);
 	const seen = new Set<string>();
 	const out: string[] = [];
-	for (const tok of prompt.toLowerCase().split(/[^a-z0-9_\-]+/)) {
+	for (const tok of prompt.toLowerCase().split(/[^a-z0-9_-]+/)) {
 		if (tok.length < 4) continue;
 		if (STOP.has(tok)) continue;
 		if (seen.has(tok)) continue;
