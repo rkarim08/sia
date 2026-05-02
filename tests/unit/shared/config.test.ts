@@ -149,4 +149,22 @@ describe("SIA_HOME resolution", () => {
 		process.env.CLAUDE_PLUGIN_DATA = "relative/path";
 		expect(() => resolveSiaHome()).toThrow("must be an absolute path");
 	});
+
+	it("should fall back to ~/.sia when CLAUDE_PLUGIN_DATA contains an unexpanded template", () => {
+		process.env.CLAUDE_PLUGIN_DATA = "$" + "{CLAUDE_PLUGIN_DATA}";
+		const home = resolveSiaHome();
+		expect(home).toContain(".sia");
+		expect(home).not.toContain("${");
+	});
+
+	it("should fall back to ~/.sia when CLAUDE_PLUGIN_DATA is whitespace only", () => {
+		process.env.CLAUDE_PLUGIN_DATA = "   \n";
+		const home = resolveSiaHome();
+		expect(home).toContain(".sia");
+	});
+
+	it("should accept a whitespace-padded absolute path", () => {
+		process.env.CLAUDE_PLUGIN_DATA = " /tmp/padded-plugin-data\n";
+		expect(resolveSiaHome()).toBe("/tmp/padded-plugin-data");
+	});
 });
